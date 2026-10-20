@@ -1,0 +1,5 @@
+TAGIHAN LISTRIK PLN
+ID Pelanggan 512345678901
+Tarif I-3/TM
+Periode Mei 2025
+Pemakaian total 200.000 kWh

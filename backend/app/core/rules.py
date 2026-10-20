@@ -103,6 +103,7 @@ class Rule:
     primary: bool = False          # field yang menandai satu baris item
     row_label: str | None = None   # tabel matriks: label baris (mis. "cod")
     col_label: str | None = None   # tabel matriks: judul kolom (mis. "inlet")
+    row_reject: tuple[str, ...] = ()  # label baris tabel yang bukan untuk field ini (mis. "kVArh" di kolom kWh)
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,9 @@ class TypeRules:
     item_enum: str | None = None   # rule enum yang menandai baris item tanpa tabel
     hints: tuple[tuple[str, float], ...] = ()  # kata kunci klasifikasi (regex, bobot)
     negatives: tuple[str, ...] = ()
+    # Baris tabel tanpa kolom ini dianggap bagian dari SATU dokumen (mis. blok LWBP/WBP dalam satu
+    # tagihan) dan dijumlahkan menjadi satu item. Tabel yang punya kolom ini (rekap 12 bulan) tetap per baris.
+    collapse_without: str | None = None
 
     def get(self, key: str) -> Rule | None:
         return next((r for r in self.rules if r.key == key), None)
@@ -133,14 +137,14 @@ FUEL_ENUM = (r"b[i1l!]o\s*-?\s*s[o0]lar(?:\s*b\s?\d{2})?|solar\s*(?:industri\s*)
 FERT_ENUM = (r"npk(?:\s*(?:mutiara|phonska|pelangi|yaramila|kebomas))?(?:\s*\d{1,2}\s*[-.]\s*\d{1,2}\s*[-.]\s*\d{1,2}"
              r"(?:\s*[-.]\s*\d{1,2})?)?|\burea\b|\bmop\b|\bkcl\b|\bza\b|\btsp\b|\bsp\s*-?\s*36\b|\bdap\b|\bmap\b|"
              r"dolomit\w*|kieserit\w*|\bborate\b|rock\s*phosphate|\bkno3\b|\bnpk\b")
-WASTE_ENUM = (r"oli\s*bekas|minyak\s*pelumas\s*bekas|pelumas\s*bekas|aki\s*bekas|accu\s*bekas|majun(?:\s*terkontaminasi)?|"
+WASTE_ENUM = (r"oli\s*bekas|minyak\s*pelumas\s*bekas|pelumas\s*bekas|aki\s*(?:/\s*baterai\s*)?bekas|baterai\s*bekas|accu\s*bekas|majun(?:\s*terkontaminasi)?|"
               r"kain\s*terkontaminasi|filter\s*(?:oli|udara|solar)?\s*bekas|kemasan\s*(?:bekas\s*)?b3|abu\s*boiler|"
               r"fly\s*ash|bottom\s*ash|limbah\s*medis|lampu\s*(?:tl|bekas)|cartridge|toner|grease|sludge")
 MODE_ENUM = r"dump\s*truck|truk|truck|tronton|pick\s*-?up|kapal|tongkang|ponton|kereta|trailer"
 SOIL_ENUM = r"gambut|mineral|organosol|histosol|peat|spodosol|aluvial|alluvial|podsolik|latosol"
 WATER_ENUM = r"pdam|sumur\s*(?:bor|dalam|dangkal)|sungai|air\s*permukaan|air\s*tanah|embung|waduk|danau"
 TREAT_ENUM = (r"insinerasi|insinerator|incinerat\w*|landfill|penimbunan|pihak\s*ketiga|pemanfaatan|daur\s*ulang|recycl\w*|"
-              r"co-?processing|dikirim\s*ke\s*[^\n]{3,40}")
+              r"co-?processing|pengumpul(?:an)?(?:\s*berizin)?|dikirim\s*ke\s*[^\n]{3,40}")
 USAGE_ENUM = r"genset|generator|kendaraan|alat\s*berat|boiler|pabrik|kebun|traktor|truk|transport\w*|operasional"
 
 RULES: dict[str, TypeRules] = {}
@@ -169,15 +173,19 @@ _add(TypeRules("listrik", (
                                              r"penggunaan\s*listrik", r"energy\s*consumption", r"consumption", r"kwh\s*(?:terpakai|dibeli)",
                                              r"kwh"),
          weak=(r"total", r"jumlah"), unit="kWh", rng=(1, 5e10), avoid=(r"lwbp", r"wbp", r"kvarh", r"stand", r"blok\s*\d"),
-         reject=MONEY + ("stand", r"meter\s*awal", r"meter\s*akhir", "daya", "va", "kva", r"faktor\s*kali"), primary=True),
+         reject=MONEY + ("stand", r"meter\s*awal", r"meter\s*akhir", "daya", "va", "kva", r"faktor\s*kali"), primary=True,
+         row_reject=(r"kvarh", r"kvar", r"\bkva\b", r"\bdaya\b", r"reaktif", r"faktor\s*kali", r"stand")),
     Rule("billing_month", "month", anchors=(r"bulan\s*tagihan", r"rekening\s*bulan", r"tagihan\s*bulan", r"bulan\s*pemakaian",
-                                            r"periode(?:\s*tagihan)?", r"bulan", r"billing\s*period", r"month", r"masa"),
-         avoid=(r"jatuh\s*tempo", r"tgl\.?\s*bayar", r"tanggal\s*bayar", r"dicetak", r"tgl\.?\s*cetak", r"batas", r"due")),
+                                            r"periode(?:\s*(?:tagihan|pemakaian|rekening))?", r"bulan", r"billing\s*period", r"month",
+                                            r"masa"),
+         avoid=(r"jatuh\s*tempo", r"tgl\.?\s*bayar", r"tanggal\s*bayar", r"dicetak", r"tgl\.?\s*cetak", r"tanggal\s*cetak",
+                r"cetak", r"batas", r"due", r"tanggal\s*lunas", r"dibayar", r"tanggal\s*terbit", r"issued")),
     Rule("kwh_sold", "number", anchors=(r"dijual", r"penjualan\s*listrik", r"ekspor", r"export", r"disalurkan", r"dikirim\s*ke\s*jaringan"),
          unit="kWh", rng=(0, 5e10), reject=MONEY),
     Rule("customer_id", "text", anchors=(r"id\s*pelanggan", r"idpel", r"no\.?\s*pelanggan", r"nomor\s*pelanggan", r"customer\s*id"),
          values=r"\d[\dx\- ]{5,18}\d", item=False),
-), hints=((r"\bpln\b", 3), (r"\bkwh\b", 3), (r"tagihan\s*listrik|rekening\s*listrik", 4), (r"id\s*pelanggan|idpel", 2),
+), collapse_without="billing_month",
+   hints=((r"\bpln\b", 3), (r"\bkwh\b", 3), (r"tagihan\s*listrik|rekening\s*listrik", 4), (r"id\s*pelanggan|idpel", 2),
           (r"\blwbp\b|\bwbp\b", 3), (r"\bkvarh\b|\bkva\b|daya\s*terpasang", 2), (r"listrik|electricity", 2), (r"\bgenset\b", 0.5))))
 
 _add(TypeRules("pupuk", (

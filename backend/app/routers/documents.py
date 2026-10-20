@@ -15,15 +15,17 @@ from ..config import get_settings
 from ..core.catalog import DOC_TYPE_BY_CODE, DOC_TYPES
 from ..core.validation import validate_document
 from ..database import get_db
-from ..deps import current_user, get_document, get_period, require_roles
-from ..models import Document, ExtractedField, ReportingPeriod, User
+from ..deps import Ctx, company_ctx, ctx_roles, current_user, get_document, get_period
+from ..models import Document, ExtractedField, Facility, ReportingPeriod, User, utcnow
 from ..schemas import DocumentDetail, DocumentOut, DocumentPatch, FieldCreate, FieldOut, FieldUpdate, RejectIn
 from ..services import audit
 from ..services.period import mark_changed
 from ..services.pipeline import pages_dir, process_document, to_value
 
 router = APIRouter(tags=["dokumen"])
-writers = require_roles("admin", "operator", "reviewer")
+owner = ctx_roles("company")      # unggah, ajukan, hapus
+reviewer = ctx_roles("admin")     # setujui / kembalikan
+editors = company_ctx             # koreksi field: perusahaan, atau admin saat meninjau
 ALLOWED = {".pdf", ".xlsx", ".xlsm", ".csv", ".txt", ".docx", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".bmp"}
 
 
@@ -35,6 +37,14 @@ def document_types(user: User = Depends(current_user)):
          "fields": [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required} for f in d.fields]}
         for d in DOC_TYPES
     ]
+
+
+def _check_facility(db: Session, ctx: Ctx, facility_id: int | None) -> None:
+    if facility_id is None:
+        return
+    ok = db.scalar(select(Facility.id).where(Facility.id == facility_id, Facility.company_id == ctx.company_id))
+    if not ok:
+        raise HTTPException(422, "Fasilitas tidak ditemukan untuk perusahaan ini")
 
 
 def _safe_name(name: str) -> str:
@@ -49,15 +59,16 @@ async def upload_documents(
     files: list[UploadFile] = File(...),
     type_code: str | None = Form(default=None),
     facility_id: int | None = Form(default=None),
-    user: User = Depends(writers),
+    ctx: Ctx = Depends(owner),
     db: Session = Depends(get_db),
 ):
     """Unggah satu atau banyak berkas. Klasifikasi & ekstraksi berjalan di background."""
     settings = get_settings()
-    period = get_period(period_id, user, db, for_write=True)
+    period = get_period(period_id, ctx, db, for_write=True)
     if type_code and type_code not in DOC_TYPE_BY_CODE:
         raise HTTPException(422, "Kategori dokumen tidak dikenal")
-    folder = Path(settings.storage_dir) / str(user.company_id) / str(period.id)
+    _check_facility(db, ctx, facility_id)
+    folder = Path(settings.storage_dir) / str(ctx.company_id) / str(period.id)
     folder.mkdir(parents=True, exist_ok=True)
     created: list[Document] = []
     for up in files:
@@ -69,19 +80,27 @@ async def upload_documents(
             raise HTTPException(413, f"{up.filename} melebihi {settings.max_upload_mb} MB")
         digest = hashlib.sha256(data).hexdigest()
         dup = db.scalar(select(Document).where(Document.period_id == period.id, Document.sha256 == digest))
+        if dup and (dup.status in ("failed", "uploaded", "processing") or (dup.status == "needs_review" and not dup.fields)):
+            # berkas yang sama pernah gagal/kosong dibaca → baca ulang dokumen lama, jangan ditolak
+            dup.status, dup.error = "uploaded", None
+            if type_code:
+                dup.type_code = type_code
+            audit.log(db, ctx.user, ctx.company_id, "document", dup.id, "reprocess", f"Membaca ulang {dup.original_name}")
+            created.append(dup)
+            continue
         if dup:
             raise HTTPException(status.HTTP_409_CONFLICT, f"{up.filename} sama persis dengan dokumen #{dup.id} ({dup.original_name})")
         path = folder / f"{uuid.uuid4().hex[:12]}_{_safe_name(up.filename or 'berkas')}"
         path.write_bytes(data)
         doc = Document(
-            company_id=user.company_id, period_id=period.id, facility_id=facility_id, type_code=type_code,
+            company_id=ctx.company_id, period_id=period.id, facility_id=facility_id, type_code=type_code,
             original_name=(up.filename or path.name)[:255], stored_path=str(path),
             mime=up.content_type or mimetypes.guess_type(path.name)[0], size_bytes=len(data), sha256=digest,
-            status="uploaded", uploaded_by=user.id,
+            status="uploaded", uploaded_by=ctx.user.id,
         )
         db.add(doc)
         db.flush()
-        audit.log(db, user, user.company_id, "document", doc.id, "upload", f"Mengunggah {doc.original_name}")
+        audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "upload", f"Mengunggah {doc.original_name}")
         created.append(doc)
     mark_changed(period)
     db.commit()
@@ -95,11 +114,11 @@ def list_documents(
     period_id: int,
     type_code: str | None = Query(default=None),
     status_: str | None = Query(default=None, alias="status"),
-    user: User = Depends(current_user),
+    ctx: Ctx = Depends(company_ctx),
     db: Session = Depends(get_db),
 ):
-    period = get_period(period_id, user, db)
-    q = select(Document).where(Document.period_id == period.id, Document.company_id == user.company_id)
+    period = get_period(period_id, ctx, db)
+    q = select(Document).where(Document.period_id == period.id, Document.company_id == ctx.company_id)
     if type_code:
         q = q.where(Document.type_code == type_code)
     if status_:
@@ -135,13 +154,13 @@ def _detail(doc: Document) -> DocumentDetail:
 
 
 @router.get("/api/documents/{doc_id}", response_model=DocumentDetail)
-def get_document_detail(doc_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return _detail(get_document(doc_id, user, db))
+def get_document_detail(doc_id: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    return _detail(get_document(doc_id, ctx, db))
 
 
 @router.get("/api/documents/{doc_id}/file")
-def download_file(doc_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    doc = get_document(doc_id, user, db)
+def download_file(doc_id: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    doc = get_document(doc_id, ctx, db)
     p = Path(doc.stored_path)
     if not p.exists():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Berkas fisik tidak ditemukan di penyimpanan")
@@ -149,14 +168,24 @@ def download_file(doc_id: int, user: User = Depends(current_user), db: Session =
                         content_disposition_type="inline")
 
 
-def _period_for_write(doc: Document, user: User, db: Session) -> ReportingPeriod:
-    return get_period(doc.period_id, user, db, for_write=True)
+def _after_edit(doc: Document, ctx: Ctx, changed: bool) -> None:
+    """Koreksi oleh perusahaan pada dokumen yang sudah diajukan/disetujui → harus diajukan ulang.
+    Koreksi oleh admin saat meninjau tidak mengubah status (tercatat di jejak audit)."""
+    if not changed or ctx.is_admin:
+        return
+    if doc.status in ("validated", "approved", "rejected"):
+        doc.status = "needs_review"
+        doc.submitted_at = None
+
+
+def _period_for_write(doc: Document, ctx: Ctx, db: Session) -> ReportingPeriod:
+    return get_period(doc.period_id, ctx, db, for_write=True)
 
 
 @router.get("/api/documents/{doc_id}/pages/{n}")
-def page_image(doc_id: int, n: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+def page_image(doc_id: int, n: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
     """Gambar halaman untuk pratinjau dengan kotak sumber (PDF dirender, scan memakai citra yang diluruskan)."""
-    doc = get_document(doc_id, user, db)
+    doc = get_document(doc_id, ctx, db)
     cache = pages_dir(doc)
     cache.mkdir(parents=True, exist_ok=True)
     ocr_img = cache / f"p{n}.png"
@@ -191,19 +220,20 @@ def page_image(doc_id: int, n: int, user: User = Depends(current_user), db: Sess
 
 
 @router.patch("/api/documents/{doc_id}", response_model=DocumentDetail)
-def patch_document(doc_id: int, data: DocumentPatch, background: BackgroundTasks, user: User = Depends(writers),
+def patch_document(doc_id: int, data: DocumentPatch, background: BackgroundTasks, ctx: Ctx = Depends(editors),
                    db: Session = Depends(get_db)):
     """Ganti kategori → dokumen dibaca ulang dengan aturan kategori baru (di background)."""
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
     if data.facility_id is not None:
+        _check_facility(db, ctx, data.facility_id)
         doc.facility_id = data.facility_id
     if data.type_code and data.type_code != doc.type_code:
         if data.type_code not in DOC_TYPE_BY_CODE:
             raise HTTPException(422, "Kategori tidak dikenal")
         old = doc.type_code
         doc.status = "processing"
-        audit.log(db, user, user.company_id, "document", doc.id, "reclassify",
+        audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "reclassify",
                   f"Kategori {doc.original_name}: {old or '-'} → {data.type_code}")
         mark_changed(period)
         background.add_task(process_document, doc.id, data.type_code)
@@ -213,10 +243,10 @@ def patch_document(doc_id: int, data: DocumentPatch, background: BackgroundTasks
 
 
 @router.patch("/api/documents/{doc_id}/fields/{field_id}", response_model=DocumentDetail)
-def update_field(doc_id: int, field_id: int, data: FieldUpdate, user: User = Depends(writers), db: Session = Depends(get_db)):
+def update_field(doc_id: int, field_id: int, data: FieldUpdate, ctx: Ctx = Depends(editors), db: Session = Depends(get_db)):
     """Koreksi nilai, konfirmasi, atau pakai salah satu kandidat alternatif hasil ekstraksi."""
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
     f = next((x for x in doc.fields if x.id == field_id), None)
     if not f:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Field tidak ditemukan")
@@ -245,14 +275,13 @@ def update_field(doc_id: int, field_id: int, data: FieldUpdate, user: User = Dep
         alts[data.alt_index] = old_alt
         f.alternatives = alts
         f.snippet, f.page, f.bbox, f.method = alt.get("snippet"), alt.get("page"), alt.get("bbox"), alt.get("method")
-    f.value_text, f.value_num, f.confirmed, f.edited_by = vtext[:255], vnum, True, user.id
+    f.value_text, f.value_num, f.confirmed, f.edited_by = vtext[:255], vnum, True, ctx.user.id
     if changed:
         f.source = "manual"
         f.confidence = 1.0
-    if doc.status in ("validated", "approved"):
-        doc.status = "needs_review"  # data berubah → perlu divalidasi ulang
+    _after_edit(doc, ctx, changed)
     label = f"{f.label}{f' (baris {f.item + 1})' if f.item else ''}"
-    audit.log(db, user, user.company_id, "field", f.id, "update" if changed else "confirm",
+    audit.log(db, ctx.user, ctx.company_id, "field", f.id, "update" if changed else "confirm",
               f"{label} di {doc.original_name}: {before['value']} → {vtext}" if changed else f"Konfirmasi {label}",
               before, {"value": vtext}, data.reason)
     mark_changed(period)
@@ -262,10 +291,10 @@ def update_field(doc_id: int, field_id: int, data: FieldUpdate, user: User = Dep
 
 
 @router.post("/api/documents/{doc_id}/fields", response_model=DocumentDetail, status_code=201)
-def add_field(doc_id: int, data: FieldCreate, user: User = Depends(writers), db: Session = Depends(get_db)):
+def add_field(doc_id: int, data: FieldCreate, ctx: Ctx = Depends(editors), db: Session = Depends(get_db)):
     """Isi field secara manual (dokumen scan yang tidak terbaca, atau menambah baris baru)."""
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
     dt = DOC_TYPE_BY_CODE.get(doc.type_code or "")
     spec = dt.field(data.key) if dt else None
     if not spec:
@@ -277,11 +306,10 @@ def add_field(doc_id: int, data: FieldCreate, user: User = Depends(writers), db:
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     doc.fields.append(ExtractedField(item=data.item, key=spec.key, label=spec.label, value_text=vtext, value_num=vnum,
-                                     unit=spec.unit, confidence=1.0, confirmed=True, source="manual", edited_by=user.id,
+                                     unit=spec.unit, confidence=1.0, confirmed=True, source="manual", edited_by=ctx.user.id,
                                      snippet="Diisi manual", method="manual"))
-    if doc.status in ("validated", "approved"):
-        doc.status = "needs_review"
-    audit.log(db, user, user.company_id, "document", doc.id, "add_field",
+    _after_edit(doc, ctx, True)
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "add_field",
               f"Isi manual {spec.label}{f' (baris {data.item + 1})' if data.item else ''} = {vtext}")
     mark_changed(period)
     db.commit()
@@ -290,10 +318,10 @@ def add_field(doc_id: int, data: FieldCreate, user: User = Depends(writers), db:
 
 
 @router.delete("/api/documents/{doc_id}/items/{item}", response_model=DocumentDetail)
-def delete_item(doc_id: int, item: int, user: User = Depends(writers), db: Session = Depends(get_db)):
+def delete_item(doc_id: int, item: int, ctx: Ctx = Depends(editors), db: Session = Depends(get_db)):
     """Hapus satu baris hasil ekstraksi (mis. baris subtotal yang ikut terbaca)."""
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
     rows = [f for f in doc.fields if (f.item or 0) == item]
     if not rows:
         raise HTTPException(404, "Baris tidak ditemukan")
@@ -302,9 +330,8 @@ def delete_item(doc_id: int, item: int, user: User = Depends(writers), db: Sessi
     for f in doc.fields:
         if (f.item or 0) > item:
             f.item -= 1
-    if doc.status in ("validated", "approved"):
-        doc.status = "needs_review"
-    audit.log(db, user, user.company_id, "document", doc.id, "delete_item", f"Hapus baris {item + 1} di {doc.original_name}")
+    _after_edit(doc, ctx, True)
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "delete_item", f"Hapus baris {item + 1} di {doc.original_name}")
     mark_changed(period)
     db.commit()
     db.refresh(doc)
@@ -312,10 +339,14 @@ def delete_item(doc_id: int, item: int, user: User = Depends(writers), db: Sessi
 
 
 @router.post("/api/documents/{doc_id}/validate", response_model=DocumentDetail)
-def validate_doc(doc_id: int, user: User = Depends(writers), db: Session = Depends(get_db)):
-    """Operator mengonfirmasi semua field. Ditolak bila masih ada isu kritis."""
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+def submit_doc(doc_id: int, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    """Perusahaan mengonfirmasi semua field lalu mengajukan dokumen ke admin. Ditolak bila masih ada isu kritis."""
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
+    if doc.status in ("uploaded", "processing"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Dokumen masih dibaca. Tunggu sampai selesai.")
+    if doc.status == "approved":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Dokumen sudah disetujui admin")
     for f in doc.fields:
         f.confirmed = True
     items, _, _ = doc_items(doc)
@@ -323,8 +354,9 @@ def validate_doc(doc_id: int, user: User = Depends(writers), db: Session = Depen
     if crit:
         db.rollback()
         raise HTTPException(422, {"message": "Masih ada isu kritis", "issues": crit})
-    doc.status, doc.validated_by, doc.error = "validated", user.id, None
-    audit.log(db, user, user.company_id, "document", doc.id, "validate", f"Memvalidasi {doc.original_name}")
+    doc.status, doc.validated_by, doc.error = "validated", ctx.user.id, None
+    doc.submitted_at, doc.reviewed_at, doc.review_note, doc.approved_by = utcnow(), None, None, None
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "submit", f"Mengajukan {doc.original_name} untuk ditinjau")
     mark_changed(period)
     db.commit()
     db.refresh(doc)
@@ -332,26 +364,28 @@ def validate_doc(doc_id: int, user: User = Depends(writers), db: Session = Depen
 
 
 @router.post("/api/documents/{doc_id}/approve", response_model=DocumentDetail)
-def approve_doc(doc_id: int, user: User = Depends(require_roles("reviewer")), db: Session = Depends(get_db)):
-    doc = get_document(doc_id, user, db)
-    _period_for_write(doc, user, db)
+def approve_doc(doc_id: int, ctx: Ctx = Depends(reviewer), db: Session = Depends(get_db)):
+    """Admin peninjau menyetujui dokumen yang sudah diajukan perusahaan."""
+    doc = get_document(doc_id, ctx, db)
+    _period_for_write(doc, ctx, db)
     if doc.status != "validated":
-        raise HTTPException(status.HTTP_409_CONFLICT, "Hanya dokumen tervalidasi yang bisa disetujui")
-    if doc.validated_by == user.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Pemisahan peran: Anda tidak bisa menyetujui dokumen yang Anda validasi sendiri")
-    doc.status, doc.approved_by = "approved", user.id
-    audit.log(db, user, user.company_id, "document", doc.id, "approve", f"Menyetujui {doc.original_name}")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Hanya dokumen yang sudah diajukan perusahaan yang bisa disetujui")
+    doc.status, doc.approved_by, doc.reviewed_at, doc.review_note = "approved", ctx.user.id, utcnow(), None
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "approve", f"Menyetujui {doc.original_name}")
     db.commit()
     db.refresh(doc)
     return _detail(doc)
 
 
 @router.post("/api/documents/{doc_id}/reject", response_model=DocumentDetail)
-def reject_doc(doc_id: int, data: RejectIn, user: User = Depends(require_roles("reviewer", "admin")), db: Session = Depends(get_db)):
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
-    doc.status, doc.error = "rejected", f"Ditolak: {data.reason}"
-    audit.log(db, user, user.company_id, "document", doc.id, "reject", f"Menolak {doc.original_name}", reason=data.reason)
+def reject_doc(doc_id: int, data: RejectIn, ctx: Ctx = Depends(reviewer), db: Session = Depends(get_db)):
+    """Admin mengembalikan dokumen ke perusahaan dengan alasan; perusahaan memperbaiki lalu mengajukan ulang."""
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
+    doc.status, doc.approved_by, doc.reviewed_at, doc.review_note = "rejected", ctx.user.id, utcnow(), data.reason
+    doc.error = None
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "reject", f"Mengembalikan {doc.original_name}",
+              reason=data.reason)
     mark_changed(period)
     db.commit()
     db.refresh(doc)
@@ -359,9 +393,11 @@ def reject_doc(doc_id: int, data: RejectIn, user: User = Depends(require_roles("
 
 
 @router.post("/api/documents/{doc_id}/reprocess", response_model=DocumentOut)
-def reprocess(doc_id: int, background: BackgroundTasks, user: User = Depends(writers), db: Session = Depends(get_db)):
-    doc = get_document(doc_id, user, db)
-    _period_for_write(doc, user, db)
+def reprocess(doc_id: int, background: BackgroundTasks, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    doc = get_document(doc_id, ctx, db)
+    _period_for_write(doc, ctx, db)
+    if doc.status == "approved":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Dokumen sudah disetujui admin dan tidak dibaca ulang")
     doc.status = "uploaded"
     db.commit()
     background.add_task(process_document, doc.id)
@@ -369,11 +405,13 @@ def reprocess(doc_id: int, background: BackgroundTasks, user: User = Depends(wri
 
 
 @router.delete("/api/documents/{doc_id}", status_code=204)
-def delete_doc(doc_id: int, user: User = Depends(writers), db: Session = Depends(get_db)):
-    doc = get_document(doc_id, user, db)
-    period = _period_for_write(doc, user, db)
+def delete_doc(doc_id: int, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    doc = get_document(doc_id, ctx, db)
+    period = _period_for_write(doc, ctx, db)
+    if doc.status == "approved":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Dokumen yang sudah disetujui tidak bisa dihapus. Minta admin mengembalikannya.")
     path = Path(doc.stored_path)
-    audit.log(db, user, user.company_id, "document", doc.id, "delete", f"Menghapus {doc.original_name}")
+    audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "delete", f"Menghapus {doc.original_name}")
     db.delete(doc)
     mark_changed(period)
     db.commit()

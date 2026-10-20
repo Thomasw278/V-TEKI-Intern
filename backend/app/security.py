@@ -20,7 +20,7 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
-def create_token(user_id: int, company_id: int, role: str) -> str:
+def create_token(user_id: int, company_id: int | None, role: str) -> str:
     s = get_settings()
     now = datetime.now(timezone.utc)
     payload = {

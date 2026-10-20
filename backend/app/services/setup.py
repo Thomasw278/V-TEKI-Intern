@@ -1,4 +1,4 @@
-"""Seed katalog & pendaftaran perusahaan baru."""
+"""Katalog jenis dokumen, faktor emisi bawaan, dan pendaftaran perusahaan baru."""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -47,8 +47,8 @@ def register_company(db: Session, data: RegisterIn) -> tuple[User, Company]:
             continue
         seen.add(p.code)
         db.add(Product(company_id=company.id, **p.model_dump()))
-    user = User(company_id=company.id, name=data.admin.name, email=data.admin.email.lower(),
-                password_hash=hash_password(data.admin.password), role="admin")
+    user = User(company_id=company.id, name=data.account.name, email=data.account.email.lower(),
+                password_hash=hash_password(data.account.password), role="company")
     db.add(user)
     db.add(ReportingPeriod(company_id=company.id, year=data.first_year))
     create_company_factors(db, company)

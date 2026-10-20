@@ -222,6 +222,22 @@ def _fuse(passes: list[list[Word]]) -> list[Word]:
     return out
 
 
+def _drop_giants(words: list[Word]) -> tuple[list[Word], str]:
+    """Buang huruf raksasa yang berdiri sendiri (watermark diagonal yang lolos pembersihan)."""
+    if len(words) < 12:
+        return words, ""
+    hs = sorted(w.h for w in words)
+    med = hs[len(hs) // 2]
+    keep, gone = [], []
+    for w in words:
+        alnum = sum(ch.isalnum() for ch in w.text)
+        if w.h > med * 3.2 and alnum <= 3 and not any(ch.isdigit() for ch in w.text):
+            gone.append(w.text)
+        else:
+            keep.append(w)
+    return keep, "".join(gone)[:30]
+
+
 def ocr_image(img) -> OcrResult | None:
     """OCR berlapis: beberapa mode segmentasi × tingkat pembersihan derau, lalu difusi per posisi kata."""
     from PIL import ImageFilter
@@ -236,6 +252,9 @@ def ocr_image(img) -> OcrResult | None:
         passes += [_run(strong, 6), _run(strong, 11)]
         fused = _fuse(passes)
         notes.append("Derau terdeteksi: hasil beberapa pembacaan OCR digabung.")
+    fused, dropped = _drop_giants(fused)
+    if dropped:
+        notes.append(f"Huruf watermark/stempel diabaikan: {dropped}")
     mean = _mean(fused)
     if fused and mean < 0.7:
         notes.append(f"Kualitas scan rendah (keyakinan OCR rata-rata {mean:.0%}). Periksa angka dengan teliti.")

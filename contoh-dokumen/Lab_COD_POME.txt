@@ -1,5 +1,0 @@
-LAPORAN LAB LIMBAH CAIR POME 2025
-Volume POME 72.000 m3
-COD inlet 50.000 mg/L
-COD outlet 5.000 mg/L
-Kolam anaerob terbuka

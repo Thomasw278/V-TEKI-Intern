@@ -220,11 +220,19 @@ def validate_period(
                 issues.append(Issue("critical", "CATEGORY_MISSING", f"{dt.name} belum ada",
                                     "Kategori wajib belum memiliki dokumen tervalidasi.", "category", dt.code))
 
-    # Dokumen belum ditinjau
+    # Dokumen belum diajukan / dikembalikan / menunggu admin
     pending = [x for x in docs if x.status == "needs_review"]
     if pending:
-        issues.append(Issue("warning", "PENDING_REVIEW", f"{len(pending)} dokumen perlu tinjauan",
-                            "Dokumen ini belum ikut dihitung sampai divalidasi.", "period"))
+        issues.append(Issue("warning", "PENDING_REVIEW", f"{len(pending)} dokumen belum diajukan",
+                            "Periksa angkanya lalu ajukan ke admin. Dokumen ini belum ikut dihitung.", "period"))
+    rejected = [x for x in docs if x.status == "rejected"]
+    if rejected:
+        issues.append(Issue("warning", "DOC_REJECTED", f"{len(rejected)} dokumen dikembalikan admin",
+                            "Perbaiki sesuai catatan admin lalu ajukan ulang.", "period"))
+    waiting = [x for x in docs if x.status == "validated"]
+    if waiting:
+        issues.append(Issue("info", "WAITING_APPROVAL", f"{len(waiting)} dokumen menunggu persetujuan admin",
+                            "Sudah ikut dihitung sebagai draf; laporan final menunggu persetujuan.", "period"))
 
     # Cakupan 12 bulan tagihan listrik
     months = _months_covered([x for x in counted if x.type_code == "listrik"], year)
@@ -270,5 +278,5 @@ def validate_period(
     if drafts:
         names = ", ".join(FACTOR_BY_CODE[c].name if c in FACTOR_BY_CODE else c for c in drafts)
         issues.append(Issue("warning", "FACTOR_DRAFT", f"{len(drafts)} faktor emisi belum disetujui",
-                            f"Draf: {names}. Hasil hanya untuk internal sampai disetujui reviewer.", "factor"))
+                            f"Draf: {names}. Hasil hanya untuk internal sampai disetujui admin peninjau.", "factor"))
     return issues

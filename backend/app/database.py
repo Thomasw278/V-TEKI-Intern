@@ -53,3 +53,28 @@ def ensure_columns() -> list[str]:
                 conn.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {col.name} {ddl_type} NULL{default}"))
             added.append(f"{table.name}.{col.name}")
     return added
+
+
+def migrate_legacy() -> list[str]:
+    """Menyesuaikan database versi lama ke skema dua peran (perusahaan & admin).
+
+    - users.company_id dibuat boleh NULL (akun admin tidak terikat satu perusahaan)
+    - peran lama (admin/operator/reviewer/viewer milik perusahaan) → "company"
+    Aman dijalankan berulang kali.
+    """
+    from sqlalchemy import inspect, text
+
+    done = []
+    insp = inspect(engine)
+    if not insp.has_table("users"):
+        return done
+    cols = {c["name"]: c for c in insp.get_columns("users")}
+    if engine.dialect.name == "mysql" and "company_id" in cols and not cols["company_id"].get("nullable", True):
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users MODIFY company_id INT NULL"))
+        done.append("users.company_id → NULL")
+    with engine.begin() as conn:
+        n = conn.execute(text("UPDATE users SET role = 'company' WHERE company_id IS NOT NULL AND role <> 'company'")).rowcount
+    if n:
+        done.append(f"{n} akun lama → peran perusahaan")
+    return done

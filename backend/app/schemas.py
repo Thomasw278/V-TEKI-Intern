@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-Role = Literal["admin", "operator", "reviewer", "viewer"]
+Role = Literal["company", "admin"]
 
 
 class ORM(BaseModel):
@@ -64,7 +64,8 @@ class CompanyOut(CompanyIn, ORM):
     created_at: datetime
 
 
-class AdminIn(BaseModel):
+class AccountIn(BaseModel):
+    """Akun login perusahaan: nama penanggung jawab, email perusahaan, kata sandi."""
     name: str = Field(min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -74,7 +75,7 @@ class RegisterIn(BaseModel):
     company: CompanyIn
     facilities: list[FacilityIn] = Field(default_factory=list)
     products: list[ProductIn] = Field(min_length=1)
-    admin: AdminIn
+    account: AccountIn
     first_year: int = Field(ge=2000, le=2100)
 
 
@@ -90,19 +91,25 @@ class UserOut(ORM):
     email: str
     role: str
     is_active: bool
-    company_id: int
+    company_id: int | None = None
 
 
-class UserCreate(BaseModel):
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ProfileUpdate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
-    email: EmailStr
-    role: Role = "operator"
-    password: str = Field(min_length=8, max_length=128)
 
 
-class UserUpdate(BaseModel):
-    role: Role | None = None
-    is_active: bool | None = None
+class CompanyBrief(ORM):
+    """Ringkasan perusahaan untuk daftar milik admin."""
+    id: int
+    name: str
+    city: str | None = None
+    province: str | None = None
+    sector: str | None = None
 
 
 class PeriodOut(ORM):
@@ -117,8 +124,9 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
-    company: CompanyOut
-    periods: list[PeriodOut]
+    company: CompanyOut | None = None          # akun perusahaan
+    periods: list[PeriodOut] = Field(default_factory=list)
+    companies: list[CompanyBrief] = Field(default_factory=list)  # akun admin: perusahaan yang ditinjau
 
 
 class PeriodCreate(BaseModel):
@@ -161,6 +169,9 @@ class DocumentOut(ORM):
     page_count: int | None = None
     extract_mode: str | None = None
     created_at: datetime
+    submitted_at: datetime | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
 
 
 class DocumentDetail(DocumentOut):

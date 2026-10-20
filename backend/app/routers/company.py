@@ -1,32 +1,43 @@
+"""Profil perusahaan, fasilitas, dan produk.
+
+Diubah oleh akun perusahaan sendiri; admin peninjau dapat melihat (hanya baca).
+"""
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..deps import current_user, require_roles
-from ..models import Company, Facility, Product, User
-from ..schemas import (
-    CompanyIn, CompanyOut, FacilityIn, FacilityOut, ProductIn, ProductOut, UserCreate, UserOut, UserUpdate,
-)
-from ..security import hash_password
+from ..deps import Ctx, company_ctx, ctx_roles
+from ..models import AdminCompany, Company, Facility, Product, User
+from ..schemas import CompanyIn, CompanyOut, FacilityIn, FacilityOut, ProductIn, ProductOut
 from ..services import audit
 
 router = APIRouter(prefix="/api/company", tags=["perusahaan"])
-admin_only = require_roles("admin")
+owner = ctx_roles("company")
 
 
 @router.get("", response_model=CompanyOut)
-def get_company(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return db.get(Company, user.company_id)
+def get_company(ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    return db.get(Company, ctx.company_id)
+
+
+@router.get("/reviewers")
+def list_reviewers(ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    """Admin peninjau yang ditugaskan untuk perusahaan ini (diatur oleh superuser)."""
+    rows = db.execute(
+        select(User.name, User.email, AdminCompany.assigned_at).join(AdminCompany, AdminCompany.admin_id == User.id)
+        .where(AdminCompany.company_id == ctx.company_id, User.is_active.is_(True)).order_by(User.name)
+    ).all()
+    return [{"name": n, "email": e, "assigned_at": a.isoformat() if a else None} for n, e, a in rows]
 
 
 @router.put("", response_model=CompanyOut)
-def update_company(data: CompanyIn, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    c = db.get(Company, user.company_id)
+def update_company(data: CompanyIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    c = db.get(Company, ctx.company_id)
     before = CompanyIn.model_validate(c, from_attributes=True).model_dump(mode="json")
     for k, v in data.model_dump().items():
         setattr(c, k, v)
-    audit.log(db, user, c.id, "company", c.id, "update", "Profil & parameter perusahaan diperbarui",
+    audit.log(db, ctx.user, c.id, "company", c.id, "update", "Profil & parameter perusahaan diperbarui",
               before, data.model_dump(mode="json"))
     db.commit()
     return c
@@ -34,41 +45,41 @@ def update_company(data: CompanyIn, user: User = Depends(admin_only), db: Sessio
 
 # ---------------------------------------------------------------- fasilitas
 @router.get("/facilities", response_model=list[FacilityOut])
-def list_facilities(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return db.scalars(select(Facility).where(Facility.company_id == user.company_id).order_by(Facility.id)).all()
+def list_facilities(ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    return db.scalars(select(Facility).where(Facility.company_id == ctx.company_id).order_by(Facility.id)).all()
 
 
 @router.post("/facilities", response_model=FacilityOut, status_code=201)
-def add_facility(data: FacilityIn, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    f = Facility(company_id=user.company_id, **data.model_dump())
+def add_facility(data: FacilityIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    f = Facility(company_id=ctx.company_id, **data.model_dump())
     db.add(f)
     db.flush()
-    audit.log(db, user, user.company_id, "facility", f.id, "create", f"Fasilitas {f.name} ditambahkan")
+    audit.log(db, ctx.user, ctx.company_id, "facility", f.id, "create", f"Fasilitas {f.name} ditambahkan")
     db.commit()
     return f
 
 
-def _facility(fid: int, user: User, db: Session) -> Facility:
-    f = db.scalar(select(Facility).where(Facility.id == fid, Facility.company_id == user.company_id))
+def _facility(fid: int, ctx: Ctx, db: Session) -> Facility:
+    f = db.scalar(select(Facility).where(Facility.id == fid, Facility.company_id == ctx.company_id))
     if not f:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Fasilitas tidak ditemukan")
     return f
 
 
 @router.put("/facilities/{fid}", response_model=FacilityOut)
-def update_facility(fid: int, data: FacilityIn, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    f = _facility(fid, user, db)
+def update_facility(fid: int, data: FacilityIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    f = _facility(fid, ctx, db)
     for k, v in data.model_dump().items():
         setattr(f, k, v)
-    audit.log(db, user, user.company_id, "facility", f.id, "update", f"Fasilitas {f.name} diperbarui")
+    audit.log(db, ctx.user, ctx.company_id, "facility", f.id, "update", f"Fasilitas {f.name} diperbarui")
     db.commit()
     return f
 
 
 @router.delete("/facilities/{fid}", status_code=204)
-def delete_facility(fid: int, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    f = _facility(fid, user, db)
-    audit.log(db, user, user.company_id, "facility", f.id, "delete", f"Fasilitas {f.name} dihapus")
+def delete_facility(fid: int, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    f = _facility(fid, ctx, db)
+    audit.log(db, ctx.user, ctx.company_id, "facility", f.id, "delete", f"Fasilitas {f.name} dihapus")
     db.delete(f)
     db.commit()
     return Response(status_code=204)
@@ -76,76 +87,48 @@ def delete_facility(fid: int, user: User = Depends(admin_only), db: Session = De
 
 # ---------------------------------------------------------------- produk
 @router.get("/products", response_model=list[ProductOut])
-def list_products(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return db.scalars(select(Product).where(Product.company_id == user.company_id).order_by(Product.id)).all()
+def list_products(ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    return db.scalars(select(Product).where(Product.company_id == ctx.company_id).order_by(Product.id)).all()
 
 
 @router.post("/products", response_model=ProductOut, status_code=201)
-def add_product(data: ProductIn, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    if db.scalar(select(Product.id).where(Product.company_id == user.company_id, Product.code == data.code)):
+def add_product(data: ProductIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    if db.scalar(select(Product.id).where(Product.company_id == ctx.company_id, Product.code == data.code)):
         raise HTTPException(status.HTTP_409_CONFLICT, f"Kode produk {data.code} sudah ada")
-    p = Product(company_id=user.company_id, **data.model_dump())
+    p = Product(company_id=ctx.company_id, **data.model_dump())
     db.add(p)
     db.flush()
-    audit.log(db, user, user.company_id, "product", p.id, "create", f"Produk {p.code} ditambahkan")
+    audit.log(db, ctx.user, ctx.company_id, "product", p.id, "create", f"Produk {p.code} ditambahkan")
     db.commit()
     return p
 
 
-@router.put("/products/{pid}", response_model=ProductOut)
-def update_product(pid: int, data: ProductIn, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    p = db.scalar(select(Product).where(Product.id == pid, Product.company_id == user.company_id))
+def _product(pid: int, ctx: Ctx, db: Session) -> Product:
+    p = db.scalar(select(Product).where(Product.id == pid, Product.company_id == ctx.company_id))
     if not p:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Produk tidak ditemukan")
+    return p
+
+
+@router.put("/products/{pid}", response_model=ProductOut)
+def update_product(pid: int, data: ProductIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    p = _product(pid, ctx, db)
+    if data.code != p.code and db.scalar(select(Product.id).where(Product.company_id == ctx.company_id,
+                                                                    Product.code == data.code)):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Kode produk {data.code} sudah ada")
     for k, v in data.model_dump().items():
         setattr(p, k, v)
-    audit.log(db, user, user.company_id, "product", p.id, "update", f"Produk {p.code} diperbarui")
+    audit.log(db, ctx.user, ctx.company_id, "product", p.id, "update", f"Produk {p.code} diperbarui")
     db.commit()
     return p
 
 
 @router.delete("/products/{pid}", status_code=204)
-def delete_product(pid: int, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    p = db.scalar(select(Product).where(Product.id == pid, Product.company_id == user.company_id))
-    if not p:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Produk tidak ditemukan")
-    audit.log(db, user, user.company_id, "product", p.id, "delete", f"Produk {p.code} dihapus")
+def delete_product(pid: int, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    p = _product(pid, ctx, db)
+    if db.scalar(select(Product.id).where(Product.company_id == ctx.company_id).limit(2).offset(1)) is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Minimal harus ada satu produk untuk alokasi emisi")
+    audit.log(db, ctx.user, ctx.company_id, "product", p.id, "delete", f"Produk {p.code} dihapus")
     db.delete(p)
     db.commit()
     return Response(status_code=204)
-
-
-# ---------------------------------------------------------------- pengguna
-@router.get("/users", response_model=list[UserOut])
-def list_users(user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    return db.scalars(select(User).where(User.company_id == user.company_id).order_by(User.id)).all()
-
-
-@router.post("/users", response_model=UserOut, status_code=201)
-def add_user(data: UserCreate, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    """Admin membuat akun Operator/Reviewer/Viewer dengan kata sandi awal."""
-    if db.scalar(select(User.id).where(User.email == data.email.lower())):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Email sudah dipakai")
-    u = User(company_id=user.company_id, name=data.name, email=data.email.lower(),
-             password_hash=hash_password(data.password), role=data.role)
-    db.add(u)
-    db.flush()
-    audit.log(db, user, user.company_id, "user", u.id, "create", f"Akun {u.email} ({u.role}) dibuat")
-    db.commit()
-    return u
-
-
-@router.patch("/users/{uid}", response_model=UserOut)
-def update_user(uid: int, data: UserUpdate, user: User = Depends(admin_only), db: Session = Depends(get_db)):
-    u = db.scalar(select(User).where(User.id == uid, User.company_id == user.company_id))
-    if not u:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pengguna tidak ditemukan")
-    if u.id == user.id and (data.role not in (None, "admin") or data.is_active is False):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tidak bisa menurunkan peran atau menonaktifkan akun sendiri")
-    if data.role is not None:
-        u.role = data.role
-    if data.is_active is not None:
-        u.is_active = data.is_active
-    audit.log(db, user, user.company_id, "user", u.id, "update", f"Akun {u.email} diperbarui")
-    db.commit()
-    return u

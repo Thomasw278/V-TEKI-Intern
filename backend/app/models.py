@@ -1,4 +1,13 @@
-"""Model tabel MySQL (SQLAlchemy 2.0). Semua tabel bisnis punya company_id."""
+"""Model tabel MySQL (SQLAlchemy 2.0).
+
+Dua jenis akun:
+- company : akun perusahaan yang mendaftar sendiri. Mengunggah dokumen, memeriksa hasil baca,
+            mengajukan dokumen, dan menjalankan kalkulasi untuk perusahaannya sendiri.
+- admin   : peninjau (reviewer). Hanya dibuat oleh superuser lewat database/CLI (python -m app.cli),
+            lalu ditugaskan ke satu atau beberapa perusahaan melalui tabel admin_companies.
+
+Semua tabel bisnis punya company_id sehingga data antarperusahaan terpisah.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -49,15 +58,24 @@ class Company(TimestampMixin, Base):
 class User(TimestampMixin, Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True)
+    # akun perusahaan → id perusahaannya; akun admin → NULL (perusahaan lewat admin_companies)
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(190), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(16), default="operator")  # admin | operator | reviewer | viewer
+    role: Mapped[str] = mapped_column(String(16), default="company")  # company | admin
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    company: Mapped[Company] = relationship(back_populates="users")
+    company: Mapped[Company | None] = relationship(back_populates="users")
+
+
+class AdminCompany(Base):
+    """Penugasan admin (peninjau) ke perusahaan. Diisi oleh superuser."""
+    __tablename__ = "admin_companies"
+    admin_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), primary_key=True, index=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Facility(TimestampMixin, Base):
@@ -128,7 +146,8 @@ class Document(TimestampMixin, Base):
     size_bytes: Mapped[int] = mapped_column(Integer, default=0)
     sha256: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(20), default="uploaded")
-    # uploaded | processing | needs_review | validated | approved | rejected | failed
+    # uploaded | processing | needs_review (diperiksa perusahaan) | validated (diajukan ke admin)
+    # | approved (disetujui admin) | rejected (dikembalikan admin) | failed
     classify_confidence: Mapped[float | None] = mapped_column(Numeric(4, 2, asdecimal=False))
     extract_method: Mapped[str | None] = mapped_column(String(40))
     doc_number: Mapped[str | None] = mapped_column(String(80))
@@ -141,8 +160,11 @@ class Document(TimestampMixin, Base):
     extract_mode: Mapped[str | None] = mapped_column(String(20))  # tabel | item | kunci-nilai | kosong
     error: Mapped[str | None] = mapped_column(Text)
     uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
-    validated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
-    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    validated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))   # perusahaan mengajukan
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))    # admin menyetujui/menolak
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    review_note: Mapped[str | None] = mapped_column(String(255))
 
     fields: Mapped[list[ExtractedField]] = relationship(
         back_populates="document", cascade="all, delete-orphan", order_by="[ExtractedField.item, ExtractedField.id]")

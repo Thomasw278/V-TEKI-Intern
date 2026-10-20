@@ -84,6 +84,16 @@ def plain(v: Decimal) -> str:
     return s
 
 
+def _fmt_id(v: Decimal) -> str:
+    """Format angka gaya Indonesia untuk catatan: 345200 → 345.200; 0,5 → 0,5."""
+    q = v.normalize()
+    whole, _, frac = format(q, "f").partition(".")
+    neg = whole.startswith("-")
+    whole = whole.lstrip("-")
+    grouped = f"{int(whole):,}".replace(",", ".") if whole else "0"
+    return ("-" if neg else "") + grouped + (f",{frac}" if frac else "")
+
+
 # ====================================================================== pandangan baris
 NUM_RE = re.compile(r"\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?")
 DATE_RE = re.compile(
@@ -229,6 +239,8 @@ def months_spans(text: str) -> list[tuple[int, int, int, int, str]]:
                 continue
             if kind == "name":
                 mon, yr = MONTHS[m.group(1).lower()], int(m.group(2))
+                if re.search(r"(?<![\d.,])\d{1,2}\s*$", text[max(0, m.start() - 4):m.start()]):
+                    kind = "day"  # "3 Februari 2026" adalah tanggal, bukan periode
             elif kind == "mm/yyyy":
                 mon, yr = int(m.group(1)), int(m.group(2))
             elif kind == "yyyy-mm":
@@ -590,28 +602,49 @@ class Extractor:
         return "", [], "", ""
 
     def kv_month(self, rule: Rule) -> list[Cand]:
+        """Bulan tagihan: bulan yang paling dekat di kanan/bawah label, bukan sembarang tanggal di baris yang sama.
+
+        "Periode Tagihan : Januari 2026   Tanggal Cetak : 3 Februari 2026" → Januari (Februari milik label lain).
+        """
         cands = []
         anchor = _rx(rule.anchors)
+        avoid = _rx(tuple(rule.avoid))
+        label_word = re.compile(r"[a-z]{3,}")
         for views in self.pages:
             for v in views:
-                am = anchor.search(v.low) if anchor else None
+                anchors = list(anchor.finditer(v.low)) if anchor else []
                 for yr, mon, a, b, kind in months_spans(v.text):
-                    s = 0.6 if kind != "date" else 0.45
-                    if am and am.start() <= a:
-                        s = 0.93 if kind != "date" else 0.7
-                    s *= _avoid_factor(rule, v)
-                    cands.append(Cand(rule.key, f"{yr:04d}-{mon:02d}", s, "label" if am else "pola", v.page.number,
-                                      v.words_in(a, b), v.text))
+                    near = [m for m in anchors if m.end() <= a]
+                    am = near[-1] if near else None
+                    local = v.low[max(0, a - 28):a]
+                    if am is not None:
+                        between = v.low[am.end():a]
+                        words = [w for w in label_word.findall(between) if w not in MONTHS]
+                        owned = not words  # tidak ada label lain di antara label dan bulan
+                        local = between
+                    else:
+                        owned = False
+                    if owned:
+                        s = {"name": 0.95, "mm/yyyy": 0.93, "yyyy-mm": 0.9, "day": 0.62, "date": 0.6}.get(kind, 0.6)
+                        method = "label"
+                    else:
+                        s = {"name": 0.5, "mm/yyyy": 0.48, "yyyy-mm": 0.45, "day": 0.22, "date": 0.2}.get(kind, 0.3)
+                        method = "pola"
+                    if avoid and avoid.search(local):
+                        s *= 0.3
+                    cands.append(Cand(rule.key, f"{yr:04d}-{mon:02d}", s, method, v.page.number, v.words_in(a, b), v.text))
             # label di atas, bulan di bawahnya (kotak formulir)
             for li, v in enumerate(views):
                 am = anchor.search(v.low) if anchor else None
                 if not am or months_spans(v.text[am.end():]):
                     continue
+                if avoid and avoid.search(v.low[max(0, am.start() - 12):am.end()]):
+                    continue
                 arange = v.seg_range(v.seg_at(am.start()))
                 for w in views[li + 1:li + 3]:
                     for yr, mon, a, b, kind in months_spans(w.text):
-                        if _overlaps(arange, w.seg_range(w.seg_at(a)), v.kind) and kind != "date":
-                            cands.append(Cand(rule.key, f"{yr:04d}-{mon:02d}", 0.9 * _avoid_factor(rule, v), "bawah",
+                        if _overlaps(arange, w.seg_range(w.seg_at(a)), v.kind) and kind not in ("date", "day"):
+                            cands.append(Cand(rule.key, f"{yr:04d}-{mon:02d}", 0.9, "bawah",
                                               w.page.number, w.words_in(a, b), f"{v.text}  ↓  {w.text}"))
         return cands
 
@@ -648,6 +681,11 @@ class Extractor:
 
     # ------------------------------------------------------------------ tabel
     def tables(self) -> tuple[list[dict[str, FieldResult]], dict[str, Decimal], str]:
+        """Semua tabel kandidat dikumpulkan; tabel yang sama (judul berulang di halaman lain) digabung.
+
+        Dua tabel berbeda yang kebetulan punya kolom sejenis (mis. tabel stand meter dan tabel biaya
+        di tagihan PLN) tidak digabung; yang dipilih adalah tabel dengan skor tertinggi.
+        """
         self.table_keys: set[str] = set()
         best: dict | None = None
         groups: dict[tuple, dict] = {}
@@ -656,13 +694,21 @@ class Extractor:
                 hit = self._table_at(views, li)
                 if not hit:
                     continue
-                sig = tuple(sorted(hit["mapping"].values()))
-                g = groups.setdefault(sig, {"rows": [], "totals": {}, "score": 0.0, "pages": set(), "keys": set(sig)})
+                sig = (tuple(sorted(hit["mapping"].values())), hit["head"])
+                g = groups.setdefault(sig, {"rows": [], "totals": {}, "score": 0.0, "pages": set(),
+                                            "keys": set(hit["mapping"].values())})
                 g["rows"].extend(hit["rows"])
                 g["totals"].update(hit["totals"])
                 g["score"] += hit["score"]
                 g["pages"].add(v.page.number)
-        for sig, g in groups.items():
+        prim = self.tr.primary
+        for g in groups.values():
+            if prim and prim.key in g["totals"]:
+                tot = g["totals"][prim.key]
+                s = sum((Decimal(r[prim.key].value) for r in g["rows"] if prim.key in r), Decimal(0))
+                if tot and abs(s - tot) / tot <= Decimal("0.005"):
+                    g["score"] += 2.5  # baris tabel cocok dengan baris TOTAL-nya
+        for g in groups.values():
             if g["rows"] and (best is None or g["score"] > best["score"]):
                 best = g
         if not best:
@@ -746,6 +792,10 @@ class Extractor:
         prev_y = h.line.y1
         med_h = (h.line.y1 - h.line.y0) or 1
         misses = 0
+        head_norm = re.sub(r"\W+", " ", h.low).strip()
+        text_cols = [si for si, k in mapping.items() if (r := self._rule(k)) and r.kind in ("text", "enum")]
+        row_views: list[int] = []          # indeks baris dokumen untuk setiap item
+        loose: list[int] = []              # baris tanpa angka di dalam tabel (teks sel yang terbungkus)
         for j in range(start, len(views)):
             r = views[j]
             gap = r.line.y0 - prev_y
@@ -754,40 +804,106 @@ class Extractor:
             prev_y = r.line.y1
             cells = self._cells(r, band, len(heads))
             first = next((t for t, _ in cells if t.strip()), "")
-            if not r.nums:
+            real_nums = [n for n in r.nums if not n.year_ctx]
+            if not real_nums:
+                if re.sub(r"\W+", " ", r.low).strip() == head_norm:
+                    continue  # judul kolom berulang (tabel bersambung)
+                alpha_segs = sum(1 for i in range(len(r.line.segments)) if re.search(r"[a-zA-Z]{2,}", r.seg_text(i)))
+                if alpha_segs >= 3 and alpha_segs >= len(heads) - 2:
+                    break  # judul tabel lain dimulai
                 misses += 1
-                if misses >= 2:
+                if misses >= 3:
                     break
+                loose.append(j)
                 continue
-            if self._map_header(r) and sum(1 for t, _ in cells if t.strip()) >= 2 and len(self._map_header(r)) >= len(mapping) - 1 and not any(n.unit_dim for n in r.nums):
-                continue  # judul berulang
-            misses = 0
-            if SKIP_ROW_RE.match(first):
-                continue
-            item: dict[str, FieldResult] = {}
-            for si, key in mapping.items():
-                rule = self._rule(key)
-                text, words = cells[si]
-                if not text.strip():
-                    continue
-                fr = self._cell_value(rule, r, text, words, units.get(si),
-                                      cells[unit_col][0] if unit_col is not None else "", h)
-                if fr:
-                    item[key] = fr
-            if TOTAL_RE.match(first) and not (SKIP_ROW_RE.match(first)):
+            if TOTAL_RE.match(first) and not SKIP_ROW_RE.match(first):
+                item = self._row_item(mapping, r, cells, units, unit_col, h)
                 for k, fr in item.items():
                     if self._rule(k).kind == "number":
                         totals[k] = Decimal(fr.value)
                 break
+            if re.sub(r"\W+", " ", r.low).strip() == head_norm:
+                continue
+            misses = 0
+            if SKIP_ROW_RE.match(first):
+                continue
+            item = self._row_item(mapping, r, cells, units, unit_col, h)
             prim = self.tr.primary
             if prim and prim.key in mapping.values() and prim.key not in item:
                 continue
             if item:
                 rows.append(item)
+                row_views.append(j)
+        if text_cols and loose and rows:
+            self._attach_wrapped(views, rows, row_views, loose, text_cols, mapping, band, len(heads), h)
         if not rows or (len(rows) == 1 and len(rows[0]) < 2):
             return None
         score = len(mapping) + 0.5 * len(rows) + (1 if self.tr.primary and self.tr.primary.key in mapping.values() else 0)
-        return {"mapping": mapping, "rows": rows, "totals": totals, "score": score}
+        return {"mapping": mapping, "rows": rows, "totals": totals, "score": score, "head": head_norm}
+
+    def _row_item(self, mapping, r: View, cells, units, unit_col, h: View) -> dict[str, FieldResult]:
+        item: dict[str, FieldResult] = {}
+        label = " ".join(t for t, _ in cells[:2]).lower()
+        for si, key in mapping.items():
+            rule = self._rule(key)
+            text, words = cells[si]
+            if not text.strip():
+                continue
+            if rule.kind == "number" and rule.row_reject and _rx(rule.row_reject).search(label):
+                continue  # mis. baris kVArh pada kolom kWh
+            fr = self._cell_value(rule, r, text, words, units.get(si),
+                                  cells[unit_col][0] if unit_col is not None else "", h)
+            if fr:
+                item[key] = fr
+        return item
+
+    def _attach_wrapped(self, views, rows, row_views, loose, text_cols, mapping, band, n, h: View) -> None:
+        """Teks sel yang terbungkus ke baris di atas/bawah angka ditempelkan ke baris terdekat."""
+        extra: dict[tuple[int, int], list[tuple[float, str, list[Word]]]] = {}
+        # lebar nyata setiap kolom teks, dipelajari dari isi baris data (judul kolom sering lebih sempit)
+        extent: dict[int, tuple[float, float]] = {}
+        for k in row_views:
+            cells = self._cells(views[k], band, n)
+            for si in text_cols:
+                ws = cells[si][1]
+                if ws:
+                    a, b = extent.get(si, (min(w.x0 for w in ws), max(w.x1 for w in ws)))
+                    extent[si] = (min(a, min(w.x0 for w in ws)), max(b, max(w.x1 for w in ws)))
+        for j in loose:
+            lv = views[j]
+            cy = (lv.line.y0 + lv.line.y1) / 2
+            nearest = min(range(len(rows)), key=lambda k: abs((views[row_views[k]].line.y0 + views[row_views[k]].line.y1) / 2 - cy))
+            rv = views[row_views[nearest]]
+            if abs((rv.line.y0 + rv.line.y1) / 2 - cy) > (rv.line.y1 - rv.line.y0 or 1) * 2.6:
+                continue
+            for gi, seg in enumerate(lv.line.segments):
+                best_si, best_ov = None, 0.0
+                for si in text_cols:
+                    a, b = extent.get(si, h.seg_range(si) if si < len(h.line.segments) else (0.0, 0.0))
+                    ov = min(b, seg.x1) - max(a, seg.x0)
+                    if ov > best_ov:
+                        best_si, best_ov = si, ov
+                if best_si is None:
+                    continue
+                a0, b0 = lv.seg_spans[gi]
+                extra.setdefault((nearest, best_si), []).append((cy, lv.text[a0:b0].strip(), list(seg.words)))
+        for (k, si), parts in extra.items():
+            rv = views[row_views[k]]
+            key = mapping[si]
+            rule = self._rule(key)
+            cur = rows[k].get(key)
+            cells = self._cells(rv, band, n)
+            own_text, own_words = cells[si]
+            pieces = [(p[0], p[1], p[2]) for p in parts]
+            if own_text.strip():
+                pieces.append(((rv.line.y0 + rv.line.y1) / 2, own_text.strip(), own_words))
+            pieces.sort(key=lambda p: p[0])
+            text = re.sub(r"\s+", " ", " ".join(p[1] for p in pieces)).strip()
+            words = [w for p in pieces for w in p[2]]
+            fr = self._cell_value(rule, rv, text, words, None, "", h)
+            if fr and (cur is None or len(fr.value) > len(cur.value)):
+                fr.method = "tabel (sel terbungkus)"
+                rows[k][key] = fr
 
     def _cells(self, v: View, band, n: int) -> list[tuple[str, list[Word]]]:
         """Tetapkan setiap segmen baris ke kolom judul; segmen berisi ≥2 angka dipecah per kata."""
@@ -830,15 +946,13 @@ class Extractor:
             return FieldResult(rule.key, f"{yr:04d}-{mon:02d}", "", 0.93, f"{header.text}  ↓  {v.text}"[:220],
                                v.page.number, self.layout.bbox(v.page.number, words), "tabel")
         val = text.strip(" :-–")
-        if rule.values:
-            m = re.search(rule.values, text, re.I)
-            if m:
-                val = m.group(0)
-            elif rule.kind == "enum":
-                val = val  # teks bebas pada kolom jenis tetap disimpan
+        matched = bool(rule.values and re.search(rule.values, text, re.I))
+        if rule.values and rule.kind != "enum" and matched:
+            val = re.search(rule.values, text, re.I).group(0)
+        # kolom jenis (enum): simpan nama lengkap seperti tertulis di dokumen, mis. "Oli Bekas (Minyak Pelumas Bekas)"
         if not val:
             return None
-        return FieldResult(rule.key, re.sub(r"\s+", " ", val)[:80], "", 0.92 if rule.values and re.search(rule.values, text, re.I) else 0.8,
+        return FieldResult(rule.key, re.sub(r"\s+", " ", val)[:120], "", 0.92 if matched else 0.8,
                            f"{header.text}  ↓  {v.text}"[:220], v.page.number, self.layout.bbox(v.page.number, words), "tabel")
 
     def _rule(self, key: str) -> Rule | None:
@@ -883,6 +997,11 @@ class Extractor:
         notes = list(self.layout.warnings)
         rows, totals, desc = self.tables()
         mode = "tabel" if rows else ""
+        if rows and self.tr.collapse_without and self.tr.collapse_without not in self.table_keys:
+            rows, note = self._collapse(rows, totals)
+            if note:
+                notes.append(note)
+                desc = ""
         if not rows:
             rows, totals = self.line_items()
             mode = "item" if rows else ""
@@ -921,17 +1040,48 @@ class Extractor:
                 s = sum((Decimal(it[prim.key].value) for it in items if prim.key in it), Decimal(0))
                 t = totals[prim.key]
                 if t and abs(s - t) / t > Decimal("0.005"):
-                    notes.append(f"Jumlah baris ({plain(s)}) berbeda dengan total dokumen ({plain(t)}). Periksa baris yang terlewat.")
+                    notes.append(f"Jumlah baris ({_fmt_id(s)} {prim.unit}) berbeda dengan total dokumen ({_fmt_id(t)} {prim.unit}). "
+                                 "Periksa baris yang terlewat.")
                     for it in items:
                         if prim.key in it:
                             it[prim.key].confidence = round(it[prim.key].confidence * 0.8, 2)
-                else:
-                    notes.append(f"Total baris cocok dengan total dokumen ({plain(t)}).")
+                elif len(items) > 1:
+                    notes.append(f"Total baris cocok dengan total dokumen ({_fmt_id(t)} {prim.unit}).")
         self._post(items, notes)
         meta = document_meta(self.layout)
         return ExtractionResult(items, notes, meta, mode)
 
+    def _collapse(self, rows: list[dict[str, FieldResult]], totals: dict[str, Decimal]) -> tuple[list, str]:
+        """Blok dalam satu dokumen (LWBP + WBP) → satu item; total dokumen dipakai bila tersedia."""
+        prim = self.tr.primary
+        if not prim or len(rows) < 2:
+            return rows, ""
+        vals = [r[prim.key] for r in rows if prim.key in r]
+        if not vals:
+            return rows, ""
+        s = sum((Decimal(f.value) for f in vals), Decimal(0))
+        tot = totals.get(prim.key)
+        use = tot if tot else s
+        parts = " + ".join(_fmt_id(Decimal(f.value)) for f in vals)
+        match = bool(tot) and abs(s - tot) <= max(abs(tot) * Decimal("0.005"), Decimal("0.5"))
+        conf = min(0.97, max(f.confidence for f in vals) + (0.08 if match else -0.1))
+        words_bbox = vals[0].bbox
+        merged = dict(rows[0])
+        merged[prim.key] = FieldResult(prim.key, plain(use), prim.unit, round(conf, 2),
+                                       f"{parts} = {_fmt_id(s)} {prim.unit}" + (" (cocok dengan baris TOTAL)" if match else ""),
+                                       vals[0].page, words_bbox, "tabel+total" if tot else "tabel+jumlah",
+                                       [{"value": plain(s), "unit": prim.unit, "confidence": 0.6, "snippet": f"Jumlah baris: {parts}",
+                                         "page": vals[0].page, "bbox": words_bbox, "method": "jumlah baris"}] if tot and not match else [])
+        note = (f"{len(vals)} blok dalam satu dokumen dijumlahkan menjadi satu tagihan ({parts} = {_fmt_id(use)} {prim.unit})."
+                if match or not tot else
+                f"Total dokumen {_fmt_id(tot)} {prim.unit} dipakai; jumlah blok {_fmt_id(s)} berbeda. Periksa angkanya.")
+        return [merged], note
+
     def _post(self, items: list[dict[str, FieldResult]], notes: list[str]) -> None:
+        for it in items:
+            tr = it.get("treatment")
+            if tr and re.fullmatch(r"pengumpul(?:an)?(?:\s*berizin)?", tr.value.strip(), re.I):
+                tr.value = "Diserahkan ke pengumpul berizin"
         for it in items:
             ft = it.get("fuel_type")
             if ft:
@@ -1027,36 +1177,112 @@ def classify_layout(layout: DocLayout, filename: str = "") -> tuple[str | None, 
 
 
 # ====================================================================== metadata dokumen
+_ID_TOKEN = r"([A-Z0-9][A-Z0-9/\-.]{3,40}(?:\s\d{3,}(?![.,]\d))*)"
+_DOCNO_RXS = [
+    # (regex, skor dasar)
+    (re.compile(r"(?:no\.?|nomor|nomer|number|#)\s*(?:faktur|invoice|manifest?|manifes|surat\s*jalan|do|sj|ba|bast|nota|"
+                r"dokumen|struk|kwitansi|po|order)\s*[:#.]?\s*" + _ID_TOKEN, re.I), 1.0),
+    (re.compile(r"(?:faktur|invoice|manifest?|manifes|surat\s*jalan|nota|kwitansi|berita\s*acara|bast|delivery\s*order)"
+                r"\s*(?:no\.?|nomor|number|#)\s*[:#.]?\s*" + _ID_TOKEN, re.I), 1.0),
+    (re.compile(r"^\s*(?:no\.?|nomor|nomer)\s*[:#.]?\s*" + _ID_TOKEN, re.I), 0.85),
+    (re.compile(r"(?:no\.?|nomor|nomer|invoice)\s*(?:[a-z.]+\s*){0,2}[:#]\s*" + _ID_TOKEN, re.I), 0.6),
+]
+# nomor yang BUKAN nomor dokumen: izin, NPWP, rekening bank, telepon, polisi, pelanggan …
+_DOCNO_NOT = re.compile(r"(izin|sk\b|npwp|nik\b|nib\b|telp|telepon|hp\b|fax|polisi|nopol|kode\s*pos|pelanggan|idpel|"
+                        r"kontrak|akta|sertifikat|lisensi|registrasi|bank|rek\.)", re.I)
+_PARTY_GOOD = re.compile(r"(pemasok|supplier|vendor|penjual|seller|pengirim|shipper|pengangkut|transporter|ekspedisi|"
+                         r"penerima\s*\(?\s*pengumpul|pengumpul|pengolah|pemanfaat|laboratorium|lab\b|diterbitkan\s*oleh|"
+                         r"dari|from)\s*[:\-]?", re.I)
+_PARTY_BAD = re.compile(r"(penghasil|pembeli|buyer|pelanggan|customer|kepada|bill\s*to|ship\s*to|tujuan|consignee|pemesan)", re.I)
+_COMPANY = re.compile(r"\b((?:PT|CV|UD|KUD|Koperasi|Perum|Perumda|PD)\.?\s+[A-Z][\w .&,'-]{1,60}?"
+                      r"(?:\s*\((?:persero|tbk|perseroda|fiktif)\))?)(?=\s{2,}|\s*$|\s*[-–]\s|,\s*(?:jl|jalan)\b|\s*\(?no\b)", re.I)
+_DATE_LABEL = re.compile(r"(tanggal|tgl\.?|date|tertanggal|diterbitkan)\s*(faktur|invoice|dokumen|serah|terima|kirim|"
+                         r"pengiriman|cetak|surat|nota|transaksi|uji|sampling)?", re.I)
+
+
 def document_meta(layout: DocLayout) -> dict:
+    """Nomor dokumen, pihak penerbit/pemasok, dan tanggal — dicari dari label, di mana pun letaknya."""
     meta: dict[str, str] = {}
     views = [_build_view(p, ln) for p in layout.pages[:2] for ln in p.lines]
-    num_rxs = [
-        re.compile(r"(?:no\.?|nomor|nomer|invoice|faktur|manifest)\s*(?:[a-z.]+\s*){0,2}[:#]\s*([A-Z0-9][A-Z0-9/\-.]{3,40})", re.I),
-        re.compile(r"\b(?:no\.?|nomor|invoice)\s+([A-Z0-9]*\d[A-Z0-9/\-.]{3,40})", re.I),
-    ]
-    for v in views:
-        for rx in num_rxs:
-            m = rx.search(v.text)
-            if m and re.search(r"\d", m.group(1)) and not re.search(r"pelanggan|rekening|npwp|telp|hp|kode\s*pos",
-                                                                    v.low[max(0, m.start() - 4):m.start(1)]):
-                meta["doc_number"] = m.group(1).strip(".")
-                break
-        if "doc_number" in meta:
-            break
-    for v in views[:12]:
-        m = re.search(r"\b((?:PT|CV|UD|KUD|Koperasi)\.?\s+[A-Z][\w .&,'-]{2,60})", v.text)
-        if m:
-            meta["supplier"] = re.split(r"\s{2,}", m.group(1).strip())[0].strip(" ,.")
-            break
-    for v in views:
-        m = re.search(r"\b(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*((?:19|20)\d{2})\b", v.text)
+    if not views:
+        return meta
+    is_pln = bool(re.search(r"\bpln\b|tagihan\s*listrik|rekening\s*listrik", layout.text[:4000], re.I))
+
+    # ---------- nomor dokumen (skor: pola label × posisi di halaman)
+    best: tuple[float, str] | None = None
+    for idx, v in enumerate(views):
+        top = idx < 12
+        for rx, base in _DOCNO_RXS:
+            for m in rx.finditer(v.text):
+                val = re.sub(r"(?<=\d)\s(?=\d)", "", m.group(1)).strip(".-/")
+                if not re.search(r"\d", val) or len(val) < 4:
+                    continue
+                si = v.seg_at(m.start())
+                ctx = v.text[max(v.seg_spans[si][0], m.start() - 24):m.start(1)]
+                label_seg = v.seg_text(si - 1) if si and not re.search(r"[a-z]{3,}", ctx, re.I) else ""
+                if _DOCNO_NOT.search(ctx) or _DOCNO_NOT.search(label_seg):
+                    if not (is_pln and re.search(r"rekening", ctx, re.I) and not re.search(r"bank", ctx, re.I)):
+                        continue
+                sc = base * (1.15 if top else 1.0) * (1.1 if v.seg_at(m.start()) == 0 else 1.0)
+                if best is None or sc > best[0]:
+                    best = (sc, val)
+    if best:
+        meta["doc_number"] = best[1][:80]
+
+    # ---------- pihak penerbit (pemasok/pengangkut/pengolah), bukan pihak kita sendiri
+    party: tuple[float, str] | None = None
+    for idx, v in enumerate(views):
+        for si in range(len(v.line.segments)):
+            seg = v.seg_text(si)
+            label = seg.split(":")[0].strip() if ":" in seg else ""
+            if not label and si:
+                label = v.seg_text(si - 1)
+            m = _COMPANY.search(seg if ":" not in seg else seg.split(":", 1)[1] + "  ")
+            if not m:
+                continue
+            name = re.sub(r"\s+", " ", m.group(1)).strip(" ,.-")
+            if len(name) < 5:
+                continue
+            if _PARTY_BAD.search(label):
+                continue
+            if _PARTY_GOOD.search(label):
+                sc = 1.0 if re.search(r"pemasok|supplier|vendor|penjual|seller|pengangkut|transporter", label, re.I) else 0.9
+            elif idx < 6:
+                sc = 0.7  # kop surat
+            else:
+                sc = 0.3
+            if party is None or sc > party[0]:
+                party = (sc, name)
+    if party:
+        meta["supplier"] = party[1][:200]
+
+    # ---------- tanggal dokumen: yang berlabel lebih dulu, lalu tanggal pertama di halaman
+    def _date_in(text: str) -> str | None:
+        m = re.search(r"\b(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*[-/.]\s*((?:19|20)\d{2})\b", text)
         if m and 1 <= int(m.group(2)) <= 12 and 1 <= int(m.group(1)) <= 31:
-            meta["doc_date"] = f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
-            break
-        m = re.search(r"\b(\d{1,2})\s+(" + MONTH_NAME_RE + r")\.?\s+((?:19|20)\d{2})\b", v.text, re.I)
+            return f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+        m = re.search(r"\b((?:19|20)\d{2})\s*-\s*(\d{2})\s*-\s*(\d{2})\b", text)
+        if m and 1 <= int(m.group(2)) <= 12:
+            return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+        m = re.search(r"\b(\d{1,2})\s+(" + MONTH_NAME_RE + r")\.?\s+((?:19|20)\d{2})\b", text, re.I)
         if m:
-            meta["doc_date"] = f"{m.group(3)}-{MONTHS[m.group(2).lower()]:02d}-{int(m.group(1)):02d}"
+            return f"{m.group(3)}-{MONTHS[m.group(2).lower()]:02d}-{int(m.group(1)):02d}"
+        return None
+
+    labelled, first = None, None
+    for v in views:
+        for m in _DATE_LABEL.finditer(v.text):
+            if re.search(r"jatuh\s*tempo|due|lahir|berlaku", v.text[max(0, m.start() - 14):m.end()], re.I):
+                continue
+            d = _date_in(v.text[m.end():m.end() + 40])
+            if d:
+                labelled = labelled or d
+        if first is None:
+            first = _date_in(v.text)
+        if labelled:
             break
+    if labelled or first:
+        meta["doc_date"] = labelled or first
     return meta
 
 

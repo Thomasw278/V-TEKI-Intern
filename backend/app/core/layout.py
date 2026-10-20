@@ -343,8 +343,64 @@ def docx_layout(path: Path) -> DocLayout:
 
 
 # ---------------------------------------------------------------- PDF
+def _lightness(color) -> float:
+    """Kecerahan warna isi karakter PDF (0 hitam … 1 putih); tidak dikenal → 0."""
+    try:
+        vals = [float(v) for v in (color if isinstance(color, (list, tuple)) else [color])]
+    except (TypeError, ValueError):
+        return 0.0
+    if len(vals) == 1:
+        return vals[0]
+    if len(vals) == 3:
+        return sum(vals) / 3
+    if len(vals) == 4:  # CMYK
+        c, m, y, k = vals
+        return (1 - k) * (1 - (c + m + y) / 3)
+    return 0.0
+
+
+def _char_angle(obj: dict) -> float:
+    """Sudut putar karakter (derajat) dari matriks teks PDF."""
+    import math
+
+    m = obj.get("matrix") or (1, 0, 0, 1, 0, 0)
+    a, b = float(m[0]), float(m[1])
+    return abs(math.degrees(math.atan2(b, a))) % 180
+
+
+def watermark_filter(chars: list[dict]) -> tuple[set[int], str]:
+    """Kenali karakter watermark/stempel: teks diagonal/tegak, atau huruf raksasa berwarna pucat.
+
+    Mengembalikan id objek yang harus diabaikan + teks watermark (untuk catatan).
+    Bila sebagian besar teks halaman memang diputar (halaman landscape), tidak ada yang dibuang.
+    """
+    if not chars:
+        return set(), ""
+    sizes = sorted(float(c.get("size") or 0) for c in chars)
+    body = sizes[len(sizes) // 2] or 10.0
+    flagged: list[dict] = []
+    rotated = 0
+    for c in chars:
+        ang = _char_angle(c)
+        is_rot = min(ang, 180 - ang) > 4 or not c.get("upright", True)
+        size = float(c.get("size") or 0)
+        huge = size > body * 3.2 and (_lightness(c.get("non_stroking_color")) > 0.72 or size > body * 5)
+        if is_rot:
+            rotated += 1
+        if is_rot or huge:
+            flagged.append(c)
+    if rotated > len(chars) * 0.3:
+        flagged = [c for c in flagged if float(c.get("size") or 0) > body * 3.2]
+    text = "".join(c.get("text", "") for c in sorted(flagged, key=lambda c: (c.get("x0", 0))))
+    return {id(c) for c in flagged}, re.sub(r"\s+", "", text)[:40]
+
+
 def pdf_layout(path: Path, ocr_cache_dir: Path | None = None) -> DocLayout:
-    """PDF teks dibaca langsung; halaman tanpa teks (hasil scan) di-OCR per halaman."""
+    """PDF teks dibaca langsung; halaman tanpa teks (hasil scan) di-OCR per halaman.
+
+    Watermark diagonal (mis. "SINTETIS", "COPY", "DRAFT") dan stempel huruf besar dibuang
+    sebelum kata disusun, supaya hurufnya tidak menyusup ke baris tabel.
+    """
     import pdfplumber
 
     from . import ocr
@@ -352,8 +408,14 @@ def pdf_layout(path: Path, ocr_cache_dir: Path | None = None) -> DocLayout:
     pages: list[Page] = []
     warnings: list[str] = []
     used_ocr = False
+    marks: set[str] = set()
     with pdfplumber.open(str(path)) as pdf:
         for i, pg in enumerate(pdf.pages[:200]):
+            drop, mark = watermark_filter(pg.chars)
+            if drop:
+                pg = pg.filter(lambda o, _d=drop: id(o) not in _d)
+                if mark:
+                    marks.add(mark)
             words = pg.extract_words(x_tolerance=1.5, y_tolerance=2.5, keep_blank_chars=False, use_text_flow=False)
             text_chars = sum(len(w["text"]) for w in words)
             if text_chars >= 25:
@@ -361,7 +423,7 @@ def pdf_layout(path: Path, ocr_cache_dir: Path | None = None) -> DocLayout:
                 pages.append(Page(i, "pdf", float(pg.width), float(pg.height), group_lines(ws, i)))
                 continue
             # halaman hasil scan → OCR
-            img = pg.to_image(resolution=300).original
+            img = pdf.pages[i].to_image(resolution=300).original
             res = ocr.ocr_image(img)
             used_ocr = True
             if res is None:
@@ -372,6 +434,8 @@ def pdf_layout(path: Path, ocr_cache_dir: Path | None = None) -> DocLayout:
                 res.image.save(ocr_cache_dir / f"p{i}.png", optimize=True)
             pages.append(Page(i, "image", float(res.width), float(res.height), group_lines(res.words, i), ocr=True))
             warnings.extend(f"Halaman {i + 1}: {w}" for w in res.notes)
+    if marks:
+        warnings.append(f"Watermark diabaikan: {', '.join(sorted(marks))}")
     return DocLayout(pages, "pdf+ocr" if used_ocr else "pdf", warnings)
 
 

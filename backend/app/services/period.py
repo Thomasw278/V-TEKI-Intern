@@ -109,6 +109,7 @@ def latest_calculation(db: Session, period: ReportingPeriod) -> Calculation | No
 
 
 def gates(db: Session, period: ReportingPeriod, user: User) -> list[dict]:
+    """Syarat sebelum periode dikunci oleh admin peninjau."""
     docs, act, issues, reqs = analyse(db, period)
     _, approved, _ = factor_map(db, period.company_id)
     calc = latest_calculation(db, period)
@@ -116,15 +117,15 @@ def gates(db: Session, period: ReportingPeriod, user: User) -> list[dict]:
     complete = [r for r in required_ok if r["state"] in ("complete", "partial")]
     critical = [i for i in issues if i.severity == "critical"]
     drafts = [c for c, ok in approved.items() if not ok]
-    # pemisahan peran: pengunci (reviewer) tidak memvalidasi dokumen periode ini sendiri
-    self_validated = db.scalar(select(func.count(Document.id)).where(
-        Document.period_id == period.id, Document.validated_by == user.id)) or 0
+    waiting = sum(1 for d in docs if d.status == "validated")
     fresh = bool(calc and period.data_changed_at and calc.created_at and calc.created_at >= period.data_changed_at)
     return [
-        {"key": "role", "name": "Pemisahan peran", "ok": user.role == "reviewer" and self_validated == 0,
-         "note": "Pengunci harus Reviewer yang tidak memvalidasi dokumen periode ini."},
+        {"key": "role", "name": "Dikunci oleh admin peninjau", "ok": user.role == "admin",
+         "note": "Hanya admin yang ditugaskan untuk perusahaan ini yang dapat mengunci periode."},
         {"key": "documents", "name": "Dokumen wajib tervalidasi", "ok": len(complete) == len(required_ok),
          "note": f"{len(complete)} dari {len(required_ok)} kategori wajib tervalidasi."},
+        {"key": "reviewed", "name": "Semua pengajuan sudah ditinjau", "ok": waiting == 0,
+         "note": f"{waiting} dokumen menunggu persetujuan admin." if waiting else "Tidak ada dokumen yang menunggu."},
         {"key": "critical", "name": "Tidak ada isu kritis", "ok": not critical,
          "note": f"{len(critical)} isu kritis terbuka." if critical else "0 isu kritis."},
         {"key": "factors", "name": "Faktor emisi disetujui", "ok": not drafts,

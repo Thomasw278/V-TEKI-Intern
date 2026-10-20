@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+backend/.env
+backend/storage/*
+!backend/storage/.gitkeep
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/out/

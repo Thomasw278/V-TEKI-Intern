@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 12
     storage_dir: Path = Path("./storage")
     max_upload_mb: int = 50
-    # Pisahkan dengan koma, mis. "http://localhost:3000,https://karbonlens.contoh.id"
-    cors_origins: str = "http://localhost:3000"
+    # Pisahkan dengan koma, mis. "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     # Lokasi tesseract.exe bila tidak ada di PATH (Windows), mis. C:\\Program Files\\Tesseract-OCR\\tesseract.exe
     tesseract_cmd: str = ""
 

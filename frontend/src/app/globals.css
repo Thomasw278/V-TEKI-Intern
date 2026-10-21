@@ -600,36 +600,52 @@ code, .mono { font-family: var(--mono); font-size: 0.88em; font-variant-numeric:
 }
 .topbar-nav a {
   position: relative;
-  z-index: 2;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 6px 14px;
+  height: 36px;
+  padding: 0 14px;
+  margin: 0;
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
   color: var(--muted);
   text-decoration: none !important;
+  box-sizing: border-box;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
   transition: color 180ms var(--ease-3d);
 }
 .topbar-nav a:hover,
+.topbar-nav a:active,
 .topbar-nav a[aria-current="page"] {
   color: #0F5338;
+  transform: none !important;
+  box-shadow: none !important;
 }
 :root[data-theme="dark"] .topbar-nav a:hover,
+:root[data-theme="dark"] .topbar-nav a:active,
 :root[data-theme="dark"] .topbar-nav a[aria-current="page"] {
   color: #3dae76;
 }
 .topbar-nav .sliding-nav-box {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
+  height: 36px;
   pointer-events: none;
   z-index: 1;
   background: #FAF8F5;
   border: 1.5px solid #0F5338;
   border-radius: 8px;
   box-shadow: 2px 3px 0px #0F5338;
+  box-sizing: border-box;
   transition: transform 220ms var(--ease-3d),
               width 220ms var(--ease-3d),
               height 220ms var(--ease-3d),
@@ -1077,14 +1093,16 @@ button.list-row { width: 100%; background: transparent; border: 0; border-top: 1
 }
 .sliding-nav-box {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
+  height: 36px;
   pointer-events: none;
   z-index: 1;
   background: #FFFFFF;
   border: 1.5px solid #0F5338;
   border-radius: 8px;
   box-shadow: 2px 3px 0px #0F5338;
+  box-sizing: border-box;
   transition: transform 220ms var(--ease-3d),
               width 220ms var(--ease-3d),
               height 220ms var(--ease-3d),
@@ -1097,7 +1115,7 @@ button.list-row { width: 100%; background: transparent; border: 0; border-top: 1
 }
 .sliding-nav-container > * {
   position: relative;
-  z-index: 2;
+  z-index: 10;
 }
 
 /* --------------------------------------------------------------- animasi */

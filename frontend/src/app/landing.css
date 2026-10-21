@@ -207,32 +207,58 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex: 0 0 auto;
 }
 .lp-header nav a {
   position: relative;
-  z-index: 2;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  line-height: 1;
+  padding: 0 14px;
+  margin: 0;
   color: var(--band-muted);
   font-size: 14.5px;
   font-weight: 600;
-  padding: 8px 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
   border-radius: 8px;
   text-decoration: none !important;
+  box-sizing: border-box;
+  transform: none !important;
+  box-shadow: none !important;
+  border: none !important;
   transition: color 180ms var(--ease-3d);
 }
+@media (min-width: 1240px) {
+  .lp-header nav a { padding: 0 16px; }
+}
 .lp-header nav a:hover,
+.lp-header nav a:active,
 .lp-header nav a.active {
   color: #0F5338;
+  transform: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .lp-header nav a:hover,
+:root[data-theme="dark"] .lp-header nav a:active,
+:root[data-theme="dark"] .lp-header nav a.active {
+  color: #3dae76;
 }
 .lp-header nav .sliding-nav-box {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 0;
+  height: 36px;
   pointer-events: none;
   z-index: 1;
   background: #FAF8F5;
   border: 1.5px solid #0F5338;
   border-radius: 8px;
   box-shadow: 2px 3px 0px #0F5338;
+  box-sizing: border-box;
   transition: transform 220ms var(--ease-3d),
               width 220ms var(--ease-3d),
               height 220ms var(--ease-3d),
@@ -247,7 +273,9 @@
 .lp-header.solid { background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); border-bottom-color: var(--line); color: var(--ink); }
 .lp-header.solid nav a { color: var(--ink-2); }
 .lp-header.solid nav a:hover,
-.lp-header.solid nav a.active { color: #0F5338; }
+.lp-header.solid nav a.active { color: #0F5338; transform: none !important; box-shadow: none !important; }
+:root[data-theme="dark"] .lp-header.solid nav a:hover,
+:root[data-theme="dark"] .lp-header.solid nav a.active { color: #3dae76; }
 .lp-header .mobile-toggle { display: none; }
 .lp-mnav { position: fixed; inset: 72px 0 auto; z-index: 39; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: var(--shadow-lg); padding: 12px 16px 18px; display: flex; flex-direction: column; gap: 4px; animation: rise .2s var(--ease); }
 .lp-mnav a:not(.btn) { padding: 12px; border-radius: 8px; color: var(--ink); font-weight: 600; text-decoration: none; }

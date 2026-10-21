@@ -20,14 +20,11 @@ function LandingNav({ items, ariaLabel }: { items: [string, string][]; ariaLabel
   const [box, setBox] = useState<{ x: number; w: number; h: number; opacity: number } | null>(null);
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const cRect = container.getBoundingClientRect();
-    const tRect = e.currentTarget.getBoundingClientRect();
+    const target = e.currentTarget;
     setBox({
-      x: tRect.left - cRect.left,
-      w: tRect.width,
-      h: tRect.height,
+      x: target.offsetLeft,
+      w: target.offsetWidth,
+      h: target.offsetHeight || 36,
       opacity: 1,
     });
   };
@@ -48,7 +45,7 @@ function LandingNav({ items, ariaLabel }: { items: [string, string][]; ariaLabel
           className="sliding-nav-box"
           aria-hidden="true"
           style={{
-            transform: `translate3d(${box.x}px, 0, 0)`,
+            transform: `translate3d(${box.x}px, -50%, 0)`,
             width: `${box.w}px`,
             height: `${box.h}px`,
             opacity: box.opacity,

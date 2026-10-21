@@ -73,18 +73,19 @@ function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: strin
       setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
       return;
     }
-    const cRect = containerRef.current.getBoundingClientRect();
-    const tRect = el.getBoundingClientRect();
     setIndicator({
-      x: tRect.left - cRect.left,
-      w: tRect.width,
-      h: tRect.height,
+      x: el.offsetLeft,
+      w: el.offsetWidth,
+      h: el.offsetHeight || 36,
       opacity: 1,
     });
   };
 
   useEffect(() => {
     moveToHref(activeHref);
+    const onResize = () => moveToHref(activeHref);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [activeHref]);
 
   return (
@@ -99,7 +100,7 @@ function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: strin
           className="sliding-nav-box"
           aria-hidden="true"
           style={{
-            transform: `translate3d(${indicator.x}px, 0, 0)`,
+            transform: `translate3d(${indicator.x}px, -50%, 0)`,
             width: `${indicator.w}px`,
             height: `${indicator.h}px`,
             opacity: indicator.opacity,

@@ -102,14 +102,14 @@ export default function DashboardPage() {
               <div className="ov-big"><CountUp value={calc.total_t} /></div>
               <div className="ov-unit">{t(`t CO₂e selama ${data.period.year}`, `t CO₂e during ${data.period.year}`)}</div>
               <div className="split-bar" aria-hidden="true">
-                <span style={{ width: `${share(calc.direct_t)}%`, background: "#43b47c" }} />
-                <span style={{ width: `${share(calc.indirect_t)}%`, background: "#d1bb3b" }} />
-                <span style={{ width: `${share(calc.upstream_t)}%`, background: "#64a2e6" }} />
+                <span style={{ width: `${share(calc.direct_t)}%`, background: "var(--c-direct)" }} />
+                <span style={{ width: `${share(calc.indirect_t)}%`, background: "var(--c-indirect)" }} />
+                <span style={{ width: `${share(calc.upstream_t)}%`, background: "var(--c-upstream)" }} />
               </div>
               <div className="split-legend">
-                <span><i style={{ background: "#43b47c" }} />{t("Langsung", "Direct")} {num(share(calc.direct_t), 1)}%</span>
-                <span><i style={{ background: "#d1bb3b" }} />{t("Listrik dibeli", "Purchased electricity")} {num(share(calc.indirect_t), 1)}%</span>
-                <span><i style={{ background: "#64a2e6" }} />{t("Hulu", "Upstream")} {num(share(calc.upstream_t), 1)}%</span>
+                <span><i style={{ background: "var(--c-direct)" }} />{t("Langsung", "Direct")} {num(share(calc.direct_t), 1)}%</span>
+                <span><i style={{ background: "var(--c-indirect)" }} />{t("Listrik dibeli", "Purchased electricity")} {num(share(calc.indirect_t), 1)}%</span>
+                <span><i style={{ background: "var(--c-upstream)" }} />{t("Hulu", "Upstream")} {num(share(calc.upstream_t), 1)}%</span>
               </div>
             </>
           ) : (

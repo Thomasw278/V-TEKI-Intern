@@ -16,43 +16,44 @@
   --display: "Gloock", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --bg: #f4f6f3;
+  /* Warm Paper & Deep Forest — design-taste-frontend §3 */
+  --bg: #FAF8F5;
   --surface: #ffffff;
-  --surface-2: #f0f3ef;
-  --surface-3: #e6ebe5;
-  --ink: #0f1f17;
-  --ink-2: #33433a;
-  --muted: #5d6c64;
-  --faint: #89968e;
-  --line: #e0e6df;
-  --line-2: #ecf0eb;
+  --surface-2: #F4F3EF;
+  --surface-3: #ECEAE4;
+  --ink: #141413;
+  --ink-2: #2E2E2C;
+  --muted: #575653;
+  --faint: #8A8884;
+  --line: #E2DFD7;
+  --line-2: #EDEBE5;
 
   --brand: #0e2c1f;
   --brand-2: #164a33;
-  --primary: #1b6b45;
-  --primary-hover: #145536;
+  --primary: #0F5338;
+  --primary-hover: #0D4630;
   --primary-ink: #ffffff;
-  --primary-soft: #e3f1e8;
+  --primary-soft: #E4F0E8;
   --accent: #c8f05a;
   --accent-ink: #0e2c1f;
 
-  --ok: #1f7a4d; --ok-soft: #e2f2e8; --ok-ink: #145233;
-  --warn: #b26b00; --warn-soft: #fcf0d9; --warn-ink: #774800;
-  --bad: #c23b2b; --bad-soft: #fbe6e2; --bad-ink: #8b2317;
-  --info: #2662a8; --info-soft: #e3edf8; --info-ink: #1b4a80;
+  --ok: #15803D; --ok-soft: #E6F3EA; --ok-ink: #0F5C2A;
+  --warn: #B45309; --warn-soft: #FDF0D5; --warn-ink: #7C3A06;
+  --bad: #B91C1C; --bad-soft: #FDE8E8; --bad-ink: #891515;
+  --info: #2563EB; --info-soft: #EFF6FF; --info-ink: #1E40AF;
 
-  --c-direct: #1e7b4f; --c-indirect: #a39016; --c-upstream: #2b74c7; --c-default: #7d9a89; --c-total: #0e2c1f;
-  --chart-grid: #e1e6dd; --chart-label: #4c5b53; --chart-ink: #0f1f17;
+  --c-direct: #15803D; --c-indirect: #A08B14; --c-upstream: #2B74C7; --c-default: #8A8884; --c-total: #141413;
+  --chart-grid: #E2DFD7; --chart-label: #575653; --chart-ink: #141413;
 
-  --band: #0e2c1f; --band-2: #133a29; --band-ink: #f3f7f1; --band-muted: #a9c2b3; --band-line: rgba(200, 240, 90, 0.16);
+  --band: #0e2c1f; --band-2: #133a29; --band-ink: #F5F3EF; --band-muted: #a9c2b3; --band-line: rgba(200, 240, 90, 0.16);
 
   --radius-lg: 16px;
   --radius: 12px;
   --radius-sm: 8px;
-  --shadow-sm: 0 1px 2px rgba(16, 32, 24, 0.05);
-  --shadow: 0 1px 2px rgba(16, 32, 24, 0.04), 0 6px 20px -10px rgba(16, 32, 24, 0.16);
-  --shadow-lg: 0 24px 60px -24px rgba(10, 30, 20, 0.35);
-  --ring: 0 0 0 3px rgba(27, 107, 69, 0.28);
+  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05);
+  --shadow: 0 1px 2px rgba(20, 20, 19, 0.04), 0 6px 20px -10px rgba(20, 20, 19, 0.14);
+  --shadow-lg: 0 24px 60px -24px rgba(20, 20, 19, 0.30);
+  --ring: 0 0 0 3px rgba(15, 83, 56, 0.28);
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   --sidebar-w: 256px;
@@ -61,16 +62,17 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0a120e;
-  --surface: #101a15;
-  --surface-2: #15211b;
-  --surface-3: #1c2a23;
-  --ink: #e7eee9;
-  --ink-2: #c3cec8;
-  --muted: #94a49b;
-  --faint: #6c7c73;
-  --line: #22322a;
-  --line-2: #1a2721;
+  /* Warm neutral dark — matches the Warm Paper palette in dark mode */
+  --bg: #111110;
+  --surface: #1A1918;
+  --surface-2: #222120;
+  --surface-3: #2B2A28;
+  --ink: #EDEBE8;
+  --ink-2: #C8C5C0;
+  --muted: #9A9791;
+  --faint: #706D67;
+  --line: #2E2C28;
+  --line-2: #242320;
 
   --brand: #0f2a1d;
   --brand-2: #164a33;
@@ -84,8 +86,8 @@
   --bad: #f0705f; --bad-soft: #3b1a15; --bad-ink: #f7a89c;
   --info: #6aa8f0; --info-soft: #14263c; --info-ink: #a9cbf5;
 
-  --c-direct: #43b47c; --c-indirect: #d1bb3b; --c-upstream: #64a2e6; --c-default: #7d9a89; --c-total: #c8f05a;
-  --chart-grid: #26362e; --chart-label: #a9b8b0; --chart-ink: #e7eee9;
+  --c-direct: #43b47c; --c-indirect: #d1bb3b; --c-upstream: #64a2e6; --c-default: #8A8884; --c-total: #c8f05a;
+  --chart-grid: #2E2C28; --chart-label: #A9A6A0; --chart-ink: #EDEBE8;
 
   --band: #0f2a1d; --band-2: #12321f;
 
@@ -119,7 +121,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 ::selection { background: rgba(200, 240, 90, 0.55); color: var(--brand); }
 :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 6px; }
 hr { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
-code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; font-variant-numeric: tabular-nums; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* teks */

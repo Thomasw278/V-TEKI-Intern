@@ -232,7 +232,7 @@ export default function DokumenPage() {
                       <td data-label="Status"><StatusBadge status={d.status} /></td>
                       <td data-label={t("Nomor / pemasok", "Number / supplier")} className="small"><span className="wrap">{[d.doc_number, d.supplier].filter(Boolean).join(" · ") || "—"}</span></td>
                       <td data-label={t("Diunggah", "Uploaded")} className="small muted">{when(d.created_at)}</td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <td className="row-actions" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                         <Link href={`/dokumen/${d.id}`} className="btn ghost sm">{t("Buka", "Open")}</Link>
                         {writable && d.status !== "approved" && (
                           <button type="button" className="btn ghost icon sm" onClick={() => setConfirmDel(d)} aria-label={t(`Hapus ${d.original_name}`, `Delete ${d.original_name}`)}><IconTrash size={15} /></button>

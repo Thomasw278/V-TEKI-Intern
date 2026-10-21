@@ -32,6 +32,7 @@ export default function DocumentDetailPage() {
   const { refreshSummary } = useSummary();
   const toast = useToast();
   const [selId, setSelId] = useState<number | null>(null);
+  const [hoveredFieldId, setHoveredFieldId] = useState<number | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [serverIssues, setServerIssues] = useState<Issue[] | null>(null);
@@ -161,6 +162,7 @@ export default function DocumentDetailPage() {
 
       <div className="viewer-layout">
         <DocViewer doc={doc} selected={selected} onSelect={(f) => setSelId(f.id)}
+          hoveredFieldId={hoveredFieldId} onHoverFieldId={setHoveredFieldId}
           onDownload={() => downloadFile(`/api/documents/${doc.id}/file`, doc.original_name).catch((e) => toast((e as Error).message, "error"))} />
 
         <div className="stack">
@@ -205,10 +207,15 @@ export default function DocumentDetailPage() {
                   const k = keyOf(item, spec.key);
                   const f = byKey.get(k);
                   const active = !!f && f.id === selId;
+                  const isHov = !!f && f.id === hoveredFieldId;
                   const value = edits[k] ?? shown(f, spec);
                   const lowConf = !!f && f.confidence < 0.75 && !f.confirmed;
                   return (
-                    <div key={spec.key} className={`frow ${active ? "active" : ""} ${spec.kind === "text" && value.length > 20 ? "wide" : ""}`} onClick={() => f && setSelId(f.id)}>
+                    <div key={spec.key}
+                      className={`frow ${active ? "active" : ""} ${isHov ? "hovered" : ""} ${spec.kind === "text" && value.length > 20 ? "wide" : ""}`}
+                      onClick={() => f && setSelId(f.id)}
+                      onMouseEnter={() => f && setHoveredFieldId(f.id)}
+                      onMouseLeave={() => setHoveredFieldId(null)}>
                       <span className="lab">
                         {spec.label}{spec.unit ? ` (${spec.unit})` : ""}
                         {!spec.required && !multi && <span className="faint">· {t("opsional", "optional")}</span>}
@@ -224,7 +231,9 @@ export default function DocumentDetailPage() {
                           <input className={`input ${spec.kind === "number" ? "num" : ""}`} inputMode={spec.kind === "number" ? "decimal" : undefined}
                             aria-label={`${spec.label}${multi ? ` ${t("baris", "row")} ${item + 1}` : ""}`} value={value}
                             placeholder={f ? "" : t("Belum terbaca — isi manual", "Not read — enter manually")}
-                            onFocus={() => f && setSelId(f.id)} onChange={(e) => setEdits((x) => ({ ...x, [k]: e.target.value }))} onKeyDown={onKey(item, spec.key)} />
+                            onFocus={() => { if (f) { setSelId(f.id); setHoveredFieldId(f.id); } }}
+                            onBlur={() => setHoveredFieldId(null)}
+                            onChange={(e) => setEdits((x) => ({ ...x, [k]: e.target.value }))} onKeyDown={onKey(item, spec.key)} />
                           {edits[k] !== undefined && <Button size="sm" variant="primary" loading={busy === `f-${k}`} onClick={() => save(item, spec.key)}>{t("Simpan", "Save")}</Button>}
                         </div>
                       ) : (

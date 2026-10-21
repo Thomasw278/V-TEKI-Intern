@@ -18,11 +18,13 @@ const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
  * PDF/gambar dirender server (scan sudah diluruskan): kotak hijau = angka yang dipakai,
  * kotak kuning putus-putus = kandidat lain untuk field terpilih. Lembar kerja: sel ditandai. Teks: baris ditandai.
  */
-export function DocViewer({ doc, selected, onSelect, onDownload }: {
+export function DocViewer({ doc, selected, onSelect, onDownload, hoveredFieldId, onHoverFieldId }: {
   doc: DocumentDetail;
   selected: ExtractedField | null;
   onSelect: (f: ExtractedField) => void;
   onDownload: () => void;
+  hoveredFieldId?: number | null;
+  onHoverFieldId?: (id: number | null) => void;
 }) {
   const t = useT();
   const pages: LayoutPage[] = doc.layout?.pages ?? [];
@@ -108,12 +110,18 @@ export function DocViewer({ doc, selected, onSelect, onDownload }: {
             {onPage.map((f) => {
               if (!isXY(f.bbox)) return null;
               const active = selected?.id === f.id;
-              if (!showAll && !active) return null;
+              const isHov = hoveredFieldId === f.id;
+              if (!showAll && !active && !isHov) return null;
               const b = f.bbox;
               return (
-                <button type="button" key={f.id} className={`src-box ${active ? "active" : ""}`} aria-label={`${f.label}: ${f.value_text}`} title={`${f.label}: ${f.value_text}`}
+                <button type="button" key={f.id}
+                  className={`src-box ${active ? "active" : ""} ${isHov ? "hovered" : ""}`}
+                  aria-label={`${f.label}: ${f.value_text}`}
+                  title={`${f.label}: ${f.value_text}`}
                   style={{ left: `${b.x0 * 100}%`, top: `${b.y0 * 100}%`, width: `${(b.x1 - b.x0) * 100}%`, height: `${(b.y1 - b.y0) * 100}%` }}
-                  onClick={() => onSelect(f)} />
+                  onClick={() => onSelect(f)}
+                  onMouseEnter={() => onHoverFieldId?.(f.id)}
+                  onMouseLeave={() => onHoverFieldId?.(null)} />
               );
             })}
             {alts.map((a, i) => isXY(a.bbox) && (
@@ -122,8 +130,12 @@ export function DocViewer({ doc, selected, onSelect, onDownload }: {
             ))}
           </div>
         )}
-        {page.kind === "sheet" && <SheetView page={page} fields={onPage} selected={selected} onSelect={onSelect} showAll={showAll} />}
-        {page.kind === "text" && <TextView page={page} fields={onPage} selected={selected} onSelect={onSelect} showAll={showAll} />}
+        {page.kind === "sheet" && (
+          <SheetView page={page} fields={onPage} selected={selected} onSelect={onSelect} showAll={showAll} hoveredFieldId={hoveredFieldId} onHoverFieldId={onHoverFieldId} />
+        )}
+        {page.kind === "text" && (
+          <TextView page={page} fields={onPage} selected={selected} onSelect={onSelect} showAll={showAll} hoveredFieldId={hoveredFieldId} onHoverFieldId={onHoverFieldId} />
+        )}
       </div>
     </div>
   );
@@ -138,8 +150,9 @@ function hitMap(fields: ExtractedField[]) {
   return m;
 }
 
-function SheetView({ page, fields, selected, onSelect, showAll }: {
+function SheetView({ page, fields, selected, onSelect, showAll, hoveredFieldId, onHoverFieldId }: {
   page: LayoutPage; fields: ExtractedField[]; selected: ExtractedField | null; onSelect: (f: ExtractedField) => void; showAll: boolean;
+  hoveredFieldId?: number | null; onHoverFieldId?: (id: number | null) => void;
 }) {
   const rows = page.rows ?? [];
   const width = Math.max(1, ...rows.map((r) => r.length));
@@ -155,8 +168,17 @@ function SheetView({ page, fields, selected, onSelect, showAll }: {
               {Array.from({ length: width }).map((_, c) => {
                 const f = hits.get(`${ri}:${c}`);
                 const active = !!f && selected?.id === f.id;
-                const cls = f && (showAll || active) ? (active ? "active" : "hit") : "";
-                return <td key={c} className={cls} title={f ? `${f.label}: ${f.value_text}` : undefined} onClick={f ? () => onSelect(f) : undefined} style={f ? { cursor: "pointer" } : undefined}>{r[c] ?? ""}</td>;
+                const isHov = !!f && hoveredFieldId === f.id;
+                const cls = f && (showAll || active || isHov) ? (active ? "active" : isHov ? "hovered" : "hit") : "";
+                return (
+                  <td key={c} className={cls} title={f ? `${f.label}: ${f.value_text}` : undefined}
+                    onClick={f ? () => onSelect(f) : undefined}
+                    onMouseEnter={f ? () => onHoverFieldId?.(f.id) : undefined}
+                    onMouseLeave={f ? () => onHoverFieldId?.(null) : undefined}
+                    style={f ? { cursor: "pointer" } : undefined}>
+                    {r[c] ?? ""}
+                  </td>
+                );
               })}
             </tr>
           ))}
@@ -166,8 +188,9 @@ function SheetView({ page, fields, selected, onSelect, showAll }: {
   );
 }
 
-function TextView({ page, fields, selected, onSelect, showAll }: {
+function TextView({ page, fields, selected, onSelect, showAll, hoveredFieldId, onHoverFieldId }: {
   page: LayoutPage; fields: ExtractedField[]; selected: ExtractedField | null; onSelect: (f: ExtractedField) => void; showAll: boolean;
+  hoveredFieldId?: number | null; onHoverFieldId?: (id: number | null) => void;
 }) {
   const lines = page.lines ?? [];
   const byLine = useMemo(() => {
@@ -180,11 +203,16 @@ function TextView({ page, fields, selected, onSelect, showAll }: {
       {lines.map((ln, i) => {
         const f = byLine.get(i);
         const active = !!f && selected?.id === f.id;
+        const isHov = !!f && hoveredFieldId === f.id;
         const content = ln || " ";
         return (
           <div key={i}>
-            {f && (showAll || active)
-              ? <mark className={active ? "active" : ""} onClick={() => onSelect(f)} style={{ cursor: "pointer" }}>{content}</mark>
+            {f && (showAll || active || isHov)
+              ? <mark className={`${active ? "active" : ""} ${isHov ? "hovered" : ""}`}
+                  onClick={() => onSelect(f)}
+                  onMouseEnter={() => onHoverFieldId?.(f.id)}
+                  onMouseLeave={() => onHoverFieldId?.(null)}
+                  style={{ cursor: "pointer" }}>{content}</mark>
               : content}
           </div>
         );
@@ -192,3 +220,4 @@ function TextView({ page, fields, selected, onSelect, showAll }: {
     </div>
   );
 }
+

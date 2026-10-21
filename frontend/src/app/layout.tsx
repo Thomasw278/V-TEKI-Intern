@@ -7,8 +7,8 @@ import { SessionProvider } from "@/lib/session";
 import { THEME_SCRIPT, ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "KarbonLens — Emisi tertanam produk (CBAM)",
-  description: "Hitung emisi tertanam produk dari dokumen operasional perusahaan, ditinjau oleh admin peninjau.",
+  title: "KarbonLens — AUDIT OS · Emisi Tertanam Produk (CBAM)",
+  description: "Hitung emisi tertanam produk dari dokumen operasional perusahaan, diverifikasi oleh sistem audit presisi tinggi.",
 };
 
 export const viewport: Viewport = {

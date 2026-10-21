@@ -57,3 +57,31 @@ export const IconSwap = (p: P) => <Base {...p}><path d="M7 4 3.5 7.5 7 11M3.5 7.
 export const IconSend = (p: P) => <Base {...p}><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z" /></Base>;
 export const IconUndo = (p: P) => <Base {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></Base>;
 export const IconGlobe = (p: P) => <Base {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" /></Base>;
+
+/* ------------------------------------------------------------------ Logo & Brand Mark */
+export function LogoMark({ size = 28, className = "", ...rest }: SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`brand-mark ${className}`}
+      aria-hidden="true"
+      {...rest}
+    >
+      <g className="scanner-brackets" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 4 10.5 V 5.5 A 1.5 1.5 0 0 1 5.5 4 H 10.5" />
+        <path d="M 21.5 4 H 26.5 A 1.5 1.5 0 0 1 28 5.5 V 10.5" />
+        <path d="M 4 21.5 V 26.5 A 1.5 1.5 0 0 0 5.5 28 H 10.5" />
+        <path d="M 21.5 28 H 26.5 A 1.5 1.5 0 0 0 28 26.5 V 21.5" />
+      </g>
+      <g className="topo-contours" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 8 11.5 C 12 9.5 18 13.5 24 10.5" strokeWidth={1.5} opacity={0.65} />
+        <path d="M 8 16 C 13 13.5 17 18.5 24 15.5" strokeWidth={1.9} opacity={0.95} />
+        <path d="M 8 20.5 C 13.5 18 18.5 23 24 21" strokeWidth={1.5} opacity={0.7} />
+      </g>
+    </svg>
+  );
+}

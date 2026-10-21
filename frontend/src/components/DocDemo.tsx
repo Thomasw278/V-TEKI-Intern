@@ -7,17 +7,45 @@ type T = (id: string, en: string) => string;
 
 /**
  * Demo di hero: tiga dokumen dengan tata letak berbeda dibaca bergantian.
- * Sinar pemindai lewat, angka yang diambil ditandai satu per satu, lalu hasilnya
- * muncul di panel kanan beserta cara angka itu ditemukan.
+ * Sinar pemindai lewat selama 500ms, angka yang diambil ditandai satu per satu (staggered),
+ * lalu hasilnya muncul di panel kanan beserta sinkronisasi hover dua arah.
  */
 type Field = { k: string; v: string; m: string; hl: string };
 type Scene = { id: string; tab: string; skew?: boolean; note: string; paper: ReactNode; fields: Field[] };
 
-const H = ({ id, on, skip, children }: { id: string; on: string[]; skip?: boolean; children: ReactNode }) => (
-  <span className={`hl ${on.includes(id) ? "on" : ""} ${skip ? "skip" : ""}`}><span>{children}</span></span>
+const H = ({
+  id,
+  on,
+  skip,
+  hovered,
+  onHover,
+  children,
+}: {
+  id: string;
+  on: string[];
+  skip?: boolean;
+  hovered?: boolean;
+  onHover?: (id: string | null) => void;
+  children: ReactNode;
+}) => (
+  <span
+    className={`hl ${on.includes(id) ? "on" : ""} ${skip ? "skip" : ""} ${hovered ? "highlighted" : ""}`}
+    onMouseEnter={() => onHover?.(id)}
+    onMouseLeave={() => onHover?.(null)}
+  >
+    <span>{children}</span>
+  </span>
 );
 
-function scenes(on: string[], t: T): Scene[] {
+function scenes(on: string[], hoveredId: string | null, onHover: (id: string | null) => void, t: T): Scene[] {
+  const hProps = (id: string, skip = false) => ({
+    id,
+    on,
+    skip,
+    hovered: hoveredId === id,
+    onHover,
+  });
+
   return [
     {
       id: "tabel", tab: t("Faktur bertabel", "Tabular invoice"),
@@ -39,13 +67,13 @@ function scenes(on: string[], t: T): Scene[] {
           <table>
             <thead><tr><th>Uraian</th><th className="r">Qty</th><th>Sat.</th></tr></thead>
             <tbody>
-              <tr><td>Biosolar B40 industri</td><td className="r"><H id="r1" on={on}>12.000</H></td><td>L</td></tr>
-              <tr><td>Biosolar B40 industri</td><td className="r"><H id="r2" on={on}>4.000</H></td><td>L</td></tr>
-              <tr><td><b>Subtotal</b></td><td className="r"><H id="sub" on={on} skip><b>16.000</b></H></td><td>L</td></tr>
+              <tr><td>Biosolar B40 industri</td><td className="r"><H {...hProps("r1")}>12.000</H></td><td>L</td></tr>
+              <tr><td>Biosolar B40 industri</td><td className="r"><H {...hProps("r2")}>4.000</H></td><td>L</td></tr>
+              <tr><td><b>Subtotal</b></td><td className="r"><H {...hProps("sub", true)}><b>16.000</b></H></td><td>L</td></tr>
             </tbody>
           </table>
           <div className="sk" style={{ width: "40%", marginTop: 12 }} />
-          <div style={{ fontSize: 10.5, color: "#5d6b62" }}>Keterangan: <H id="use" on={on}>untuk genset pabrik</H></div>
+          <div style={{ fontSize: 10.5, color: "#5d6b62" }}>Keterangan: <H {...hProps("use")}>untuk genset pabrik</H></div>
         </>
       ),
     },
@@ -63,7 +91,7 @@ function scenes(on: string[], t: T): Scene[] {
           <div className="sk" style={{ width: "86%" }} /><div className="sk" style={{ width: "70%" }} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, margin: "14px 0" }}>
             <div style={{ border: "1px solid #d7ded4", borderRadius: 6, padding: 10 }}>
-              <div style={{ fontSize: 18, fontWeight: 800 }}><H id="vol" on={on}>1.533.400</H></div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}><H {...hProps("vol")}>1.533.400</H></div>
               <div style={{ fontSize: 10, color: "#7a887f" }}>Total liter bahan bakar setahun</div>
             </div>
             <div style={{ border: "1px solid #d7ded4", borderRadius: 6, padding: 10 }}>
@@ -71,7 +99,7 @@ function scenes(on: string[], t: T): Scene[] {
               <div style={{ fontSize: 10, color: "#7a887f" }}>Hari operasi</div>
             </div>
           </div>
-          <div style={{ fontSize: 10.5 }}>Jenis bahan bakar: <H id="type" on={on}>Biosolar B40</H></div>
+          <div style={{ fontSize: 10.5 }}>Jenis bahan bakar: <H {...hProps("type")}>Biosolar B40</H></div>
           <div className="sk" style={{ width: "60%", marginTop: 10 }} /><div className="sk" style={{ width: "76%" }} />
         </>
       ),
@@ -88,14 +116,14 @@ function scenes(on: string[], t: T): Scene[] {
           <div className="ttl">Tagihan listrik</div>
           <div className="sub">ID pelanggan 5123 4567 8901 · Tarif I-3/TM</div>
           <div className="boxes">
-            <div className="box"><small>Periode</small><b><H id="bln" on={on}>Agustus 2025</H></b></div>
+            <div className="box"><small>Periode</small><b><H {...hProps("bln")}>Agustus 2025</H></b></div>
             <div className="box"><small>Daya</small><b>1.110 kVA</b></div>
             <div className="box"><small>Faktor kali</small><b>800</b></div>
           </div>
           <div className="sk" style={{ width: "80%" }} /><div className="sk" style={{ width: "64%" }} />
           <table style={{ marginTop: 8 }}>
             <thead><tr><th>Pemakaian</th><th className="r">LWBP</th><th className="r">WBP</th></tr></thead>
-            <tbody><tr><td>kWh</td><td className="r"><H id="kwh" on={on}>165.300</H></td><td className="r"><H id="kwh" on={on}>33.100</H></td></tr></tbody>
+            <tbody><tr><td>kWh</td><td className="r"><H {...hProps("kwh")}>165.300</H></td><td className="r"><H {...hProps("kwh")}>33.100</H></td></tr></tbody>
           </table>
           <div className="sk" style={{ width: "50%", marginTop: 12 }} />
         </>
@@ -110,28 +138,31 @@ export function DocDemo() {
   const t = useT();
   const [idx, setIdx] = useState(0);
   const [on, setOn] = useState<string[]>([]);
+  const [hovered, setHovered] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const ids = ["tabel", "atas", "scan"];
   const id = ids[idx];
 
   useEffect(() => {
     setOn([]);
+    setHovered(null);
     const steps = ORDER[id];
-    const ts = steps.map((s, i) => window.setTimeout(() => setOn((x) => [...x, s]), 1500 + i * 650));
+    // 500ms scanline sweep followed by staggered bounding box appearances
+    const ts = steps.map((s, i) => window.setTimeout(() => setOn((x) => [...x, s]), 500 + i * 200));
     return () => ts.forEach(window.clearTimeout);
   }, [id]);
 
   useEffect(() => {
     if (paused) return;
-    const t = window.setTimeout(() => setIdx((i) => (i + 1) % ids.length), 6000);
+    const t = window.setTimeout(() => setIdx((i) => (i + 1) % ids.length), 6500);
     return () => window.clearTimeout(t);
   }, [idx, paused, ids.length]);
 
-  const sc = scenes(on, t)[idx];
+  const sc = scenes(on, hovered, setHovered, t)[idx];
   return (
-    <div className="demo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <div className="demo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => { setPaused(false); setHovered(null); }}>
       <div className="demo-tabs" role="group" aria-label={t("Contoh tata letak dokumen", "Sample document layouts")}>
-        {scenes([], t).map((s, i) => (
+        {scenes([], null, () => {}, t).map((s, i) => (
           <button type="button" key={s.id} aria-pressed={i === idx} onClick={() => setIdx(i)}>
             {s.tab}
             {i === idx && !paused && <span className="prog" key={`p${idx}`} />}
@@ -140,18 +171,29 @@ export function DocDemo() {
       </div>
       <div className="demo-body">
         <div className="demo-paper-wrap">
-          <div key={sc.id} className="demo-beam" />
+          <div key={`beam-${sc.id}`} className="demo-beam" />
           <div className={`demo-paper ${sc.skew ? "skew" : ""}`} key={`p-${sc.id}`}>{sc.paper}</div>
         </div>
         <div className="demo-out" aria-live="polite">
           <h3>{t("Hasil pembacaan", "Extraction result")} <span className="badge ok" style={{ fontSize: 11 }}>{on.length ? t("terbaca", "read") : t("membaca", "reading")}</span></h3>
-          {sc.fields.map((f) => (
-            <div key={f.k} className={`demo-field ${on.includes(f.hl) ? "on" : ""}`}>
-              <span className="k">{f.k}</span>
-              <span className="v">{f.v}</span>
-              <span className="m">{f.m}</span>
-            </div>
-          ))}
+          {sc.fields.map((f) => {
+            const isHov = hovered === f.hl;
+            return (
+              <div
+                key={f.k}
+                className={`demo-field ${on.includes(f.hl) ? "on" : ""} ${isHov ? "highlighted" : ""}`}
+                tabIndex={0}
+                onMouseEnter={() => setHovered(f.hl)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(f.hl)}
+                onBlur={() => setHovered(null)}
+              >
+                <span className="k">{f.k}</span>
+                <span className="v">{f.v}</span>
+                <span className="m">{f.m}</span>
+              </div>
+            );
+          })}
           <p className="demo-note">{sc.note}</p>
         </div>
       </div>

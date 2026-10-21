@@ -18,3 +18,4 @@ frontend/out/
 # agent skills
 skills-lock.json
 .agents/
+.taste-skill/

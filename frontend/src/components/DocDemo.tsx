@@ -160,7 +160,7 @@ export function DocDemo() {
 
   const sc = scenes(on, hovered, setHovered, t)[idx];
   return (
-    <div className="demo" onMouseEnter={() => setPaused(true)} onMouseLeave={() => { setPaused(false); setHovered(null); }}>
+    <div className="demo" data-ui="true" onMouseEnter={() => setPaused(true)} onMouseLeave={() => { setPaused(false); setHovered(null); }}>
       <div className="demo-tabs" role="group" aria-label={t("Contoh tata letak dokumen", "Sample document layouts")}>
         {scenes([], null, () => {}, t).map((s, i) => (
           <button type="button" key={s.id} aria-pressed={i === idx} onClick={() => setIdx(i)}>

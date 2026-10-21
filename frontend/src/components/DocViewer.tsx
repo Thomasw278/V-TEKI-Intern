@@ -80,7 +80,7 @@ export function DocViewer({ doc, selected, onSelect, onDownload, hoveredFieldId,
   const pageName = page.kind === "sheet" ? (page.name ? `${t("Lembar", "Sheet")} ${page.name}` : `${t("Lembar", "Sheet")} ${n + 1}`) : `${t("Halaman", "Page")} ${n + 1}`;
 
   return (
-    <div className="viewer">
+    <div className="viewer" data-ui="true">
       <div className="viewer-bar">
         <button type="button" className="btn ghost icon sm" aria-label={t("Halaman sebelumnya", "Previous page")} disabled={n === 0} onClick={() => setN(n - 1)}><IconChevronLeft size={16} /></button>
         <span className="small strong" style={{ textAlign: "center" }}>{pageName} / {pages.length}</span>

@@ -1,0 +1,3950 @@
+{
+ "url": "http://localhost:3000",
+ "at": "2026-10-21T07:40:03.382Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 9,
+   "filled": [
+    1,
+    1,
+    1,
+    0.64,
+    0.84,
+    0.77,
+    0.69,
+    0.84,
+    0.68
+   ],
+   "motion": {
+    "elements": 113,
+    "css": 72,
+    "transitions": 40,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 7789,
+     "screens": 8.7,
+     "words": 1106,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 27,
+     "sections": 9,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 1,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "0,000",
+     "words": 1,
+     "chars": 5,
+     "lines": 1,
+     "size": 72,
+     "vw": 5,
+     "font": "Instrument Sans",
+     "weight": 800,
+     "tracking": -0.04,
+     "leading": 1,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "center",
+     "position": "center",
+     "widthRatio": 0.1,
+     "top": 385,
+     "tag": "div",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+     "words": 12,
+     "lines": 5,
+     "size": 66,
+     "font": "Gloock"
+    },
+    "headings": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "words": 12,
+      "chars": 73,
+      "lines": 5,
+      "size": 66,
+      "vw": 4.6,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.02,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.36,
+      "top": 209,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "0,000",
+      "words": 1,
+      "chars": 5,
+      "lines": 1,
+      "size": 72,
+      "vw": 5,
+      "font": "Instrument Sans",
+      "weight": 800,
+      "tracking": -0.04,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.1,
+      "top": 385,
+      "tag": "div",
+      "kind": "heading"
+     },
+     {
+      "text": "KarbonLens",
+      "words": 1,
+      "chars": 10,
+      "lines": 1,
+      "size": 45,
+      "vw": 3.1,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.69,
+      "top": 599,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "10",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.19,
+      "top": 859,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "6",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.17,
+      "top": 859,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "2",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.17,
+      "top": 859,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "t CO₂e/t",
+      "words": 2,
+      "chars": 8,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.17,
+      "top": 859,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari tumpukan dokumen ke laporan yang bisa diaudit.",
+      "words": 8,
+      "chars": 51,
+      "lines": 3,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 1207,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "01",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.16,
+      "top": 1441,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "02",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.16,
+      "top": 1441,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "03",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.16,
+      "top": 1441,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "04",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 2.8,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.16,
+      "top": 1441,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Angka tidak selalu berada di tempat yang sama.",
+      "words": 8,
+      "chars": 46,
+      "lines": 3,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 1946,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+      "words": 8,
+      "chars": 47,
+      "lines": 3,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 3216,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyiapkan dan mengajukan data",
+      "words": 4,
+      "chars": 30,
+      "lines": 1,
+      "size": 30,
+      "vw": 2.1,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.36,
+      "top": 3489,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyetujui dan mengunci",
+      "words": 3,
+      "chars": 23,
+      "lines": 1,
+      "size": 30,
+      "vw": 2.1,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.36,
+      "top": 3489,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Sepuluh dokumen yang sudah dibuat perusahaan setiap bulan.",
+      "words": 8,
+      "chars": 58,
+      "lines": 4,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 4042,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari setiap liter dan kilowatt-jam sampai ke setiap ton produk.",
+      "words": 10,
+      "chars": 63,
+      "lines": 3,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 5308,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Angka yang bisa dipertanggungjawabkan di depan auditor.",
+      "words": 7,
+      "chars": 55,
+      "lines": 3,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.35,
+      "top": 6425,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Mulai dari dokumen periode lalu.",
+      "words": 5,
+      "chars": 32,
+      "lines": 2,
+      "size": 48,
+      "vw": 3.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.44,
+      "top": 7137,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 20,
+     "maxLines": 5,
+     "over2Lines": 7,
+     "statements": 4,
+     "centered": 2,
+     "medianWords": 3,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Instrument Sans",
+       "share": 0.9,
+       "mono": false
+      },
+      {
+       "family": "Gloock",
+       "share": 0.08,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.02,
+       "mono": true
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      30,
+      40,
+      45,
+      48,
+      66,
+      72
+     ],
+     "sizeCount": 16,
+     "notLoaded": [],
+     "body": {
+      "font": "Instrument Sans",
+      "size": 17,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 6.5
+     },
+     "measureChars": 72,
+     "max": {
+      "size": 72,
+      "vw": 5,
+      "font": "Instrument Sans",
+      "text": "0,000"
+     },
+     "monoShare": 0.02,
+     "monoProseShare": 0.02,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "AUDIT OS",
+      "E = data aktivitas × faktor emisi × GWP",
+      "SEE = (E langsung + E hulu) × porsi ÷ to",
+      "AUDIT OS"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0.02,
+     "smallText": 27
+    },
+    "eyebrows": [
+     {
+      "text": "Untuk eksportir ke Uni Eropa",
+      "above": "Emisi tertanam produk, dihitung dari dok",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": true,
+      "size": 13.5,
+      "top": 148
+     },
+     {
+      "text": "Cara kerja",
+      "above": "Dari tumpukan dokumen ke laporan yang bi",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 1172
+     },
+     {
+      "text": "Pembacaan dokumen",
+      "above": "Angka tidak selalu berada di tempat yang",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 1911
+     },
+     {
+      "text": "Peran",
+      "above": "Dua peran, satu alur yang tidak bisa dil",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 3181
+     },
+     {
+      "text": "Akun perusahaan",
+      "above": "Menyiapkan dan mengajukan data",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 3455
+     },
+     {
+      "text": "Admin peninjau",
+      "above": "Menyetujui dan mengunci",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 3455
+     },
+     {
+      "text": "Dokumen",
+      "above": "Sepuluh dokumen yang sudah dibuat perusa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 4007
+     },
+     {
+      "text": "Perhitungan",
+      "above": "Dari setiap liter dan kilowatt-jam sampa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 5273
+     },
+     {
+      "text": "Keamanan & jejak audit",
+      "above": "Angka yang bisa dipertanggungjawabkan di",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 6390
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 40,
+      "top": 1441
+     },
+     {
+      "text": "02",
+      "size": 40,
+      "top": 1441
+     },
+     {
+      "text": "03",
+      "size": 40,
+      "top": 1441
+     },
+     {
+      "text": "04",
+      "size": 40,
+      "top": 1441
+     },
+     {
+      "text": "01",
+      "size": 20,
+      "top": 4329
+     },
+     {
+      "text": "02",
+      "size": 20,
+      "top": 4402
+     },
+     {
+      "text": "03",
+      "size": 20,
+      "top": 4475
+     },
+     {
+      "text": "04",
+      "size": 20,
+      "top": 4548
+     },
+     {
+      "text": "05",
+      "size": 20,
+      "top": 4621
+     },
+     {
+      "text": "06",
+      "size": 20,
+      "top": 4694
+     },
+     {
+      "text": "07",
+      "size": 20,
+      "top": 4767
+     },
+     {
+      "text": "08",
+      "size": 20,
+      "top": 4840
+     }
+    ],
+    "color": {
+     "bodyBg": "#111110",
+     "bodyBgHsl": {
+      "h": 60,
+      "s": 0.03,
+      "l": 0.06
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#111110",
+       "top": 0,
+       "hsl": {
+        "h": 60,
+        "s": 0.03,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0e2c1f",
+       "top": 0,
+       "hsl": {
+        "h": 154,
+        "s": 0.52,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0f2a1d",
+       "top": 0,
+       "hsl": {
+        "h": 151,
+        "s": 0.47,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#1a1918",
+       "top": 1784,
+       "hsl": {
+        "h": 30,
+        "s": 0.04,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#9a9791",
+       "share": 0.47
+      },
+      {
+       "color": "#edebe8",
+       "share": 0.16
+      },
+      {
+       "color": "#a9c2b3",
+       "share": 0.12
+      },
+      {
+       "color": "#c8c5c0",
+       "share": 0.06
+      },
+      {
+       "color": "#f5f3ef",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#c8f05a",
+      "hsl": {
+       "h": 76,
+       "s": 0.83,
+       "l": 0.65
+      },
+      "fg": "#0e2c1f"
+     },
+     "lowContrast": [
+      {
+       "text": "No. faktur",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Jenis BBM",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Harga satuan",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 10,
+     "inHero": 8,
+     "radius": 8,
+     "height": 48,
+     "withShadow": 8,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Lewati intro",
+      "Masuk",
+      "Daftarkan perusahaan",
+      "Daftarkan perusahaan",
+      "Lihat cara kerja"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 16,
+     "shadowOverlay": 13,
+     "shadowSamples": [
+      "a.btn.accent → rgb(4, 4, 4) 3px 4px 0px 0px, rgba(255, 255, 255, 0.5) 0px 1px 0px 0px inset",
+      "a.btn.on-dark → rgba(0, 0, 0, 0.6) 3px 4px 0px 0px, rgba(255, 255, 255, 0.2) 0px 1px 0px 0px ins",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset"
+     ],
+     "gradients": 1,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.i-beam → linear-gradient(rgba(200, 240, 90, 0) 0%, rgba(200, 240, 90, 0.22) 70%, rgba(200, 240, 90, 0.95) 100%)"
+     ],
+     "gradientText": 0,
+     "hairlines": 27,
+     "hairlineSamples": [
+      "div.stats.hero-ui 1184px",
+      "section.lp-standards 1440px",
+      "section#pembacaan.lp-sec.alt 1440px",
+      "div.rowx 424px",
+      "div.rowx 424px"
+     ],
+     "outlinedBoxes": 12,
+     "dashed": 1,
+     "blurred": 0,
+     "roundedBoxes": 28,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": true,
+       "rounded": true,
+       "top": 1416
+      },
+      {
+       "count": 7,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 2155
+      },
+      {
+       "count": 3,
+       "iconTopped": true,
+       "rounded": true,
+       "top": 6659
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "svg",
+      "ratio": 1
+     },
+     {
+      "type": "svg",
+      "ratio": 1
+     }
+    ],
+    "nav": {
+     "links": 8,
+     "fixed": true,
+     "height": 73,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "instrument sans",
+     "gloock",
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 7789,
+    "margins": {
+     "left": 128,
+     "right": 140
+    },
+    "sections": [
+     {
+      "sel": "section.lp-hero",
+      "tag": "section",
+      "top": 0,
+      "height": 979,
+      "words": 135,
+      "media": 1,
+      "middle": 29,
+      "heading": {
+       "text": "Emisi tertanam produk, dihitung dari dokumen yang ",
+       "size": 66,
+       "tag": "h1"
+      },
+      "left": 128,
+      "right": 152,
+      "textLeft": 128,
+      "textRight": 168,
+      "fullBleed": true,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#cara-kerja.lp-sec.in-view",
+      "tag": "section",
+      "top": 1046,
+      "height": 738,
+      "words": 122,
+      "media": 0,
+      "middle": 20,
+      "heading": {
+       "text": "Dari tumpukan dokumen ke laporan yang bisa diaudit",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 164,
+      "textLeft": 128,
+      "textRight": 164,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#pembacaan.lp-sec.alt",
+      "tag": "section",
+      "top": 1784,
+      "height": 1270,
+      "words": 218,
+      "media": 0,
+      "middle": 157,
+      "heading": {
+       "text": "Angka tidak selalu berada di tempat yang sama.",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 144,
+      "textLeft": 128,
+      "textRight": 144,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#peran.lp-sec.in-view",
+      "tag": "section",
+      "top": 3055,
+      "height": 825,
+      "words": 132,
+      "media": 1,
+      "middle": 72,
+      "heading": {
+       "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 129,
+      "textLeft": 128,
+      "textRight": 174,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#dokumen.lp-sec.alt",
+      "tag": "section",
+      "top": 3880,
+      "height": 1267,
+      "words": 169,
+      "media": 0,
+      "middle": 121,
+      "heading": {
+       "text": "Sepuluh dokumen yang sudah dibuat perusahaan setia",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 135,
+      "textLeft": 128,
+      "textRight": 135,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec.in-view",
+      "tag": "section",
+      "top": 5147,
+      "height": 1116,
+      "words": 80,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Dari setiap liter dan kilowatt-jam sampai ke setia",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 140,
+      "textLeft": 128,
+      "textRight": 140,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#keamanan.lp-sec.alt",
+      "tag": "section",
+      "top": 6263,
+      "height": 682,
+      "words": 77,
+      "media": 0,
+      "middle": 70,
+      "heading": {
+       "text": "Angka yang bisa dipertanggungjawabkan di depan aud",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 128,
+      "right": 156,
+      "textLeft": 128,
+      "textRight": 156,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec.in-view",
+      "tag": "section",
+      "top": 6946,
+      "height": 521,
+      "words": 27,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Mulai dari dokumen periode lalu.",
+       "size": 48,
+       "tag": "h2"
+      },
+      "left": 129,
+      "right": 129,
+      "textLeft": 193,
+      "textRight": 216,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.lp-foot",
+      "tag": "footer",
+      "top": 7466,
+      "height": 323,
+      "words": 40,
+      "media": 0,
+      "middle": 128,
+      "heading": {
+       "text": "Produk",
+       "size": 13,
+       "tag": "h4"
+      },
+      "left": 128,
+      "right": 128,
+      "textLeft": 128,
+      "textRight": 183,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "size": 66,
+      "top": 209,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 128,
+      "n": 8
+     },
+     {
+      "x": 701,
+      "n": 5
+     },
+     {
+      "x": 151,
+      "n": 3
+     },
+     {
+      "x": 193,
+      "n": 2
+     },
+     {
+      "x": 763,
+      "n": 2
+     },
+     {
+      "x": 552,
+      "n": 1
+     },
+     {
+      "x": 952,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 22,
+    "bodySize": 15,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 9,
+   "filled": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    0.88,
+    0.81,
+    0.78,
+    0.84
+   ],
+   "motion": {
+    "elements": 109,
+    "css": 72,
+    "transitions": 36,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 8742,
+     "screens": 8.5,
+     "words": 1099,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 27,
+     "sections": 9,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 1,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "0,000",
+     "words": 1,
+     "chars": 5,
+     "lines": 1,
+     "size": 61.4,
+     "vw": 8,
+     "font": "Instrument Sans",
+     "weight": 800,
+     "tracking": -0.04,
+     "leading": 1,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "center",
+     "position": "center",
+     "widthRatio": 0.16,
+     "top": 452,
+     "tag": "div",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+     "words": 12,
+     "lines": 2,
+     "size": 40,
+     "font": "Gloock"
+    },
+    "headings": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "words": 12,
+      "chars": 73,
+      "lines": 2,
+      "size": 40,
+      "vw": 5.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.02,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 209,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "0,000",
+      "words": 1,
+      "chars": 5,
+      "lines": 1,
+      "size": 61.4,
+      "vw": 8,
+      "font": "Instrument Sans",
+      "weight": 800,
+      "tracking": -0.04,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.16,
+      "top": 452,
+      "tag": "div",
+      "kind": "heading"
+     },
+     {
+      "text": "KarbonLens",
+      "words": 1,
+      "chars": 10,
+      "lines": 1,
+      "size": 38.4,
+      "vw": 5,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 639,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "10",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.2,
+      "top": 1104,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "6",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.17,
+      "top": 1104,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "2",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.17,
+      "top": 1104,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "t CO₂e/t",
+      "words": 2,
+      "chars": 8,
+      "lines": 1,
+      "size": 28,
+      "vw": 3.6,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.17,
+      "top": 1104,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari tumpukan dokumen ke laporan yang bisa diaudit.",
+      "words": 8,
+      "chars": 51,
+      "lines": 2,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 1512,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "01",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 5.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.39,
+      "top": 1749,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "02",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 5.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.39,
+      "top": 1749,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "03",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 5.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.39,
+      "top": 2016,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "04",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 5.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.39,
+      "top": 2016,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Angka tidak selalu berada di tempat yang sama.",
+      "words": 8,
+      "chars": 46,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 2427,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+      "words": 8,
+      "chars": 47,
+      "lines": 1,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 3846,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyiapkan dan mengajukan data",
+      "words": 4,
+      "chars": 30,
+      "lines": 1,
+      "size": 30,
+      "vw": 3.9,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.86,
+      "top": 4083,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyetujui dan mengunci",
+      "words": 3,
+      "chars": 23,
+      "lines": 1,
+      "size": 30,
+      "vw": 3.9,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.86,
+      "top": 4452,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Sepuluh dokumen yang sudah dibuat perusahaan setiap bulan.",
+      "words": 8,
+      "chars": 58,
+      "lines": 2,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 4926,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari setiap liter dan kilowatt-jam sampai ke setiap ton produk.",
+      "words": 10,
+      "chars": 63,
+      "lines": 2,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 6157,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Angka yang bisa dipertanggungjawabkan di depan auditor.",
+      "words": 7,
+      "chars": 55,
+      "lines": 2,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.93,
+      "top": 7028,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Mulai dari dokumen periode lalu.",
+      "words": 5,
+      "chars": 32,
+      "lines": 2,
+      "size": 32,
+      "vw": 4.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.55,
+      "top": 7877,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 20,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 4,
+     "centered": 2,
+     "medianWords": 3,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Instrument Sans",
+       "share": 0.9,
+       "mono": false
+      },
+      {
+       "family": "Gloock",
+       "share": 0.08,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.02,
+       "mono": true
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      9,
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      28,
+      30,
+      32,
+      38,
+      40,
+      61
+     ],
+     "sizeCount": 17,
+     "notLoaded": [],
+     "body": {
+      "font": "Instrument Sans",
+      "size": 17,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 6.5
+     },
+     "measureChars": 77,
+     "max": {
+      "size": 61.4,
+      "vw": 8,
+      "font": "Instrument Sans",
+      "text": "0,000"
+     },
+     "monoShare": 0.02,
+     "monoProseShare": 0.02,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "AUDIT OS",
+      "E = data aktivitas × faktor emisi × GWP",
+      "SEE = (E langsung + E hulu) × porsi ÷ to",
+      "AUDIT OS"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0.02,
+     "smallText": 28
+    },
+    "eyebrows": [
+     {
+      "text": "Untuk eksportir ke Uni Eropa",
+      "above": "Emisi tertanam produk, dihitung dari dok",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": true,
+      "size": 13.5,
+      "top": 148
+     },
+     {
+      "text": "Cara kerja",
+      "above": "Dari tumpukan dokumen ke laporan yang bi",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 1477
+     },
+     {
+      "text": "Perusahaan",
+      "above": "03",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 12.5,
+      "top": 1915
+     },
+     {
+      "text": "Sistem",
+      "above": "04",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 12.5,
+      "top": 1915
+     },
+     {
+      "text": "Pembacaan dokumen",
+      "above": "Angka tidak selalu berada di tempat yang",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 2392
+     },
+     {
+      "text": "Peran",
+      "above": "Dua peran, satu alur yang tidak bisa dil",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 3811
+     },
+     {
+      "text": "Akun perusahaan",
+      "above": "Menyiapkan dan mengajukan data",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 4049
+     },
+     {
+      "text": "Admin peninjau",
+      "above": "Menyetujui dan mengunci",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 4418
+     },
+     {
+      "text": "Dokumen",
+      "above": "Sepuluh dokumen yang sudah dibuat perusa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 4891
+     },
+     {
+      "text": "Perhitungan",
+      "above": "Dari setiap liter dan kilowatt-jam sampa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 6122
+     },
+     {
+      "text": "Keamanan & jejak audit",
+      "above": "Angka yang bisa dipertanggungjawabkan di",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 6993
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 40,
+      "top": 1749
+     },
+     {
+      "text": "02",
+      "size": 40,
+      "top": 1749
+     },
+     {
+      "text": "03",
+      "size": 40,
+      "top": 2016
+     },
+     {
+      "text": "04",
+      "size": 40,
+      "top": 2016
+     },
+     {
+      "text": "01",
+      "size": 20,
+      "top": 5166
+     },
+     {
+      "text": "02",
+      "size": 20,
+      "top": 5260
+     },
+     {
+      "text": "03",
+      "size": 20,
+      "top": 5354
+     },
+     {
+      "text": "04",
+      "size": 20,
+      "top": 5448
+     },
+     {
+      "text": "05",
+      "size": 20,
+      "top": 5521
+     },
+     {
+      "text": "06",
+      "size": 20,
+      "top": 5594
+     },
+     {
+      "text": "07",
+      "size": 20,
+      "top": 5667
+     },
+     {
+      "text": "08",
+      "size": 20,
+      "top": 5761
+     }
+    ],
+    "color": {
+     "bodyBg": "#111110",
+     "bodyBgHsl": {
+      "h": 60,
+      "s": 0.03,
+      "l": 0.06
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#111110",
+       "top": 0,
+       "hsl": {
+        "h": 60,
+        "s": 0.03,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0e2c1f",
+       "top": 0,
+       "hsl": {
+        "h": 154,
+        "s": 0.52,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0f2a1d",
+       "top": 0,
+       "hsl": {
+        "h": 151,
+        "s": 0.47,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0b2217",
+       "top": 551,
+       "hsl": {
+        "h": 151,
+        "s": 0.51,
+        "l": 0.09
+       }
+      },
+      {
+       "color": "#1a1918",
+       "top": 2301,
+       "hsl": {
+        "h": 30,
+        "s": 0.04,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#9a9791",
+       "share": 0.47
+      },
+      {
+       "color": "#edebe8",
+       "share": 0.16
+      },
+      {
+       "color": "#a9c2b3",
+       "share": 0.11
+      },
+      {
+       "color": "#c8c5c0",
+       "share": 0.06
+      },
+      {
+       "color": "#f5f3ef",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#c8f05a",
+      "hsl": {
+       "h": 76,
+       "s": 0.83,
+       "l": 0.65
+      },
+      "fg": "#0e2c1f"
+     },
+     "lowContrast": [
+      {
+       "text": "No. faktur",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Jenis BBM",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Harga satuan",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 10,
+     "inHero": 8,
+     "radius": 8,
+     "height": 48,
+     "withShadow": 8,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Lewati intro",
+      "Masuk",
+      "Daftarkan perusahaan",
+      "Daftarkan perusahaan",
+      "Lihat cara kerja"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 16,
+     "shadowOverlay": 13,
+     "shadowSamples": [
+      "a.btn.accent → rgb(4, 4, 4) 3px 4px 0px 0px, rgba(255, 255, 255, 0.5) 0px 1px 0px 0px inset",
+      "a.btn.on-dark → rgba(0, 0, 0, 0.6) 3px 4px 0px 0px, rgba(255, 255, 255, 0.2) 0px 1px 0px 0px ins",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset"
+     ],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.i-beam → linear-gradient(rgba(200, 240, 90, 0) 0%, rgba(200, 240, 90, 0.22) 70%, rgba(200, 240, 90, 0.95) 100%)",
+      "div.demo-beam → linear-gradient(rgba(15, 83, 56, 0) 0%, rgba(15, 83, 56, 0.25) 70%, rgb(15, 83, 56) 100%)"
+     ],
+     "gradientText": 0,
+     "hairlines": 27,
+     "hairlineSamples": [
+      "div.stats.hero-ui 712px",
+      "section.lp-standards 768px",
+      "section#pembacaan.lp-sec.alt 768px",
+      "div.rowx 424px",
+      "div.rowx 424px"
+     ],
+     "outlinedBoxes": 12,
+     "dashed": 1,
+     "blurred": 0,
+     "roundedBoxes": 31,
+     "boxRadius": 16,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": true,
+       "rounded": true,
+       "top": 1724
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "svg",
+      "ratio": 1
+     },
+     {
+      "type": "svg",
+      "ratio": 1
+     }
+    ],
+    "nav": {
+     "links": 3,
+     "fixed": true,
+     "height": 73,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "instrument sans",
+     "gloock",
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 8742,
+    "margins": {
+     "left": 28,
+     "right": 28
+    },
+    "sections": [
+     {
+      "sel": "section.lp-hero",
+      "tag": "section",
+      "top": 0,
+      "height": 1255,
+      "words": 149,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Emisi tertanam produk, dihitung dari dokumen yang ",
+       "size": 40,
+       "tag": "h1"
+      },
+      "left": 28,
+      "right": 41,
+      "textLeft": 28,
+      "textRight": 41,
+      "fullBleed": true,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-standards.in-view",
+      "tag": "section",
+      "top": 1255,
+      "height": 132,
+      "words": 26,
+      "media": 0,
+      "middle": 32,
+      "heading": null,
+      "left": 28,
+      "right": 150,
+      "textLeft": 28,
+      "textRight": 150,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#cara-kerja.lp-sec.in-view",
+      "tag": "section",
+      "top": 1387,
+      "height": 913,
+      "words": 122,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "01",
+       "size": 40,
+       "tag": "span"
+      },
+      "left": 28,
+      "right": 61,
+      "textLeft": 28,
+      "textRight": 61,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#pembacaan.lp-sec.alt",
+      "tag": "section",
+      "top": 2301,
+      "height": 1420,
+      "words": 218,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Angka tidak selalu berada di tempat yang sama.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 28,
+      "right": 28,
+      "textLeft": 28,
+      "textRight": 63,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#peran.lp-sec.in-view",
+      "tag": "section",
+      "top": 3721,
+      "height": 1080,
+      "words": 132,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 28,
+      "right": 29,
+      "textLeft": 28,
+      "textRight": 82,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#dokumen.lp-sec.alt",
+      "tag": "section",
+      "top": 4800,
+      "height": 1232,
+      "words": 169,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Sepuluh dokumen yang sudah dibuat perusahaan setia",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 28,
+      "right": 54,
+      "textLeft": 28,
+      "textRight": 54,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec.in-view",
+      "tag": "section",
+      "top": 6032,
+      "height": 870,
+      "words": 80,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Dari setiap liter dan kilowatt-jam sampai ke setia",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 28,
+      "right": 57,
+      "textLeft": 28,
+      "textRight": 104,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#keamanan.lp-sec.alt",
+      "tag": "section",
+      "top": 6902,
+      "height": 848,
+      "words": 77,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Angka yang bisa dipertanggungjawabkan di depan aud",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 28,
+      "right": 61,
+      "textLeft": 28,
+      "textRight": 61,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec.in-view",
+      "tag": "section",
+      "top": 7750,
+      "height": 435,
+      "words": 27,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Mulai dari dokumen periode lalu.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 29,
+      "right": 29,
+      "textLeft": 53,
+      "textRight": 130,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.lp-foot",
+      "tag": "footer",
+      "top": 8185,
+      "height": 557,
+      "words": 40,
+      "media": 0,
+      "middle": 71,
+      "heading": {
+       "text": "Produk",
+       "size": 13,
+       "tag": "h4"
+      },
+      "left": 28,
+      "right": 28,
+      "textLeft": 28,
+      "textRight": 83,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "size": 40,
+      "top": 209,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 28,
+      "n": 13
+     },
+     {
+      "x": 51,
+      "n": 9
+     }
+    ],
+    "leftBlocks": 22,
+    "bodySize": 15,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    0.99,
+    0.69,
+    0.88,
+    0.99,
+    0.99,
+    0.69,
+    0.92
+   ],
+   "motion": {
+    "elements": 99,
+    "css": 66,
+    "transitions": 32,
+    "scripted": 1,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 11654,
+     "screens": 13.8,
+     "words": 1098,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 27,
+     "sections": 9,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 1,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 1,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+     "words": 12,
+     "chars": 73,
+     "lines": 5,
+     "size": 40,
+     "vw": 10.3,
+     "font": "Gloock",
+     "weight": 400,
+     "tracking": -0.02,
+     "leading": 1.02,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.92,
+     "top": 173,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+     "words": 12,
+     "lines": 5,
+     "size": 40,
+     "font": "Gloock"
+    },
+    "headings": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "words": 12,
+      "chars": 73,
+      "lines": 5,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.02,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 173,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "0,000",
+      "words": 1,
+      "chars": 5,
+      "lines": 1,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Instrument Sans",
+      "weight": 800,
+      "tracking": -0.04,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.23,
+      "top": 371,
+      "tag": "div",
+      "kind": "heading"
+     },
+     {
+      "text": "KarbonLens",
+      "words": 1,
+      "chars": 10,
+      "lines": 1,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.85,
+      "top": 531,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "10",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.4,
+      "top": 1518,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "6",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.33,
+      "top": 1518,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "2",
+      "words": 1,
+      "chars": 1,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.4,
+      "top": 1694,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "t CO₂e/t",
+      "words": 2,
+      "chars": 8,
+      "lines": 1,
+      "size": 28,
+      "vw": 7.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.33,
+      "top": 1694,
+      "tag": "b",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari tumpukan dokumen ke laporan yang bisa diaudit.",
+      "words": 8,
+      "chars": 51,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 2166,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "01",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.8,
+      "top": 2465,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "02",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.8,
+      "top": 2733,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "03",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.8,
+      "top": 3000,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "04",
+      "words": 1,
+      "chars": 2,
+      "lines": 1,
+      "size": 40,
+      "vw": 10.3,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": 0,
+      "leading": 1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.8,
+      "top": 3267,
+      "tag": "span",
+      "kind": "statement"
+     },
+     {
+      "text": "Angka tidak selalu berada di tempat yang sama.",
+      "words": 8,
+      "chars": 46,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 3677,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+      "words": 8,
+      "chars": 47,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 5393,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyiapkan dan mengajukan data",
+      "words": 4,
+      "chars": 30,
+      "lines": 2,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.79,
+      "top": 5726,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Menyetujui dan mengunci",
+      "words": 3,
+      "chars": 23,
+      "lines": 2,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.01,
+      "leading": 1.1,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.79,
+      "top": 6172,
+      "tag": "h3",
+      "kind": "heading"
+     },
+     {
+      "text": "Sepuluh dokumen yang sudah dibuat perusahaan setiap bulan.",
+      "words": 8,
+      "chars": 58,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 6789,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Dari setiap liter dan kilowatt-jam sampai ke setiap ton produk.",
+      "words": 10,
+      "chars": 63,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 8713,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Angka yang bisa dipertanggungjawabkan di depan auditor.",
+      "words": 7,
+      "chars": 55,
+      "lines": 3,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 9725,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Mulai dari dokumen periode lalu.",
+      "words": 5,
+      "chars": 32,
+      "lines": 2,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Gloock",
+      "weight": 400,
+      "tracking": -0.015,
+      "leading": 1.06,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.79,
+      "top": 10678,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 20,
+     "maxLines": 5,
+     "over2Lines": 7,
+     "statements": 4,
+     "centered": 2,
+     "medianWords": 2,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Instrument Sans",
+       "share": 0.9,
+       "mono": false
+      },
+      {
+       "family": "Gloock",
+       "share": 0.08,
+       "mono": false
+      },
+      {
+       "family": "JetBrains Mono",
+       "share": 0.02,
+       "mono": true
+      }
+     ],
+     "familyCount": 3,
+     "sizes": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      19,
+      20,
+      28,
+      30,
+      32,
+      40
+     ],
+     "sizeCount": 16,
+     "notLoaded": [],
+     "body": {
+      "font": "Instrument Sans",
+      "size": 16.5,
+      "leading": 1.6,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 8.1
+     },
+     "measureChars": 42,
+     "max": {
+      "size": 40,
+      "vw": 10.3,
+      "font": "Instrument Sans",
+      "text": "0,000"
+     },
+     "monoShare": 0.02,
+     "monoProseShare": 0.02,
+     "monoFamilies": [
+      "JetBrains Mono"
+     ],
+     "monoSamples": [
+      "AUDIT OS",
+      "E = data aktivitas × faktor emisi × GWP",
+      "SEE = (E langsung + E hulu) × porsi ÷ to",
+      "AUDIT OS"
+     ],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0.02,
+     "smallText": 28
+    },
+    "eyebrows": [
+     {
+      "text": "Untuk eksportir ke Uni Eropa",
+      "above": "Emisi tertanam produk, dihitung dari dok",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": true,
+      "size": 13.5,
+      "top": 112
+     },
+     {
+      "text": "Cara kerja",
+      "above": "Dari tumpukan dokumen ke laporan yang bi",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 2132
+     },
+     {
+      "text": "Perusahaan",
+      "above": "02",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 12.5,
+      "top": 2631
+     },
+     {
+      "text": "Sistem",
+      "above": "03",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 12.5,
+      "top": 2899
+     },
+     {
+      "text": "Perusahaan → admin",
+      "above": "04",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 12.5,
+      "top": 3166
+     },
+     {
+      "text": "Pembacaan dokumen",
+      "above": "Angka tidak selalu berada di tempat yang",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 3642
+     },
+     {
+      "text": "Peran",
+      "above": "Dua peran, satu alur yang tidak bisa dil",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 5358
+     },
+     {
+      "text": "Akun perusahaan",
+      "above": "Menyiapkan dan mengajukan data",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 5692
+     },
+     {
+      "text": "Admin peninjau",
+      "above": "Menyetujui dan mengunci",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13,
+      "top": 6137
+     },
+     {
+      "text": "Dokumen",
+      "above": "Sepuluh dokumen yang sudah dibuat perusa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 6755
+     },
+     {
+      "text": "Perhitungan",
+      "above": "Dari setiap liter dan kilowatt-jam sampa",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 8678
+     },
+     {
+      "text": "Keamanan & jejak audit",
+      "above": "Angka yang bisa dipertanggungjawabkan di",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 13.5,
+      "top": 9690
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 40,
+      "top": 2465
+     },
+     {
+      "text": "02",
+      "size": 40,
+      "top": 2733
+     },
+     {
+      "text": "03",
+      "size": 40,
+      "top": 3000
+     },
+     {
+      "text": "04",
+      "size": 40,
+      "top": 3267
+     },
+     {
+      "text": "01",
+      "size": 20,
+      "top": 7091
+     },
+     {
+      "text": "02",
+      "size": 20,
+      "top": 7249
+     },
+     {
+      "text": "03",
+      "size": 20,
+      "top": 7407
+     },
+     {
+      "text": "04",
+      "size": 20,
+      "top": 7565
+     },
+     {
+      "text": "05",
+      "size": 20,
+      "top": 7701
+     },
+     {
+      "text": "06",
+      "size": 20,
+      "top": 7836
+     },
+     {
+      "text": "07",
+      "size": 20,
+      "top": 7972
+     },
+     {
+      "text": "08",
+      "size": 20,
+      "top": 8130
+     }
+    ],
+    "color": {
+     "bodyBg": "#111110",
+     "bodyBgHsl": {
+      "h": 60,
+      "s": 0.03,
+      "l": 0.06
+     },
+     "dark": true,
+     "sectionBgs": [
+      {
+       "color": "#111110",
+       "top": 0,
+       "hsl": {
+        "h": 60,
+        "s": 0.03,
+        "l": 0.06
+       }
+      },
+      {
+       "color": "#0e2c1f",
+       "top": 0,
+       "hsl": {
+        "h": 154,
+        "s": 0.52,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0f2a1d",
+       "top": 0,
+       "hsl": {
+        "h": 151,
+        "s": 0.47,
+        "l": 0.11
+       }
+      },
+      {
+       "color": "#0b2217",
+       "top": 715,
+       "hsl": {
+        "h": 151,
+        "s": 0.51,
+        "l": 0.09
+       }
+      },
+      {
+       "color": "#dfe6dd",
+       "top": 794,
+       "hsl": {
+        "h": 107,
+        "s": 0.15,
+        "l": 0.88
+       }
+      },
+      {
+       "color": "#1a1918",
+       "top": 1122,
+       "hsl": {
+        "h": 30,
+        "s": 0.04,
+        "l": 0.1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#9a9791",
+       "share": 0.47
+      },
+      {
+       "color": "#edebe8",
+       "share": 0.18
+      },
+      {
+       "color": "#a9c2b3",
+       "share": 0.11
+      },
+      {
+       "color": "#c8c5c0",
+       "share": 0.06
+      },
+      {
+       "color": "#f5f3ef",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#c8f05a",
+      "hsl": {
+       "h": 76,
+       "s": 0.83,
+       "l": 0.65
+      },
+      "fg": "#0e2c1f"
+     },
+     "lowContrast": [
+      {
+       "text": "No. faktur",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Jenis BBM",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Harga satuan",
+       "ratio": 3.7,
+       "need": 4.5,
+       "size": 13,
+       "fg": "#7a887f",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 8,
+     "inHero": 6,
+     "radius": 8,
+     "height": 48,
+     "withShadow": 6,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Lewati intro",
+      "Daftarkan perusahaan",
+      "Lihat cara kerja",
+      "Faktur bertabel",
+      "Angka di atas label"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 16,
+     "shadowOverlay": 11,
+     "shadowSamples": [
+      "a.btn.accent → rgb(4, 4, 4) 3px 4px 0px 0px, rgba(255, 255, 255, 0.5) 0px 1px 0px 0px inset",
+      "a.btn.on-dark → rgba(0, 0, 0, 0.6) 3px 4px 0px 0px, rgba(255, 255, 255, 0.2) 0px 1px 0px 0px ins",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset",
+      "li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset"
+     ],
+     "gradients": 2,
+     "scrims": 0,
+     "gradientSamples": [
+      "div.i-beam → linear-gradient(rgba(200, 240, 90, 0) 0%, rgba(200, 240, 90, 0.22) 70%, rgba(200, 240, 90, 0.95) 100%)",
+      "div.demo-beam → linear-gradient(rgba(15, 83, 56, 0) 0%, rgba(15, 83, 56, 0.25) 70%, rgb(15, 83, 56) 100%)"
+     ],
+     "gradientText": 0,
+     "hairlines": 27,
+     "hairlineSamples": [
+      "div.stats.hero-ui 358px",
+      "section.lp-standards 390px",
+      "section#pembacaan.lp-sec.alt 390px",
+      "div.rowx 286px",
+      "div.rowx 286px"
+     ],
+     "outlinedBoxes": 12,
+     "dashed": 1,
+     "blurred": 0,
+     "roundedBoxes": 37,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "svg",
+      "ratio": 1
+     },
+     {
+      "type": "svg",
+      "ratio": 1
+     }
+    ],
+    "nav": {
+     "links": 1,
+     "fixed": true,
+     "height": 73,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "instrument sans",
+     "gloock",
+     "jetbrains mono"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 11584,
+    "margins": {
+     "left": 16,
+     "right": 16
+    },
+    "sections": [
+     {
+      "sel": "svg",
+      "tag": "svg",
+      "top": 0,
+      "height": 1774,
+      "words": 0,
+      "media": 1,
+      "middle": 0,
+      "heading": null,
+      "left": null,
+      "right": null,
+      "textLeft": null,
+      "textRight": null,
+      "fullBleed": true,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "div.lp-wrap",
+      "tag": "div",
+      "top": 112,
+      "height": 1662,
+      "words": 149,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Emisi tertanam produk, dihitung dari dokumen yang ",
+       "size": 40,
+       "tag": "h1"
+      },
+      "left": 16,
+      "right": 0,
+      "textLeft": 16,
+      "textRight": -23,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-standards.in-view",
+      "tag": "section",
+      "top": 1774,
+      "height": 197,
+      "words": 26,
+      "media": 0,
+      "middle": 6,
+      "heading": null,
+      "left": 16,
+      "right": 75,
+      "textLeft": 16,
+      "textRight": 75,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#cara-kerja.lp-sec.in-view",
+      "tag": "section",
+      "top": 1971,
+      "height": 1510,
+      "words": 122,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "01",
+       "size": 40,
+       "tag": "span"
+      },
+      "left": 16,
+      "right": 22,
+      "textLeft": 16,
+      "textRight": 22,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#pembacaan.lp-sec.alt",
+      "tag": "section",
+      "top": 3481,
+      "height": 1716,
+      "words": 218,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Angka tidak selalu berada di tempat yang sama.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 30,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#peran.lp-sec.in-view",
+      "tag": "section",
+      "top": 5198,
+      "height": 1396,
+      "words": 132,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Dua peran, satu alur yang tidak bisa dilompati.",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 17,
+      "textLeft": 16,
+      "textRight": 26,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#dokumen.lp-sec.alt",
+      "tag": "section",
+      "top": 6593,
+      "height": 1924,
+      "words": 169,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Sepuluh dokumen yang sudah dibuat perusahaan setia",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec.in-view",
+      "tag": "section",
+      "top": 8518,
+      "height": 1011,
+      "words": 113,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Dari setiap liter dan kilowatt-jam sampai ke setia",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 19,
+      "textLeft": 16,
+      "textRight": 19,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#keamanan.lp-sec.alt",
+      "tag": "section",
+      "top": 9529,
+      "height": 951,
+      "words": 77,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Angka yang bisa dipertanggungjawabkan di depan aud",
+       "size": 32,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 27,
+      "textLeft": 16,
+      "textRight": 27,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.lp-sec",
+      "tag": "section",
+      "top": 10481,
+      "height": 546,
+      "words": 0,
+      "media": 1,
+      "middle": 0,
+      "heading": null,
+      "left": 17,
+      "right": 17,
+      "textLeft": null,
+      "textRight": null,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.lp-foot",
+      "tag": "footer",
+      "top": 11027,
+      "height": 557,
+      "words": 40,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Produk",
+       "size": 13,
+       "tag": "h4"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.",
+      "size": 40,
+      "top": 173,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 16,
+      "n": 13
+     },
+     {
+      "x": 39,
+      "n": 7
+     }
+    ],
+    "leftBlocks": 20,
+    "bodySize": 15,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "FAIL",
+   "id": "headline-lines",
+   "width": 1440,
+   "message": "7 headline(s) wrap past two lines at 1440px: \"Emisi tertanam produk, dihitung dari dokumen yan\" → 5 lines (12 words, 66px); \"Dari tumpukan dokumen ke laporan yang bisa diaud\" → 3 lines (8 words, 48px); \"Angka tidak selalu berada di tempat yang sama.\" → 3 lines (8 words, 48px); \"Dua peran, satu alur yang tidak bisa dilompati.\" → 3 lines (8 words, 48px)",
+   "fix": "Cut words first (a headline is a title, not a sentence). Then give it a wider measure. Lower the size only as a last resort and never below the scale you chose. A real statement paragraph belongs in a <p> or <blockquote> at 36px or less."
+  },
+  {
+   "level": "FAIL",
+   "id": "eyebrow",
+   "width": 1440,
+   "message": "9 eyebrow/kicker label(s) above headings: \"Untuk eksportir ke Uni Eropa\" (pill) above \"Emisi tertanam produk, dihitung dari dok\"; \"Cara kerja\" above \"Dari tumpukan dokumen ke laporan yang bi\"; \"Pembacaan dokumen\" above \"Angka tidak selalu berada di tempat yang\"; \"Peran\" above \"Dua peran, satu alur yang tidak bisa dil\"; \"Akun perusahaan\" above \"Menyiapkan dan mengajukan data\"",
+   "fix": "Delete them. If the label carried real information, fold it into the headline or the supporting sentence.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "mono",
+   "width": 1440,
+   "message": "Monospace type outside code: JetBrains Mono — e.g. \"AUDIT OS\", \"E = data aktivitas × faktor emisi × GWP\", \"SEE = (E langsung + E hulu) × porsi ÷ to\", \"AUDIT OS\"",
+   "fix": "Set it in the text face. Monospace is for literal code inside <pre>/<code> only.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "numbering",
+   "width": 1440,
+   "message": "Decorative index numbers: \"01\", \"02\", \"03\", \"04\", \"01\", \"02\"",
+   "fix": "Remove them. If order truly matters, write it into the words (\"First, …\") or use a real <ol>.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "gradient",
+   "width": 1440,
+   "message": "1 gradient fill(s): div.i-beam → linear-gradient(rgba(200, 240, 90, 0) 0%, rgba(200, 240, 90, 0.22) 70%, rgba(200, 240, 90, 0.95) 100%)",
+   "fix": "Use a flat colour or a real image. The only gradient allowed by default is a neutral scrim over a photo for legibility.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "shadow",
+   "width": 1440,
+   "message": "16 box-shadow(s) on elements at rest: a.btn.accent → rgb(4, 4, 4) 3px 4px 0px 0px, rgba(255, 255, 255, 0.5) 0px 1px 0px 0px inset | a.btn.on-dark → rgba(0, 0, 0, 0.6) 3px 4px 0px 0px, rgba(255, 255, 255, 0.2) 0px 1px 0px 0px ins | li → rgb(12, 12, 11) 3px 4px 0px 0px, rgba(255, 255, 255, 0.12) 0px 1px 0px 0px inset",
+   "fix": "Remove. Separate surfaces with a tone step or space. Shadows are for things that really float (menus, dialogs, sticky bars).",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "button-fx",
+   "width": 1440,
+   "message": "Buttons with shadow/glow.",
+   "fix": "Flat fill, one colour.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "hairline",
+   "width": 1440,
+   "message": "27 thin rule(s)/divider line(s): div.stats.hero-ui 1184px | section.lp-standards 1440px | section#pembacaan.lp-sec.alt 1440px | div.rowx 424px",
+   "fix": "Delete. Separate with space, a tone change, or scale. Lines are only for real tables and form fields.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "outlined-box",
+   "width": 1440,
+   "message": "12 boxes drawn with a 1px outline.",
+   "fix": "Define a surface by its fill (one tone step from the page) or leave the content unboxed.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "dashed",
+   "width": 1440,
+   "message": "1 dashed/dotted border(s).",
+   "fix": "Remove unless it is a real drop zone.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "icon-cards",
+   "width": 1440,
+   "message": "2 row(s) of identical cards each topped with a small icon (4, 3 cards).",
+   "fix": "Replace with one composed section from the direction: a narrative split, a list set in large type, or real imagery per item.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "palette-cream",
+   "width": 1440,
+   "message": "Yellow-cream background (text #f5f3ef).",
+   "fix": "Use the drawn palette. If you want warmth, take a low-chroma stone or bone, not a yellow cream.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "contrast",
+   "width": 1440,
+   "message": "Low-contrast text: \"No. faktur\" 3.7:1 needs 4.5:1; \"Jenis BBM\" 3.7:1 needs 4.5:1; \"Harga satuan\" 3.7:1 needs 4.5:1",
+   "fix": "Darken or lighten the text colour.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "font-count",
+   "width": 1440,
+   "message": "3 typefaces in use (Instrument Sans, Gloock, JetBrains Mono).",
+   "fix": "Two at most.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "size-count",
+   "width": 1440,
+   "message": "16 different font sizes (10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 40, 45, 48, 66, 72).",
+   "fix": "A page needs about five: display, heading, lead, body, small.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "grey-body",
+   "width": 1440,
+   "message": "The running text is a soft grey on its ground (6.5:1).",
+   "fix": "Set body copy in the full ink (7:1 or more). Keep the muted ink for secondary notes; pages read thin and unfinished when everything is grey.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "few-pictures",
+   "width": 1440,
+   "message": "Only 1 picture(s) on the page (0 photographs, footage or raster images, 1 interface fragments). Drawings in SVG do not count.",
+   "fix": "Find real pictures of the subject's world with scripts/assets.mjs (photographs, archival images, maps, engravings, footage), download them to assets/ and give them room: a hero picture, one per section that has a subject, a full-width band. At least four, usually six to twelve."
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  },
+  {
+   "level": "FAIL",
+   "id": "small-text",
+   "width": 1440,
+   "message": "27 text blocks under 13px.",
+   "fix": "Nothing meant to be read goes below 13px.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "covered-text",
+   "width": 1440,
+   "message": "Large text lies under another element at some scroll position: \"0,000\" (screen 1, 100% hidden); \"Emisi tertanam produk, dihitung dari dokumen yan\" (screen 1, 100% hidden); \"0,562\" (screen 2, 100% hidden); \"Dari tumpukan dokumen ke laporan yang bisa diaud\" (screen 2, 100% hidden)",
+   "fix": "Nothing may sit on top of a headline or statement. Move the picture, shorten the pinned run, or raise the text above it (z-index) and give it a ground.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "pinned-over-picture",
+   "width": 1440,
+   "message": "Pinned large text slides across pictures while the page scrolls: \"0,000\" (screen 1, 100% over a picture); \"0,562\" (screen 2, 100% over a picture); \"1,006\" (screen 4, 100% over a picture)",
+   "fix": "Jurors read a pinned title crossing drawings or photographs as a collision. Keep the pictures in the column the title does not occupy, or unpin it.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "headline-lines",
+   "width": 390,
+   "message": "7 headline(s) wrap past two lines at 390px: \"Emisi tertanam produk, dihitung dari dokumen yan\" → 5 lines (12 words, 40px); \"Dari tumpukan dokumen ke laporan yang bisa diaud\" → 3 lines (8 words, 32px); \"Angka tidak selalu berada di tempat yang sama.\" → 3 lines (8 words, 32px); \"Dua peran, satu alur yang tidak bisa dilompati.\" → 3 lines (8 words, 32px)",
+   "fix": "Cut words first (a headline is a title, not a sentence). Then give it a wider measure. Lower the size only as a last resort and never below the scale you chose. A real statement paragraph belongs in a <p> or <blockquote> at 24px or less."
+  },
+  {
+   "level": "WARN",
+   "id": "hero-words",
+   "width": 390,
+   "message": "Hero headline is 12 words (\"Emisi tertanam produk, dihitung dari dokumen yang sudah ada \"). Gallery median is 5.",
+   "fix": "Say the one thing. Move the rest to the supporting line."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\desktop-fold.jpg",
+   "pages": [
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\desktop-page-01.jpg",
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\desktop-page-02.jpg",
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\desktop-page-03.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\tablet-fold.jpg",
+   "pages": [
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\tablet-page-01.jpg",
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\tablet-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\mobile-fold.jpg",
+   "pages": [
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\mobile-page-01.jpg",
+    "D:\\Private\\Coding\\carbon-lens\\V-TEKI-Intern\\.taste-skill\\inspect\\mobile-page-02.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

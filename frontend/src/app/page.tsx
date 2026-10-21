@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ContributionBars, EmissionFlow, GroupLegend } from "@/components/charts";
 import { Contours } from "@/components/Contours";
 import { DocDemo } from "@/components/DocDemo";
@@ -14,6 +14,55 @@ import { SAMPLE_ALLOCATIONS, sampleLines } from "@/lib/sample";
 import { useSession } from "@/lib/session";
 
 type T = (id: string, en: string) => string;
+
+function LandingNav({ items, ariaLabel }: { items: [string, string][]; ariaLabel: string }) {
+  const containerRef = useRef<HTMLElement>(null);
+  const [box, setBox] = useState<{ x: number; w: number; h: number; opacity: number } | null>(null);
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
+    const tRect = e.currentTarget.getBoundingClientRect();
+    setBox({
+      x: tRect.left - cRect.left,
+      w: tRect.width,
+      h: tRect.height,
+      opacity: 1,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setBox((prev) => (prev ? { ...prev, opacity: 0 } : null));
+  };
+
+  return (
+    <nav
+      ref={containerRef}
+      aria-label={ariaLabel}
+      className="sliding-nav-container"
+      onMouseLeave={handleMouseLeave}
+    >
+      {box && (
+        <span
+          className="sliding-nav-box"
+          aria-hidden="true"
+          style={{
+            transform: `translate3d(${box.x}px, 0, 0)`,
+            width: `${box.w}px`,
+            height: `${box.h}px`,
+            opacity: box.opacity,
+          }}
+        />
+      )}
+      {items.map(([href, label]) => (
+        <a key={href} href={href} onMouseEnter={handleMouseEnter}>
+          {label}
+        </a>
+      ))}
+    </nav>
+  );
+}
 
 const DOCS = (t: T) => [
   [t("Pasokan material", "Material supply"), t("Kuantitas, pemasok, negara asal, SEE pemasok", "Quantity, supplier, origin, supplier SEE"), t("Prekursor", "Precursors")],
@@ -85,9 +134,7 @@ export default function Landing() {
               <span className="brand-badge">AUDIT OS</span>
             </span>
           </Link>
-          <nav aria-label={t("Navigasi halaman", "Page navigation")}>
-            {NAV.map(([href, label]) => <a key={href} href={href}>{label}</a>)}
-          </nav>
+          <LandingNav items={NAV} ariaLabel={t("Navigasi halaman", "Page navigation")} />
           <div className="right">
             <Toggles onDark={!solid && !menu} />
             {home ? (
@@ -174,7 +221,7 @@ export default function Landing() {
                 "Four stages, always in this order. Every figure keeps a trail to its document, page and position, so reviewers and auditors can check it again at any time.",
               )}</p>
             </div>
-            <ol className="steps4 sec-ui">
+            <ol className="steps4 sec-ui" data-ui="true">
               <li>
                 <span className="n">01</span>
                 <b>{t("Unggah dokumen", "Upload documents")}</b>
@@ -233,7 +280,7 @@ export default function Landing() {
                 "The company that prepares the data cannot approve its own data. Reviewers are assigned by the system administrator and can handle several companies at once.",
               )}</p>
             </div>
-            <div className="roles sec-ui">
+            <div className="roles sec-ui" data-ui="true">
               <article className="role">
                 <span className="tag">{t("Akun perusahaan", "Company account")}</span>
                 <h3>{t("Menyiapkan dan mengajukan data", "Prepares and submits the data")}</h3>
@@ -275,7 +322,7 @@ export default function Landing() {
                 "No new forms. The system recognises each document from its content, takes only the figures the formulas need, and tells you when a month is missing.",
               )}</p>
             </div>
-            <div className="doc-list sec-ui">
+            <div className="doc-list sec-ui" data-ui="true">
               {DOCS(t).map(([name, reads, scope], i) => (
                 <div key={name} className="doc-item">
                   <span className="no">{String(i + 1).padStart(2, "0")}</span>
@@ -300,7 +347,7 @@ export default function Landing() {
                 "Emissions are grouped into direct, electricity and upstream, then allocated to products by economic value or mass. Hover a ribbon to see its figures.",
               )}</p>
             </div>
-            <div className="flow-card sec-ui">
+            <div className="flow-card sec-ui" data-ui="true">
               <div className="inline" style={{ justifyContent: "space-between", marginBottom: 14 }}>
                 <b>{t("Contoh pabrik kelapa sawit, periode 2025", "Example palm oil mill, period 2025")}</b>
                 <GroupLegend />
@@ -323,7 +370,7 @@ export default function Landing() {
                 <h2>{t("Angka yang bisa dipertanggungjawabkan di depan auditor.", "Figures you can defend in front of an auditor.")}</h2>
               </div>
             </div>
-            <div className="trust sec-ui">
+            <div className="trust sec-ui" data-ui="true">
               <div>
                 <IconHistory size={22} />
                 <b>{t("Setiap angka punya asal", "Every figure has an origin")}</b>
@@ -345,7 +392,7 @@ export default function Landing() {
 
         <section className="lp-sec">
           <div className="lp-wrap">
-            <div className="lp-cta">
+            <div className="lp-cta" data-ui="true">
               <Contours className="contours" rings={7} />
               <div>
                 <h2 className="sec-title">{t("Mulai dari dokumen periode lalu.", "Start with last period's documents.")}</h2>

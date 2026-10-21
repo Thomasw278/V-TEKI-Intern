@@ -93,7 +93,7 @@ export default function DashboardPage() {
         )}
       </PageHead>
 
-      <section className="overview page-enter" aria-label={t("Hasil periode", "Period results")}>
+      <section className="overview page-enter box-3d-contrast" data-ui="true" aria-label={t("Hasil periode", "Period results")}>
         <Contours className="contours" rings={7} />
         <div>
           <div className="ov-label">{t("Total emisi tertanam", "Total embedded emissions")} · {company?.name}</div>
@@ -134,7 +134,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <div className="kpis">
+      <div className="kpis" data-ui="true">
         <div className="kpi"><div className="k">{t("Dokumen", "Documents")}</div><div className="v">{data.documents_total}</div><div className="d">{t(`${reading} sedang dibaca`, `${reading} being read`)}</div></div>
         <div className="kpi"><div className="k">{isAdmin ? t("Menunggu persetujuan", "Awaiting approval") : t("Perlu diperiksa", "To check")}</div><div className="v">{isAdmin ? submitted : toCheck + returned}</div><div className="d">{isAdmin ? t("dari perusahaan ini", "from this company") : returned ? t(`${returned} dikembalikan admin`, `${returned} returned by reviewer`) : t("sebelum diajukan", "before submitting")}</div></div>
         <div className="kpi"><div className="k">{t("Kategori wajib", "Required categories")}</div><div className="v">{reqDone}<small>/ {reqRequired.length}</small></div><div className="d">{t("punya dokumen tervalidasi", "have validated documents")}</div></div>

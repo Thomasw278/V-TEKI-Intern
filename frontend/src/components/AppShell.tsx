@@ -58,6 +58,76 @@ function useNav(): NavItem[] {
   ];
 }
 
+function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: string }) {
+  const containerRef = useRef<HTMLElement>(null);
+  const [indicator, setIndicator] = useState<{ x: number; w: number; h: number; opacity: number } | null>(null);
+  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+
+  const moveToHref = (href?: string) => {
+    if (!href || !containerRef.current) {
+      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
+      return;
+    }
+    const el = linkRefs.current.get(href);
+    if (!el || !containerRef.current) {
+      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
+      return;
+    }
+    const cRect = containerRef.current.getBoundingClientRect();
+    const tRect = el.getBoundingClientRect();
+    setIndicator({
+      x: tRect.left - cRect.left,
+      w: tRect.width,
+      h: tRect.height,
+      opacity: 1,
+    });
+  };
+
+  useEffect(() => {
+    moveToHref(activeHref);
+  }, [activeHref]);
+
+  return (
+    <nav
+      ref={containerRef}
+      className="topbar-nav hide-m sliding-nav-container"
+      aria-label="Menu navigasi"
+      onMouseLeave={() => moveToHref(activeHref)}
+    >
+      {indicator && (
+        <span
+          className="sliding-nav-box"
+          aria-hidden="true"
+          style={{
+            transform: `translate3d(${indicator.x}px, 0, 0)`,
+            width: `${indicator.w}px`,
+            height: `${indicator.h}px`,
+            opacity: indicator.opacity,
+          }}
+        />
+      )}
+      {items.map((n) => {
+        const active = activeHref === n.href;
+        return (
+          <Link
+            key={n.href}
+            href={n.href}
+            ref={(el) => {
+              if (el) linkRefs.current.set(n.href, el);
+              else linkRefs.current.delete(n.href);
+            }}
+            onMouseEnter={() => moveToHref(n.href)}
+            aria-current={active ? "page" : undefined}
+          >
+            <span>{n.short}</span>
+            {!!n.count && <span className={`count mono ${n.countTone ?? ""}`} style={{ marginLeft: 2 }}>{n.count}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useT();
   const { user, isAdmin, company, logout } = useSession();
@@ -150,6 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {(company || summary) && <span className="sep hide-s">/</span>}
             <b className="ellipsis">{current?.label ?? "KarbonLens"}</b>
           </div>
+          <HeaderNav items={tabItems} activeHref={current?.href} />
           <span className="spacer" />
           {summary && <span className="hide-m"><PeriodBadge status={summary.period.status} /></span>}
           <button className="search-btn" onClick={() => setPalette(true)} aria-label={t("Cari", "Search")}>

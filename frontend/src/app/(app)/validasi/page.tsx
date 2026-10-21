@@ -81,7 +81,7 @@ export default function ReviewQueue() {
         </button>
       </div>
 
-      <section className="panel flush">
+      <section className="panel flush" data-ui="true">
         {list.length === 0 ? (
           <Empty icon={view === "todo" ? <IconCheck /> : <IconInbox />}
             title={view === "todo" ? (isAdmin ? t("Tidak ada pengajuan yang menunggu", "No submissions waiting") : t("Semua dokumen sudah diajukan", "Every document has been submitted"))

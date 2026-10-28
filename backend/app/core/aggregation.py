@@ -179,12 +179,19 @@ def build_activity(
         act.pome_delta_cod_kg_m3 = d(factors.get("pome_dcod_default", "45"))
         act.defaults_used["pome"] = "Tidak ada dokumen POME tervalidasi — memakai nilai bawaan literatur"
 
-    # Transportasi (per baris: muatan × jarak)
+    # Transportasi (BBM langsung jika volume_l > 0, fallback ton-km: muatan × jarak)
     for x, i, it in rows("transport"):
-        tkm = _num(it, "load_t") * _num(it, "distance_km")
-        if tkm:
-            act.transport_tkm += tkm
-            trace("transport", f"Angkutan {_txt(it, 'mode')}".strip(), tkm, "t-km", x, i)
+        vol = _num(it, "volume_l")
+        if vol > 0:
+            ft = _txt(it, "fuel_type") or "solar"
+            act.fuels.append(FuelEntry(ft, vol))
+            mode_desc = _txt(it, "mode")
+            trace("transport", f"Volume {ft}" if not mode_desc else f"Volume {ft} ({mode_desc})", vol, "L", x, i)
+        else:
+            tkm = _num(it, "load_t") * _num(it, "distance_km")
+            if tkm:
+                act.transport_tkm += tkm
+                trace("transport", f"Angkutan {_txt(it, 'mode')}".strip() or "Angkutan", tkm, "t-km", x, i)
 
     # Limbah
     for x, i, it in rows("b3"):

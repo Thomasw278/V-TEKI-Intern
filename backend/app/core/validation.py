@@ -99,6 +99,15 @@ def validate_document(type_code: str | None, fields, confidence: dict, confirmed
                 if cin is not None and cout is not None and cout > cin:
                     issues.append(Issue("critical", "COD_ORDER", f"{pre}COD keluar > COD masuk",
                                         "Periksa kembali angka COD keluar dan masuk.", "field", ref("cod_out_mgl")))
+            if type_code == "transport":
+                vl = num("volume_l")
+                lt = num("load_t")
+                dk = num("distance_km")
+                has_vol = vl is not None and vl > 0
+                has_tkm = (lt is not None and lt > 0) and (dk is not None and dk > 0)
+                if not has_vol and not has_tkm:
+                    issues.append(Issue("critical", "FIELD_MISSING", f"{pre}Data transport belum lengkap",
+                                        "Isi kuantitas BBM (L) atau muatan (t) dan jarak (km).", "field", ref("volume_l")))
             for spec in dt.fields:
                 if spec.kind == "number":
                     v = num(spec.key)
@@ -132,8 +141,9 @@ SUB_REQUIREMENTS: dict[str, list[tuple[str, str, str, bool]]] = {
     "pome": [("volume_m3", "Volume limbah cair (POME)", "Log volume POME", True),
              ("cod_in_mgl", "COD masuk & keluar", "Laporan laboratorium COD", True),
              ("biogas_m3", "Penangkapan metana", "Catatan biogas / flare", False)],
-    "transport": [("load_t", "Muatan angkutan", "Surat jalan / manifest", True),
-                  ("distance_km", "Jarak tempuh", "Rute / invoice ekspedisi", True)],
+    "transport": [("volume_l", "Kuantitas BBM angkutan", "Faktur BBM / log armada / surat jalan", False),
+                  ("load_t", "Muatan angkutan (opsi ton-km)", "Surat jalan / manifest", False),
+                  ("distance_km", "Jarak tempuh (opsi ton-km)", "Rute / invoice ekspedisi", False)],
     "b3": [("mass_t", "Limbah B3 dikirim", "Manifest limbah B3", True),
            ("treatment", "Metode pengolahan", "Berita acara pengolahan", False)],
     "air": [("water_m3", "Pengambilan air", "Meter air / tagihan PDAM", True),

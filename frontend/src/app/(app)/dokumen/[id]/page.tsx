@@ -203,7 +203,7 @@ export default function DocumentDetailPage() {
                   </div>
                 )}
                 <div className="fields">
-                {specs.filter((s) => !multi || s.required || byKey.has(keyOf(item, s.key))).map((spec) => {
+                {specs.filter((s) => !multi || s.required || byKey.has(keyOf(item, s.key)) || (type?.code === "transport" && (s.key === "volume_l" || (s.key === "fuel_type" && byKey.has(keyOf(item, "volume_l")))))).map((spec) => {
                   const k = keyOf(item, spec.key);
                   const f = byKey.get(k);
                   const active = !!f && f.id === selId;
@@ -230,7 +230,7 @@ export default function DocumentDetailPage() {
                         <div className="edit">
                           <input className={`input ${spec.kind === "number" ? "num" : ""}`} inputMode={spec.kind === "number" ? "decimal" : undefined}
                             aria-label={`${spec.label}${multi ? ` ${t("baris", "row")} ${item + 1}` : ""}`} value={value}
-                            placeholder={f ? "" : t("Belum terbaca — isi manual", "Not read — enter manually")}
+                            placeholder={f ? "" : (spec.default ? `${t("Belum terbaca", "Not read")} (${t("bawaan", "default")}: ${spec.default})` : t("Belum terbaca — isi manual", "Not read — enter manually"))}
                             onFocus={() => { if (f) { setSelId(f.id); setHoveredFieldId(f.id); } }}
                             onBlur={() => setHoveredFieldId(null)}
                             onChange={(e) => setEdits((x) => ({ ...x, [k]: e.target.value }))} onKeyDown={onKey(item, spec.key)} />

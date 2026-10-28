@@ -16,6 +16,7 @@ class FieldSpec:
     unit: str = ""
     kind: str = "number"  # number | text
     required: bool = True
+    default: str | None = None
 
 
 @dataclass(frozen=True)
@@ -120,8 +121,10 @@ DOC_TYPES: tuple[DocType, ...] = (
         "Surat jalan, manifest, invoice ekspedisi.",
         ("ekspedisi", "manifest", "angkutan", "truk", "jarak", "km", "ritase", "logistik"),
         (
-            FieldSpec("load_t", "Muatan", "t"),
-            FieldSpec("distance_km", "Jarak", "km"),
+            FieldSpec("volume_l", "Kuantitas BBM", "L", required=False),
+            FieldSpec("fuel_type", "Jenis BBM", kind="text", required=False, default="solar"),
+            FieldSpec("load_t", "Muatan", "t", required=False),
+            FieldSpec("distance_km", "Jarak", "km", required=False),
             FieldSpec("mode", "Moda", kind="text", required=False),
         ),
     ),

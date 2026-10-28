@@ -243,6 +243,7 @@ export interface DocTypeField {
   unit: string;
   kind: "number" | "text";
   required: boolean;
+  default?: string | null;
 }
 
 export interface DocType {

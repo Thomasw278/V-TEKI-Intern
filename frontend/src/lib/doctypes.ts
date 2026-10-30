@@ -2,7 +2,16 @@
 
 import { api } from "./api";
 import { getLang } from "./i18n";
-import type { DocType } from "./types";
+import type { DocType, DocTypeField } from "./types";
+
+/** Skema field dokumen transportasi (mendukung konsumsi BBM langsung dan fallback ton-km). */
+export const TRANSPORT_FIELDS: DocTypeField[] = [
+  { key: "volume_l", label: "Kuantitas BBM", unit: "L", kind: "number", required: false },
+  { key: "fuel_type", label: "Jenis BBM", unit: "", kind: "text", required: false, default: "solar" },
+  { key: "load_t", label: "Muatan", unit: "t", kind: "number", required: false },
+  { key: "distance_km", label: "Jarak", unit: "km", kind: "number", required: false },
+  { key: "mode", label: "Moda", unit: "", kind: "text", required: false },
+];
 
 const cache = new Map<string, Promise<DocType[]>>();
 

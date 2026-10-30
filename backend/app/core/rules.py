@@ -248,6 +248,14 @@ _add(TypeRules("pome", (
           (r"inlet|outlet", 1), (r"biogas", 2), (r"\bbod\b|\btss\b", 1.5))))
 
 _add(TypeRules("transport", (
+    Rule("volume_l", "number", anchors=(r"volume(?:\s*(?:bbm|bahan\s*bakar|solar|biosolar|dexlite))?", r"vol\.?",
+                                        r"kuantitas\s*(?:bbm|solar)?", r"konsumsi\s*(?:bbm|solar|bahan\s*bakar)",
+                                        r"pemakaian\s*(?:bbm|solar|bahan\s*bakar)", r"pengisian\s*(?:bbm|solar)",
+                                        r"total\s*liter", r"jumlah\s*liter", r"liter", r"ltr", r"\bl\b",
+                                        r"solar", r"biosolar", r"dexlite", r"bbm"),
+         weak=(r"jumlah", r"total"), unit="L", rng=(1, 5e8), reject=MONEY),
+    Rule("fuel_type", "enum", anchors=(r"jenis\s*(?:bbm|bahan\s*bakar|solar)", r"bahan\s*bakar", r"bbm", r"fuel", r"jenis"),
+         values=FUEL_ENUM),
     Rule("load_t", "number", anchors=(r"muatan", r"tonase", r"berat\s*(?:muatan|bersih|netto)?", r"netto", r"bruto",
                                       r"jumlah\s*angkut", r"kuantitas", r"qty"),
          weak=(r"jumlah", r"total"), unit="t", unit_required=True, rng=(0.01, 1e8), reject=MONEY, primary=True),
@@ -256,7 +264,7 @@ _add(TypeRules("transport", (
     Rule("mode", "enum", anchors=(r"moda", r"kendaraan", r"armada", r"jenis\s*angkutan", r"mode"), values=MODE_ENUM),
 ), item_enum="mode",
     hints=((r"ekspedisi|angkutan|logistik|freight", 3), (r"surat\s*jalan|delivery\s*order", 2), (r"jarak|\bkm\b", 2),
-           (r"muatan|ritase", 2), (r"truk|truck|tongkang|kapal", 1.5))))
+           (r"muatan|ritase", 2), (r"truk|truck|tongkang|kapal", 1.5), (r"bbm|solar|biosolar|dexlite", 1))))
 
 _add(TypeRules("b3", (
     Rule("waste_type", "enum", anchors=(r"jenis\s*limbah", r"nama\s*limbah", r"uraian", r"limbah", r"jenis"), values=WASTE_ENUM),

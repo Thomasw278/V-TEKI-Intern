@@ -104,7 +104,7 @@ export default function KalkulasiPage() {
         </section>
       ) : (
         <>
-          <section className="overview" aria-label={t("Hasil per produk", "Results per product")}>
+          <section className="overview box-3d-contrast" data-ui="true" aria-label={t("Hasil per produk", "Results per product")}>
             <Contours className="contours" rings={7} />
             <div>
               <div className="ov-label">{t(`Total emisi periode ${period.year}`, `Total emissions, period ${period.year}`)}</div>
@@ -148,7 +148,7 @@ export default function KalkulasiPage() {
             <div style={{ marginTop: 12 }}><GroupLegend /></div>
           </section>
 
-          <section className="panel flush" aria-label={t("Rincian komponen", "Component breakdown")}>
+          <section className="panel flush" data-ui="true" aria-label={t("Rincian komponen", "Component breakdown")}>
             <div className="panel-head">
               <div><h2>{t("Rincian per komponen", "Breakdown by component")}</h2><div className="sub">{t("Buka baris untuk melihat rumus dengan angka sebenarnya", "Open a row to see the formula with the actual numbers")}</div></div>
             </div>

@@ -7,16 +7,24 @@ import {
 import { statusLabel, type Tone } from "@/lib/format";
 import { locale, useLang, useT } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
-import { IconMoon, IconSun, IconX } from "./Icons";
+import { IconMoon, IconSun, IconX, LogoMark } from "./Icons";
 
-/* ------------------------------------------------------------------ Logo */
-export function Logo({ size = 32 }: { size?: number }) {
+export { LogoMark };
+
+/* ------------------------------------------------------------------ Logo & Brand */
+export function Logo({ size = 28 }: { size?: number }) {
+  return <LogoMark size={size} />;
+}
+
+export function Brand({ size = 26, showBadge = true, className = "" }: { size?: number; showBadge?: boolean; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true">
-      <rect width="40" height="40" rx="11" fill="#C8F05A" />
-      <path d="M11 26c0-8 6.5-13.5 17.5-13.5-1 10-6.5 16-14 16-2 0-3.5-.6-3.5-2.5z" fill="#0E2C1F" />
-      <path d="M12.5 27.5 22 18.5" stroke="#C8F05A" strokeWidth="2" strokeLinecap="round" />
-    </svg>
+    <span className={`brand-identity ${className}`}>
+      <LogoMark size={size} />
+      <span className="brand-text">
+        <span className="brand-wordmark">KarbonLens</span>
+        {showBadge && <span className="brand-badge">AUDIT OS</span>}
+      </span>
+    </span>
   );
 }
 
@@ -28,11 +36,13 @@ type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
 };
 export function Button({ variant = "secondary", size = "md", block, loading, children, className = "", disabled, type = "button", ...rest }: BtnProps) {
-  const cls = ["btn", variant, size !== "md" ? size : "", block ? "block" : "", className].filter(Boolean).join(" ");
+  const cls = ["btn", variant, size !== "md" ? size : "", block ? "block" : "", loading ? "is-loading" : "", className].filter(Boolean).join(" ");
   return (
     <button type={type} className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
-      {loading && <span className="spinner" />}
-      {children}
+      {loading && <span className="btn-spinner" aria-hidden="true" />}
+      <span className="btn-content" style={loading ? { visibility: "hidden" } : undefined}>
+        {children}
+      </span>
     </button>
   );
 }

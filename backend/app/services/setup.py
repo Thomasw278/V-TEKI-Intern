@@ -12,7 +12,7 @@ from . import audit
 def seed_document_types(db: Session) -> None:
     existing = {c for (c,) in db.execute(select(DocumentType.code))}
     for dt in DOC_TYPES:
-        schema = [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required} for f in dt.fields]
+        schema = [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required, "default": f.default} for f in dt.fields]
         if dt.code in existing:
             row = db.get(DocumentType, dt.code)
             row.name, row.no, row.required, row.scope, row.description, row.field_schema = (

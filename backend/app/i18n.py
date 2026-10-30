@@ -45,6 +45,7 @@ EXACT: dict[str, str] = {
     "Nama material": "Material name", "Kuantitas": "Quantity", "Pemasok": "Supplier", "Negara asal": "Country of origin",
     "SEE pemasok": "Supplier SEE", "kWh dibeli": "kWh purchased", "Bulan tagihan": "Billing month", "kWh dijual": "kWh sold",
     "ID pelanggan": "Customer ID", "Jenis BBM": "Fuel type", "Volume": "Volume", "Penggunaan": "Usage",
+    "Kuantitas BBM": "Fuel quantity",
     "Jenis pupuk": "Fertiliser type", "Massa pupuk": "Fertiliser mass", "Kadar N": "N content",
     "Pupuk organik (tankos)": "Organic fertiliser (EFB)", "Kadar N organik": "Organic N content", "Blok": "Block",
     "Luas": "Area", "Jenis tanah": "Soil type", "TBS dipanen": "FFB harvested", "Tahun tanam": "Planting year",

@@ -223,7 +223,8 @@ export function Waterfall({ lines, total }: { lines: CalcLine[]; total: number }
             <g key={l.key} onMouseMove={(e) => showAt(e, setTip, l.name, [`+${num(l.value_t)} t CO₂e`, t(`kumulatif ${num(cum)}`, `cumulative ${num(cum)}`)])}>
               {i > 0 && <line x1={x - (slot - bw)} x2={x} y1={y0} y2={y0} strokeDasharray="3 3" style={{ stroke: "var(--faint)" }} />}
               <rect x={x} y={y1} width={bw} height={Math.max(y0 - y1, 2)} rx="4"
-                style={{ fill: GROUP_COLOR[l.group as G], transformOrigin: `${x}px ${y0}px`, animation: `pop .5s ${0.08 * i}s both` }} />
+                className="chart-bar-anim"
+                style={{ fill: GROUP_COLOR[l.group as G], transformBox: "fill-box", transformOrigin: "bottom center", animation: `chart-grow-y 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${0.07 * i}s both` }} />
               {l.source === "default" && <rect x={x} y={y1} width={bw} height={Math.max(y0 - y1, 2)} rx="4" fill="url(#wf-hatch)" />}
               <text x={x + bw / 2} y={base + 18} textAnchor="middle" fontSize="11" style={{ fill: "var(--muted)" }}>{short(l.name)}</text>
               {y0 - y1 > 16 && <text x={x + bw / 2} y={y1 - 6} textAnchor="middle" fontSize="11" style={{ fill: "var(--chart-label)", fontVariantNumeric: "tabular-nums" }}>{num(l.value_t)}</text>}
@@ -234,7 +235,9 @@ export function Waterfall({ lines, total }: { lines: CalcLine[]; total: number }
           const x = left + rows.length * slot + (slot - bw) / 2;
           return (
             <g>
-              <rect x={x} y={y(total)} width={bw} height={base - y(total)} rx="4" style={{ fill: "var(--c-total)", animation: `pop .5s ${0.08 * rows.length}s both`, transformOrigin: `${x}px ${base}px` }} />
+              <rect x={x} y={y(total)} width={bw} height={base - y(total)} rx="4"
+                className="chart-bar-anim"
+                style={{ fill: "var(--c-total)", transformBox: "fill-box", transformOrigin: "bottom center", animation: `chart-grow-y 0.55s cubic-bezier(0.22, 1, 0.36, 1) ${0.07 * rows.length}s both` }} />
               <text x={x + bw / 2} y={base + 18} textAnchor="middle" fontSize="11" fontWeight="700" style={{ fill: "var(--chart-ink)" }}>Total</text>
               <text x={x + bw / 2} y={y(total) - 6} textAnchor="middle" fontSize="12" fontWeight="800" style={{ fill: "var(--chart-ink)", fontVariantNumeric: "tabular-nums" }}>{num(total)}</text>
             </g>
@@ -265,7 +268,9 @@ export function MonthlyBars({ values, unit, label }: { values: (number | null)[]
             <g key={i} onMouseMove={(e) => showAt(e, setTip, names[i], [v ? `${num(v)} ${unit}` : t("belum ada data", "no data yet")])}>
               <rect x={i * slot} y={top} width={slot} height={base - top} fill="transparent" />
               {v ? (
-                <rect x={x} y={base - h} width={bw} height={h} rx="4" style={{ fill: "var(--c-direct)", transformOrigin: `${x}px ${base}px`, animation: `pop .45s ${i * 0.03}s both` }} />
+                <rect x={x} y={base - h} width={bw} height={h} rx="4"
+                  className="chart-bar-anim"
+                  style={{ fill: "var(--c-direct)", transformBox: "fill-box", transformOrigin: "bottom center", animation: `chart-grow-y 0.45s cubic-bezier(0.22, 1, 0.36, 1) ${i * 0.04}s both` }} />
               ) : (
                 <rect x={x} y={top + 40} width={bw} height={base - top - 40} rx="4" fill="none" strokeDasharray="4 4" style={{ stroke: "var(--faint)" }} />
               )}

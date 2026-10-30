@@ -13,7 +13,17 @@ frontend/node_modules/
 frontend/.next/
 frontend/.env.local
 frontend/out/
+<<<<<<< HEAD
 .agents/
 .taste-skill/
 log-ai-chat/
 skills-lock.json
+=======
+*.tsbuildinfo
+
+# agent skills
+skills-lock.json
+.agents/
+.taste-skill/
+log-ai-chat/
+>>>>>>> ec1f9269c6d8fb633726893ad67bd621fd40b045

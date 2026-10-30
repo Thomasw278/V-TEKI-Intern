@@ -11,9 +11,9 @@ import { useSummary } from "@/lib/summary";
 import type { DocumentItem } from "@/lib/types";
 import {
   IconBuilding, IconCalc, IconCheck, IconChevron, IconFactor, IconFile, IconHome, IconInbox, IconLogout, IconMenu,
-  IconReport, IconSearch, IconSettings, IconSwap, IconTable, IconX,
+  IconReport, IconSearch, IconSettings, IconSwap, IconTable, IconX, LogoMark,
 } from "./Icons";
-import { Badge, Logo, Toggles } from "./ui";
+import { Badge, Toggles } from "./ui";
 
 type NavItem = { href: string; label: string; short: string; icon: ReactNode; group: string; count?: number; countTone?: "info" };
 
@@ -56,6 +56,77 @@ function useNav(): NavItem[] {
     { href: "/laporan", label: t("Tinjauan & laporan", "Review & report"), short: t("Laporan", "Report"), icon: <IconReport />, group: t("Pelaporan", "Reporting") },
     { href: "/pengaturan", label: t("Perusahaan & akun", "Company & account"), short: t("Akun", "Account"), icon: <IconSettings />, group: t("Pengaturan", "Settings") },
   ];
+}
+
+function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: string }) {
+  const containerRef = useRef<HTMLElement>(null);
+  const [indicator, setIndicator] = useState<{ x: number; w: number; h: number; opacity: number } | null>(null);
+  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+
+  const moveToHref = (href?: string) => {
+    if (!href || !containerRef.current) {
+      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
+      return;
+    }
+    const el = linkRefs.current.get(href);
+    if (!el || !containerRef.current) {
+      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
+      return;
+    }
+    setIndicator({
+      x: el.offsetLeft,
+      w: el.offsetWidth,
+      h: el.offsetHeight || 36,
+      opacity: 1,
+    });
+  };
+
+  useEffect(() => {
+    moveToHref(activeHref);
+    const onResize = () => moveToHref(activeHref);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [activeHref]);
+
+  return (
+    <nav
+      ref={containerRef}
+      className="topbar-nav hide-m sliding-nav-container"
+      aria-label="Menu navigasi"
+      onMouseLeave={() => moveToHref(activeHref)}
+    >
+      {indicator && (
+        <span
+          className="sliding-nav-box"
+          aria-hidden="true"
+          style={{
+            transform: `translate3d(${indicator.x}px, -50%, 0)`,
+            width: `${indicator.w}px`,
+            height: `${indicator.h}px`,
+            opacity: indicator.opacity,
+          }}
+        />
+      )}
+      {items.map((n) => {
+        const active = activeHref === n.href;
+        return (
+          <Link
+            key={n.href}
+            href={n.href}
+            ref={(el) => {
+              if (el) linkRefs.current.set(n.href, el);
+              else linkRefs.current.delete(n.href);
+            }}
+            onMouseEnter={() => moveToHref(n.href)}
+            aria-current={active ? "page" : undefined}
+          >
+            <span>{n.short}</span>
+            {!!n.count && <span className={`count mono ${n.countTone ?? ""}`} style={{ marginLeft: 2 }}>{n.count}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -106,7 +177,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       {open && <div className="drawer-backdrop" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`} aria-label={t("Navigasi utama", "Main navigation")}>
         <div className="inline nowrap" style={{ justifyContent: "space-between" }}>
-          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand"><Logo size={30} /><b>KarbonLens</b></Link>
+          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand">
+            <LogoMark size={26} />
+            <span className="brand-text">
+              <span className="brand-wordmark">KarbonLens</span>
+              <span className="brand-badge">AUDIT OS</span>
+            </span>
+          </Link>
           <button className="btn ghost icon sm menu-btn" onClick={() => setOpen(false)} aria-label={t("Tutup menu", "Close menu")}><IconX size={18} /></button>
         </div>
         <ContextCard />
@@ -117,7 +194,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               {g.items.map((n) => (
                 <Link key={n.href} href={n.href} aria-current={isActive(n.href) ? "page" : undefined}>
                   {n.icon}<span>{n.label}</span>
-                  {!!n.count && <span className={`count ${n.countTone ?? ""}`}>{n.count}</span>}
+                  {!!n.count && <span className={`count mono ${n.countTone ?? ""}`}>{n.count}</span>}
                 </Link>
               ))}
             </div>
@@ -133,7 +210,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="main-col">
         <header className="topbar">
           <button className="btn ghost icon menu-btn" onClick={() => setOpen(true)} aria-label={t("Buka menu", "Open menu")}><IconMenu /></button>
-          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand-m"><Logo size={26} /></Link>
+          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand-m">
+            <LogoMark size={24} />
+            <span className="brand-wordmark" style={{ fontSize: 16 }}>KarbonLens</span>
+          </Link>
           <div className="crumbs">
             {company && <span className="hide-s ellipsis" style={{ maxWidth: 260 }}>{company.name}</span>}
             {company && summary && <span className="sep hide-s">/</span>}
@@ -141,6 +221,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {(company || summary) && <span className="sep hide-s">/</span>}
             <b className="ellipsis">{current?.label ?? "KarbonLens"}</b>
           </div>
+          <HeaderNav items={tabItems} activeHref={current?.href} />
           <span className="spacer" />
           {summary && <span className="hide-m"><PeriodBadge status={summary.period.status} /></span>}
           <button className="search-btn" onClick={() => setPalette(true)} aria-label={t("Cari", "Search")}>

@@ -115,7 +115,7 @@ export default function DokumenPage() {
         {writable && <Button variant="primary" onClick={() => inputRef.current?.click()}><IconUpload size={16} />{t("Unggah dokumen", "Upload documents")}</Button>}
       </PageHead>
 
-      <div className="kpis">
+      <div className="kpis" data-ui="true">
         <div className="kpi"><div className="k">{t("Kategori wajib", "Required categories")}</div><div className="v">{requiredDone}<small>/ {required.length}</small></div><div className="d">{t("punya dokumen tervalidasi", "have validated documents")}</div></div>
         <div className="kpi"><div className="k">{t("Dokumen", "Documents")}</div><div className="v">{list.length}</div><div className="d">{busy ? t("sebagian sedang dibaca", "some are being read") : t("semua sudah dibaca", "all read")}</div></div>
         <div className="kpi"><div className="k">{t("Perlu diperiksa", "To check")}</div><div className="v">{toCheck}</div><div className="d">{t("sebelum diajukan ke admin", "before submitting to the reviewer")}</div></div>
@@ -123,7 +123,7 @@ export default function DokumenPage() {
       </div>
 
       {writable && (
-        <section className="panel" id="unggah" aria-label={t("Unggah dokumen", "Upload documents")}>
+        <section className="panel" id="unggah" data-ui="true" aria-label={t("Unggah dokumen", "Upload documents")}>
           <div ref={dropRef}
             className={`dropzone ${over ? "over" : ""}`}
             onDragOver={(e) => { e.preventDefault(); setOver(true); }}
@@ -212,7 +212,7 @@ export default function DokumenPage() {
           {!cats.length && <Empty title={t("Semua kategori sudah lengkap", "Every category is complete")} />}
         </div>
       ) : (
-        <section className="panel flush" aria-label={t("Daftar dokumen", "Document list")}>
+        <section className="panel flush" data-ui="true" aria-label={t("Daftar dokumen", "Document list")}>
           {docs.error ? <div style={{ padding: 16 }}><ErrorBox error={docs.error} onRetry={() => docs.reload()} /></div> : docList.length === 0 ? (
             <Empty icon={<IconFile />} title={list.length ? t("Tidak ada yang cocok", "No matches") : t("Belum ada dokumen", "No documents yet")}>
               {list.length ? t("Ubah kata kunci atau saringan kategori.", "Change the search term or category filter.") : t("Dokumen yang diunggah akan muncul di sini.", "Uploaded documents will appear here.")}
@@ -232,7 +232,7 @@ export default function DokumenPage() {
                       <td data-label="Status"><StatusBadge status={d.status} /></td>
                       <td data-label={t("Nomor / pemasok", "Number / supplier")} className="small"><span className="wrap">{[d.doc_number, d.supplier].filter(Boolean).join(" · ") || "—"}</span></td>
                       <td data-label={t("Diunggah", "Uploaded")} className="small muted">{when(d.created_at)}</td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <td className="row-actions" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                         <Link href={`/dokumen/${d.id}`} className="btn ghost sm">{t("Buka", "Open")}</Link>
                         {writable && d.status !== "approved" && (
                           <button type="button" className="btn ghost icon sm" onClick={() => setConfirmDel(d)} aria-label={t(`Hapus ${d.original_name}`, `Delete ${d.original_name}`)}><IconTrash size={15} /></button>

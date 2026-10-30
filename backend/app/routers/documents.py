@@ -34,7 +34,7 @@ def document_types(user: User = Depends(current_user)):
     return [
         {"code": d.code, "no": d.no, "name": d.name, "required": d.required, "scope": d.scope,
          "description": d.description,
-         "fields": [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required} for f in d.fields]}
+         "fields": [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required, "default": f.default} for f in d.fields]}
         for d in DOC_TYPES
     ]
 

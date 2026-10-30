@@ -7,16 +7,16 @@ import { SessionProvider } from "@/lib/session";
 import { THEME_SCRIPT, ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "KarbonLens — Emisi tertanam produk (CBAM)",
-  description: "Hitung emisi tertanam produk dari dokumen operasional perusahaan, ditinjau oleh admin peninjau.",
+  title: "KarbonLens — AUDIT OS · Emisi Tertanam Produk (CBAM)",
+  description: "Hitung emisi tertanam produk dari dokumen operasional perusahaan, diverifikasi oleh sistem audit presisi tinggi.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6f3" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a120e" },
+    { media: "(prefers-color-scheme: light)", color: "#FAF8F5" },
+    { media: "(prefers-color-scheme: dark)", color: "#111110" },
   ],
 };
 

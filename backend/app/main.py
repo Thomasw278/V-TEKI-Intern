@@ -9,7 +9,8 @@ from . import models  # noqa: F401  (registrasi tabel)
 from .config import get_settings
 from .database import Base, SessionLocal, engine, ensure_columns, migrate_legacy
 from .i18n import LanguageMiddleware
-from .routers import admin, auth, company, documents, factors, periods
+from .routers import admin, auth, company, documents, factors, periods, superadmin
+from .services.requirements import migrate_requirements
 from .services.setup import seed_document_types
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,8 @@ async def lifespan(_: FastAPI):
         logging.getLogger(__name__).info("Migrasi skema peran: %s", "; ".join(migrated))
     with SessionLocal() as db:
         seed_document_types(db)
+        for msg in migrate_requirements(db):
+            logging.getLogger(__name__).info("Migrasi kebutuhan dokumen: %s", msg)
     settings.storage_dir.mkdir(parents=True, exist_ok=True)
     yield
 
@@ -52,7 +55,7 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
-for r in (auth.router, company.router, periods.router, documents.router, factors.router, admin.router):
+for r in (auth.router, company.router, periods.router, documents.router, factors.router, admin.router, superadmin.router):
     app.include_router(r)
 
 

@@ -87,7 +87,23 @@ export function periodLabel(status: string, t: T): { label: string; tone: Tone }
 }
 
 export const roleLabel = (role: string | undefined | null, t: T) =>
-  role === "admin" ? t("Admin peninjau", "Reviewer") : t("Akun perusahaan", "Company account");
+  role === "superadmin" ? t("Superadmin", "Superadmin")
+    : role === "admin" ? t("Admin peninjau", "Reviewer") : t("Akun perusahaan", "Company account");
+
+/** Status kebutuhan dokumen per perusahaan. "Tidak berlaku" ≠ "data tidak tersedia". */
+export function reqStatusLabel(status: string, t: T): { label: string; tone: Tone } {
+  if (status === "required") return { label: t("Wajib", "Required"), tone: "info" };
+  if (status === "optional") return { label: t("Opsional", "Optional"), tone: "neutral" };
+  return { label: t("Tidak berlaku", "Not applicable"), tone: "warn" };
+}
+
+/** Asal penetapan status kebutuhan. */
+export function reqSourceLabel(source: string | null | undefined, t: T): string {
+  if (!source || source === "default") return t("Default katalog", "Catalogue default");
+  if (source.startsWith("profile:")) return t("Profil kebutuhan", "Requirement profile");
+  if (source.startsWith("exception:")) return t("Permintaan pengecualian disetujui", "Approved exception request");
+  return t("Diatur superadmin", "Set by the superadmin");
+}
 
 /** Teks angka gaya Indonesia/Inggris → string desimal untuk API ("12.000" → "12000", "45,5" → "45.5"). */
 export function toDecimal(v: string): string | null {

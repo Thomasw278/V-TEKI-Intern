@@ -1,6 +1,10 @@
 "use client";
 
 import { getLang } from "./i18n";
+import type {
+  AdminAccount, AuditActor, CatalogType, CompanyRequirement, CompanyRequirementsDetail, ExceptionRequest, ProfileApplyResult,
+  ReqStatus, RequirementConflict, RequirementPreview, RequirementProfile, SuperAuditEntry, SuperCompanyRow,
+} from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const TOKEN_KEY = "karbonlens.token";
@@ -146,3 +150,52 @@ export async function downloadFile(path: string, fallbackName: string) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
+
+/** Daftar perbedaan dari respons 409 "status sudah diubah superadmin lain". */
+export function conflictsOf(e: unknown): RequirementConflict[] | null {
+  if (!(e instanceof ApiError) || e.status !== 409) return null;
+  const d = (e.detail as { detail?: { conflicts?: RequirementConflict[] } } | null)?.detail;
+  return d && typeof d === "object" && Array.isArray(d.conflicts) ? d.conflicts : null;
+}
+
+export type ReqChange = { code: string; status: ReqStatus; expected?: ReqStatus };
+
+/** API ruang kerja superadmin (/api/superadmin). */
+export const superApi = {
+  companies: () => api<SuperCompanyRow[]>("/api/superadmin/companies"),
+  requirements: (companyId: number | string) => api<CompanyRequirementsDetail>(`/api/superadmin/companies/${companyId}/requirements`),
+  preview: (companyId: number, changes: ReqChange[], reason?: string | null) =>
+    api<RequirementPreview>(`/api/superadmin/companies/${companyId}/requirements/preview`, { body: { changes, reason: reason || null } }),
+  saveRequirements: (companyId: number, changes: ReqChange[], reason: string | null) =>
+    api<{ changed: unknown[]; requirements: CompanyRequirement[] }>(`/api/superadmin/companies/${companyId}/requirements`, { method: "PUT", body: { changes, reason } }),
+  docTypes: () => api<CatalogType[]>("/api/superadmin/doc-types"),
+  createDocType: (body: Record<string, unknown>) => api<CatalogType>("/api/superadmin/doc-types", { body }),
+  updateDocType: (code: string, body: Record<string, unknown>) => api<CatalogType>(`/api/superadmin/doc-types/${code}`, { method: "PATCH", body }),
+  profiles: () => api<RequirementProfile[]>("/api/superadmin/profiles"),
+  saveProfile: (id: number | null, body: { name: string; description: string | null; items: Record<string, ReqStatus> }) =>
+    id ? api<RequirementProfile>(`/api/superadmin/profiles/${id}`, { method: "PATCH", body }) : api<RequirementProfile>("/api/superadmin/profiles", { body }),
+  applyProfile: (id: number, companyIds: number[], dryRun: boolean, reason: string | null) =>
+    api<ProfileApplyResult>(`/api/superadmin/profiles/${id}/apply`, { body: { company_ids: companyIds, dry_run: dryRun, reason } }),
+  exceptions: (status: "pending" | "approved" | "rejected" | "all") => api<ExceptionRequest[]>(`/api/superadmin/exceptions?status=${status}`),
+  decide: (id: number, decision: "approved" | "rejected", note: string | null) =>
+    api<ExceptionRequest>(`/api/superadmin/exceptions/${id}/decide`, { body: { decision, note } }),
+  admins: () => api<AdminAccount[]>("/api/superadmin/admins"),
+  createAdmin: (body: { name: string; email: string; password: string }) => api<AdminAccount>("/api/superadmin/admins", { body }),
+  updateAdmin: (id: number, body: { name?: string; is_active?: boolean; password?: string }) =>
+    api<AdminAccount>(`/api/superadmin/admins/${id}`, { method: "PATCH", body }),
+  assign: (adminId: number, companyId: number) => api<AdminAccount>(`/api/superadmin/admins/${adminId}/companies/${companyId}`, { method: "POST" }),
+  unassign: (adminId: number, companyId: number) => api<AdminAccount>(`/api/superadmin/admins/${adminId}/companies/${companyId}`, { method: "DELETE" }),
+  audit: (q: Record<string, string | number | null | undefined>) => {
+    const qs = new URLSearchParams();
+    Object.entries(q).forEach(([k, v]) => v !== null && v !== undefined && v !== "" && qs.set(k, String(v)));
+    return api<SuperAuditEntry[]>(`/api/superadmin/audit?${qs}`);
+  },
+  auditActors: () => api<AuditActor[]>("/api/superadmin/audit/actors"),
+};
+
+/** API kebutuhan dokumen untuk akun perusahaan (dan admin peninjau, baca saja). */
+export const requirementsApi = {
+  mine: () => api<{ requirements: CompanyRequirement[]; exceptions: ExceptionRequest[] }>("/api/company/requirements"),
+  requestException: (type_code: string, requested_status: "optional" | "not_applicable", reason: string) =>
+    api<ExceptionRequest>("/api/company/exception-requests", { body: { type_code, requested_status, reason } }),
+};

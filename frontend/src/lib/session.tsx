@@ -29,6 +29,8 @@ interface SessionCtx {
   user: User | null;
   role: Role | null;
   isAdmin: boolean;
+  /** Pengelola sistem: tidak punya konteks perusahaan, hanya memakai halaman /superadmin. */
+  isSuperadmin: boolean;
   /** Perusahaan aktif: milik akun perusahaan, atau yang sedang ditinjau admin. */
   company: Company | null;
   /** Admin: semua perusahaan yang ditugaskan. */
@@ -86,6 +88,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setCompany(s.company);
       setPeriods(s.periods);
       pickPeriod(s.periods);
+    } else if (s.user.role === "superadmin") {
+      setActiveCompanyHeader(null);
+      setCompany(null);
+      setPeriods([]);
+      setPeriodIdState(null);
     } else {
       const stored = readNum(COMPANY_KEY);
       const valid = s.companies.find((c) => c.id === stored)?.id ?? null;
@@ -126,6 +133,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     user: data?.user ?? null,
     role: data?.user.role ?? null,
     isAdmin: data?.user.role === "admin",
+    isSuperadmin: data?.user.role === "superadmin",
     company,
     companies: data?.companies ?? [],
     selectCompany: async (id) => {

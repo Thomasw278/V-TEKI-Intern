@@ -11,7 +11,7 @@ import { useSession } from "@/lib/session";
 
 export default function LoginPage() {
   const t = useT();
-  const { login, user, ready, isAdmin } = useSession();
+  const { login, user, ready, isAdmin, isSuperadmin } = useSession();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,8 +20,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ready && user) router.replace(isAdmin ? "/admin" : "/dashboard");
-  }, [ready, user, isAdmin, router]);
+    if (ready && user) router.replace(isSuperadmin ? "/superadmin" : isAdmin ? "/admin" : "/dashboard");
+  }, [ready, user, isAdmin, isSuperadmin, router]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const u = await login(email.trim(), password);
-      router.replace(u.role === "admin" ? "/admin" : "/dashboard");
+      router.replace(u.role === "superadmin" ? "/superadmin" : u.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);

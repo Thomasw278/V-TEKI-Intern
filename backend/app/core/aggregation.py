@@ -62,10 +62,15 @@ def build_activity(
     docs: list[DocInput],
     products: list[ProductSpec],
     factors: dict[str, Decimal],
+    excluded: dict[str, str] | None = None,
 ) -> ActivityData:
-    """Hanya dokumen berstatus tervalidasi/disetujui yang dihitung."""
-    act = ActivityData()
-    counted = [x for x in docs if x.status in COUNTED_STATUSES and x.type_code]
+    """Hanya dokumen berstatus tervalidasi/disetujui yang dihitung.
+
+    `excluded` = kategori berstatus "Tidak berlaku" untuk perusahaan ini ({kode: alasan}). Dokumennya
+    tidak dihitung dan nilai bawaan tidak dipakai, karena kegiatannya memang tidak ada.
+    """
+    act = ActivityData(excluded=dict(excluded or {}))
+    counted = [x for x in docs if x.status in COUNTED_STATUSES and x.type_code and x.type_code not in act.excluded]
     by_type: dict[str, list[DocInput]] = {}
     for x in counted:
         by_type.setdefault(x.type_code, []).append(x)
@@ -144,9 +149,11 @@ def build_activity(
     act.products = [ProductInput(p.code.upper(), p.name, tonnes[p.code.upper()], d(p.price)) for p in products]
     act.ffb_processed_t = ffb
 
-    # POME
+    # POME (tidak berlaku → tidak ada nilai bawaan; data tidak tersedia → nilai bawaan literatur)
     pome_rows = list(rows("pome"))
-    if pome_rows:
+    if "pome" in act.excluded:
+        pass
+    elif pome_rows:
         vol_total = cod_weighted = captured_t = D0
         doc_dcod = {}
         for x, i, it in pome_rows:

@@ -1,6 +1,7 @@
-"""Profil perusahaan, fasilitas, dan produk.
+"""Profil perusahaan, fasilitas, produk, dan status kebutuhan dokumen.
 
-Diubah oleh akun perusahaan sendiri; admin peninjau dapat melihat (hanya baca).
+Diubah oleh akun perusahaan sendiri; admin peninjau dapat melihat (hanya baca). Status kebutuhan
+dokumen diatur superadmin; perusahaan dapat mengajukan permintaan pengecualian.
 """
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
@@ -8,9 +9,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import Ctx, company_ctx, ctx_roles
-from ..models import AdminCompany, Company, Facility, Product, User
-from ..schemas import CompanyIn, CompanyOut, FacilityIn, FacilityOut, ProductIn, ProductOut
+from ..models import AdminCompany, Company, ExceptionRequest, Facility, Product, User
+from ..schemas import CompanyIn, CompanyOut, ExceptionRequestIn, FacilityIn, FacilityOut, ProductIn, ProductOut
 from ..services import audit
+from ..services import requirements as req
 
 router = APIRouter(prefix="/api/company", tags=["perusahaan"])
 owner = ctx_roles("company")
@@ -132,3 +134,37 @@ def delete_product(pid: int, ctx: Ctx = Depends(owner), db: Session = Depends(ge
     db.delete(p)
     db.commit()
     return Response(status_code=204)
+
+
+# ---------------------------------------------------------------- kebutuhan dokumen & pengecualian
+@router.get("/requirements")
+def company_requirements(ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    """Status kebutuhan yang berlaku sekarang + riwayat permintaan pengecualian (perusahaan & admin yang ditugaskan)."""
+    pending = set(req.pending_exception_codes(db, ctx.company_id))
+    rows = list(db.scalars(select(ExceptionRequest).where(ExceptionRequest.company_id == ctx.company_id)
+                           .order_by(ExceptionRequest.id.desc()).limit(30)))
+    return {
+        "requirements": [{
+            "code": s.code, "no": s.no, "name": s.name, "scope": s.scope, "status": s.status, "reason": s.reason,
+            "source": s.source, "set_by": s.set_by, "set_at": s.set_at, "builtin": s.builtin,
+            "can_exclude": s.can_exclude, "has_default": s.has_default, "scope12": s.scope12,
+            "exception_pending": s.code in pending,
+        } for s in req.effective_specs(db, ctx.company_id)],
+        "exceptions": req.exception_out(db, rows),
+    }
+
+
+@router.post("/exception-requests", status_code=201)
+def request_exception(data: ExceptionRequestIn, ctx: Ctx = Depends(owner), db: Session = Depends(get_db)):
+    """Perusahaan menyatakan tidak punya dokumen/kegiatan ini; superadmin yang memutuskan."""
+    dt = req.active_type(db, data.type_code)
+    if not dt:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Jenis dokumen tidak ditemukan")
+    try:
+        r = req.request_exception(db, ctx.user, ctx.company_id, dt, data.requested_status, data.reason)
+    except req.RequirementConflict as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    except req.RequirementError as e:
+        raise HTTPException(422, str(e)) from e
+    db.commit()
+    return req.exception_out(db, [r])[0]

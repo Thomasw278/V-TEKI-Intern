@@ -12,13 +12,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..core.catalog import DOC_TYPE_BY_CODE, DOC_TYPES
+from ..core.catalog import DOC_TYPE_BY_CODE
 from ..core.validation import validate_document
 from ..database import get_db
 from ..deps import Ctx, company_ctx, ctx_roles, current_user, get_document, get_period
 from ..models import Document, ExtractedField, Facility, ReportingPeriod, User, utcnow
 from ..schemas import DocumentDetail, DocumentOut, DocumentPatch, FieldCreate, FieldOut, FieldUpdate, RejectIn
 from ..services import audit
+from ..services import requirements as req
 from ..services.period import mark_changed
 from ..services.pipeline import pages_dir, process_document, to_value
 
@@ -30,13 +31,9 @@ ALLOWED = {".pdf", ".xlsx", ".xlsm", ".csv", ".txt", ".docx", ".png", ".jpg", ".
 
 
 @router.get("/api/document-types")
-def document_types(user: User = Depends(current_user)):
-    return [
-        {"code": d.code, "no": d.no, "name": d.name, "required": d.required, "scope": d.scope,
-         "description": d.description,
-         "fields": [{"key": f.key, "label": f.label, "unit": f.unit, "kind": f.kind, "required": f.required, "default": f.default} for f in d.fields]}
-        for d in DOC_TYPES
-    ]
+def document_types(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Katalog aktif: 10 jenis bawaan + dokumen pendukung buatan superadmin (tanpa field angka)."""
+    return [req.type_out(dt) for dt in req.doc_types(db)]
 
 
 def _check_facility(db: Session, ctx: Ctx, facility_id: int | None) -> None:
@@ -65,7 +62,7 @@ async def upload_documents(
     """Unggah satu atau banyak berkas. Klasifikasi & ekstraksi berjalan di background."""
     settings = get_settings()
     period = get_period(period_id, ctx, db, for_write=True)
-    if type_code and type_code not in DOC_TYPE_BY_CODE:
+    if type_code and not req.active_type(db, type_code):
         raise HTTPException(422, "Kategori dokumen tidak dikenal")
     _check_facility(db, ctx, facility_id)
     folder = Path(settings.storage_dir) / str(ctx.company_id) / str(period.id)
@@ -139,11 +136,12 @@ def doc_items(doc: Document) -> tuple[list[dict], dict, dict]:
     return items, conf, confirmed
 
 
-def _detail(doc: Document) -> DocumentDetail:
+def _detail(doc: Document, db: Session) -> DocumentDetail:
     issues = []
     if doc.status not in ("uploaded", "processing"):
         items, conf, confirmed = doc_items(doc)
-        issues = [i.to_dict() for i in validate_document(doc.type_code, items, conf, confirmed)]
+        issues = [i.to_dict() for i in validate_document(doc.type_code, items, conf, confirmed,
+                                                         supporting=req.is_supporting(db, doc.type_code))]
     out = DocumentDetail.model_validate({
         **DocumentOut.model_validate(doc).model_dump(),
         "fields": [FieldOut.model_validate(f) for f in doc.fields],
@@ -155,7 +153,7 @@ def _detail(doc: Document) -> DocumentDetail:
 
 @router.get("/api/documents/{doc_id}", response_model=DocumentDetail)
 def get_document_detail(doc_id: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
-    return _detail(get_document(doc_id, ctx, db))
+    return _detail(get_document(doc_id, ctx, db), db)
 
 
 @router.get("/api/documents/{doc_id}/file")
@@ -229,7 +227,7 @@ def patch_document(doc_id: int, data: DocumentPatch, background: BackgroundTasks
         _check_facility(db, ctx, data.facility_id)
         doc.facility_id = data.facility_id
     if data.type_code and data.type_code != doc.type_code:
-        if data.type_code not in DOC_TYPE_BY_CODE:
+        if not req.active_type(db, data.type_code):
             raise HTTPException(422, "Kategori tidak dikenal")
         old = doc.type_code
         doc.status = "processing"
@@ -239,7 +237,7 @@ def patch_document(doc_id: int, data: DocumentPatch, background: BackgroundTasks
         background.add_task(process_document, doc.id, data.type_code)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.patch("/api/documents/{doc_id}/fields/{field_id}", response_model=DocumentDetail)
@@ -287,7 +285,7 @@ def update_field(doc_id: int, field_id: int, data: FieldUpdate, ctx: Ctx = Depen
     mark_changed(period)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.post("/api/documents/{doc_id}/fields", response_model=DocumentDetail, status_code=201)
@@ -314,7 +312,7 @@ def add_field(doc_id: int, data: FieldCreate, ctx: Ctx = Depends(editors), db: S
     mark_changed(period)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.delete("/api/documents/{doc_id}/items/{item}", response_model=DocumentDetail)
@@ -335,7 +333,7 @@ def delete_item(doc_id: int, item: int, ctx: Ctx = Depends(editors), db: Session
     mark_changed(period)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.post("/api/documents/{doc_id}/validate", response_model=DocumentDetail)
@@ -350,7 +348,8 @@ def submit_doc(doc_id: int, ctx: Ctx = Depends(owner), db: Session = Depends(get
     for f in doc.fields:
         f.confirmed = True
     items, _, _ = doc_items(doc)
-    crit = [i.to_dict() for i in validate_document(doc.type_code, items, {}, {}) if i.severity == "critical"]
+    crit = [i.to_dict() for i in validate_document(doc.type_code, items, {}, {}, supporting=req.is_supporting(db, doc.type_code))
+            if i.severity == "critical"]
     if crit:
         db.rollback()
         raise HTTPException(422, {"message": "Masih ada isu kritis", "issues": crit})
@@ -360,7 +359,7 @@ def submit_doc(doc_id: int, ctx: Ctx = Depends(owner), db: Session = Depends(get
     mark_changed(period)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.post("/api/documents/{doc_id}/approve", response_model=DocumentDetail)
@@ -374,7 +373,7 @@ def approve_doc(doc_id: int, ctx: Ctx = Depends(reviewer), db: Session = Depends
     audit.log(db, ctx.user, ctx.company_id, "document", doc.id, "approve", f"Menyetujui {doc.original_name}")
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.post("/api/documents/{doc_id}/reject", response_model=DocumentDetail)
@@ -389,7 +388,7 @@ def reject_doc(doc_id: int, data: RejectIn, ctx: Ctx = Depends(reviewer), db: Se
     mark_changed(period)
     db.commit()
     db.refresh(doc)
-    return _detail(doc)
+    return _detail(doc, db)
 
 
 @router.post("/api/documents/{doc_id}/reprocess", response_model=DocumentOut)

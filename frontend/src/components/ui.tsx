@@ -4,10 +4,11 @@ import {
   createContext, useCallback, useContext, useEffect, useRef, useState,
   type ButtonHTMLAttributes, type ReactNode,
 } from "react";
+import { ApiError } from "@/lib/api";
 import { statusLabel, type Tone } from "@/lib/format";
 import { locale, useLang, useT } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
-import { IconMoon, IconSun, IconX, LogoMark } from "./Icons";
+import { IconLock, IconMoon, IconSun, IconX, LogoMark } from "./Icons";
 
 export { LogoMark };
 
@@ -93,6 +94,12 @@ export function Loading({ rows = 2 }: { rows?: number }) {
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const t = useT();
   const msg = error instanceof Error ? error.message : String(error);
+  if (error instanceof ApiError && error.status === 403) {
+    // peran tidak berhak: mencoba lagi tidak akan mengubah hasilnya
+    return (
+      <Empty icon={<IconLock />} title={t("Anda tidak punya akses ke halaman ini", "You do not have access to this page")}>{msg}</Empty>
+    );
+  }
   return (
     <div className="banner bad anim-shake" role="alert">
       <span className="grow">{msg}</span>

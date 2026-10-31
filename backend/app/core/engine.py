@@ -76,6 +76,9 @@ class ActivityData:
     ffb_processed_t: Decimal = D0  # info untuk validasi (rendemen, rasio POME)
     # kategori yang memakai nilai bawaan: {"pome": "alasan"}
     defaults_used: dict[str, str] = field(default_factory=dict)
+    # kategori berstatus "Tidak berlaku" untuk perusahaan ini: {"pupuk": "alasan"}.
+    # Datanya tidak dihitung dan baris rumusnya dilewati (bukan diisi 0 diam-diam).
+    excluded: dict[str, str] = field(default_factory=dict)
     trace: list[dict] = field(default_factory=list)
 
 
@@ -119,6 +122,7 @@ class Result:
     electricity_sold_mwh: Decimal
     allocations: list[Allocation]
     biogenic_co2_t: Decimal
+    excluded: dict[str, str] = field(default_factory=dict)
 
     @property
     def total_t(self) -> Decimal:
@@ -135,6 +139,7 @@ class Result:
             "total_t": r6(self.total_t),
             "biogenic_co2_t": r6(self.biogenic_co2_t),
             "electricity_sold_mwh": r6(self.electricity_sold_mwh),
+            "excluded": [{"code": k, "reason": v} for k, v in self.excluded.items()],
             "lines": [
                 {
                     "key": ln.key, "name": ln.name, "group": ln.group, "scope": ln.scope,
@@ -178,112 +183,123 @@ def calculate(
 
     lines: list[Line] = []
     src = lambda cat: "default" if cat in act.defaults_used else "document"
+    # Kategori "Tidak berlaku" dilewati seluruhnya: barisnya tidak dibuat dan faktornya tidak diminta.
+    skip = lambda cat: cat in act.excluded  # noqa: E731
 
-    # 1. BBM (Scope 1): volume × fraksi fosil × EF; bagian bio dicatat terpisah
-    fuel_t = D0
+    # 1. BBM (Scope 1): volume × fraksi fosil × EF; bagian bio dicatat terpisah.
+    # BBM dari dokumen transportasi ikut di baris ini, jadi baris tetap ada selama masih ada volume.
     bio_t = D0
-    total_l = D0
-    parts = []
-    for fe in act.fuels:
-        frac = fossil_fraction(fe.fuel_type)
-        ef = need(fuel_factor_code(fe.fuel_type))
-        fuel_t += fe.volume_l * frac * ef / THOUSAND
-        bio_t += fe.volume_l * (Decimal(1) - frac) * ef / THOUSAND
-        total_l += fe.volume_l
-        parts.append(f"{fmt_id(fe.volume_l)} L × {fmt_id(frac, 2)} × {fmt_id(ef, 2)}")
-    lines.append(Line(
-        "bbm", "BBM fosil", "direct", "Scope 1",
-        f"{fmt_id(total_l)} L", "EF per jenis BBM × fraksi fosil",
-        "E = Σ volume × fraksi fosil × EF ÷ 1000",
-        (" + ".join(parts) or "0") + " ÷ 1000", fuel_t, src("bbm"),
-    ))
+    if not (skip("bbm") and not act.fuels):
+        fuel_t = D0
+        total_l = D0
+        parts = []
+        for fe in act.fuels:
+            frac = fossil_fraction(fe.fuel_type)
+            ef = need(fuel_factor_code(fe.fuel_type))
+            fuel_t += fe.volume_l * frac * ef / THOUSAND
+            bio_t += fe.volume_l * (Decimal(1) - frac) * ef / THOUSAND
+            total_l += fe.volume_l
+            parts.append(f"{fmt_id(fe.volume_l)} L × {fmt_id(frac, 2)} × {fmt_id(ef, 2)}")
+        lines.append(Line(
+            "bbm", "BBM fosil", "direct", "Scope 1",
+            f"{fmt_id(total_l)} L", "EF per jenis BBM × fraksi fosil",
+            "E = Σ volume × fraksi fosil × EF ÷ 1000",
+            (" + ".join(parts) or "0") + " ÷ 1000", fuel_t, src("bbm"),
+        ))
 
     # 2. Listrik dibeli (Scope 2)
-    grid = need("grid_ef")
-    elec_t = act.electricity_purchased_mwh * grid
-    lines.append(Line(
-        "listrik", "Listrik dibeli", "indirect", "Scope 2",
-        f"{fmt_id(act.electricity_purchased_mwh, 1)} MWh", f"{fmt_id(grid, 3)} t CO2/MWh",
-        "E = MWh dibeli × EF jaringan",
-        f"{fmt_id(act.electricity_purchased_mwh, 1)} × {fmt_id(grid, 3)}", elec_t, src("listrik"),
-    ))
+    if not skip("listrik"):
+        grid = need("grid_ef")
+        elec_t = act.electricity_purchased_mwh * grid
+        lines.append(Line(
+            "listrik", "Listrik dibeli", "indirect", "Scope 2",
+            f"{fmt_id(act.electricity_purchased_mwh, 1)} MWh", f"{fmt_id(grid, 3)} t CO2/MWh",
+            "E = MWh dibeli × EF jaringan",
+            f"{fmt_id(act.electricity_purchased_mwh, 1)} × {fmt_id(grid, 3)}", elec_t, src("listrik"),
+        ))
 
-    # 3. Pupuk N2O
-    ef1 = need("ef1_n2o")
-    n2o_t = act.n_applied_t * ef1 * Decimal(44) / Decimal(28) * gwp["N2O"]
-    lines.append(Line(
-        "pupuk_n2o", "Pupuk — N2O", "direct", "Scope 1",
-        f"{fmt_id(act.n_applied_t, 1)} t N", f"EF1 {fmt_id(ef1, 3)} · GWP {fmt_id(gwp['N2O'])}",
-        "E = N × EF1 × 44/28 × GWP N2O",
-        f"{fmt_id(act.n_applied_t, 1)} × {fmt_id(ef1, 3)} × 44/28 × {fmt_id(gwp['N2O'])}", n2o_t, src("pupuk"),
-    ))
+    if not skip("pupuk"):
+        # 3. Pupuk N2O
+        ef1 = need("ef1_n2o")
+        n2o_t = act.n_applied_t * ef1 * Decimal(44) / Decimal(28) * gwp["N2O"]
+        lines.append(Line(
+            "pupuk_n2o", "Pupuk — N2O", "direct", "Scope 1",
+            f"{fmt_id(act.n_applied_t, 1)} t N", f"EF1 {fmt_id(ef1, 3)} · GWP {fmt_id(gwp['N2O'])}",
+            "E = N × EF1 × 44/28 × GWP N2O",
+            f"{fmt_id(act.n_applied_t, 1)} × {fmt_id(ef1, 3)} × 44/28 × {fmt_id(gwp['N2O'])}", n2o_t, src("pupuk"),
+        ))
 
-    # 4. Urea CO2
-    uc = need("urea_c")
-    urea_t = act.urea_t * uc * Decimal(44) / Decimal(12)
-    lines.append(Line(
-        "pupuk_urea", "Pupuk — urea CO2", "direct", "Scope 1",
-        f"{fmt_id(act.urea_t, 1)} t urea", f"{fmt_id(uc, 2)} t C/t",
-        "E = massa urea × 0,20 × 44/12",
-        f"{fmt_id(act.urea_t, 1)} × {fmt_id(uc, 2)} × 44/12", urea_t, src("pupuk"),
-    ))
+        # 4. Urea CO2
+        uc = need("urea_c")
+        urea_t = act.urea_t * uc * Decimal(44) / Decimal(12)
+        lines.append(Line(
+            "pupuk_urea", "Pupuk — urea CO2", "direct", "Scope 1",
+            f"{fmt_id(act.urea_t, 1)} t urea", f"{fmt_id(uc, 2)} t C/t",
+            "E = massa urea × 0,20 × 44/12",
+            f"{fmt_id(act.urea_t, 1)} × {fmt_id(uc, 2)} × 44/12", urea_t, src("pupuk"),
+        ))
 
     # 5. POME CH4
-    bo, mcf = need("pome_bo"), need("pome_mcf")
-    cod_kg = act.pome_volume_m3 * act.pome_delta_cod_kg_m3
-    ch4_t = cod_kg * bo * mcf / THOUSAND - act.pome_ch4_captured_t
-    if ch4_t < 0:
-        ch4_t = D0
-    pome_t = ch4_t * gwp["CH4"]
-    lines.append(Line(
-        "pome", "Limbah cair (POME) — CH4", "direct", "Scope 1",
-        f"{fmt_id(act.pome_volume_m3)} m3 · ΔCOD {fmt_id(act.pome_delta_cod_kg_m3, 1)} kg/m3",
-        f"Bo {fmt_id(bo, 2)} · MCF {fmt_id(mcf, 2)} · GWP {fmt_id(gwp['CH4'])}",
-        "E = (volume × ΔCOD × Bo × MCF ÷ 1000 − CH4 tertangkap) × GWP CH4",
-        f"({fmt_id(act.pome_volume_m3)} × {fmt_id(act.pome_delta_cod_kg_m3, 1)} × {fmt_id(bo, 2)} × {fmt_id(mcf, 2)} ÷ 1000 − {fmt_id(act.pome_ch4_captured_t, 1)}) × {fmt_id(gwp['CH4'])}",
-        pome_t, src("pome"),
-    ))
+    if not skip("pome"):
+        bo, mcf = need("pome_bo"), need("pome_mcf")
+        cod_kg = act.pome_volume_m3 * act.pome_delta_cod_kg_m3
+        ch4_t = cod_kg * bo * mcf / THOUSAND - act.pome_ch4_captured_t
+        if ch4_t < 0:
+            ch4_t = D0
+        pome_t = ch4_t * gwp["CH4"]
+        lines.append(Line(
+            "pome", "Limbah cair (POME) — CH4", "direct", "Scope 1",
+            f"{fmt_id(act.pome_volume_m3)} m3 · ΔCOD {fmt_id(act.pome_delta_cod_kg_m3, 1)} kg/m3",
+            f"Bo {fmt_id(bo, 2)} · MCF {fmt_id(mcf, 2)} · GWP {fmt_id(gwp['CH4'])}",
+            "E = (volume × ΔCOD × Bo × MCF ÷ 1000 − CH4 tertangkap) × GWP CH4",
+            f"({fmt_id(act.pome_volume_m3)} × {fmt_id(act.pome_delta_cod_kg_m3, 1)} × {fmt_id(bo, 2)} × {fmt_id(mcf, 2)} ÷ 1000 − {fmt_id(act.pome_ch4_captured_t, 1)}) × {fmt_id(gwp['CH4'])}",
+            pome_t, src("pome"),
+        ))
 
     # 6. Lahan gambut
-    peat_ef = f.get("peat_co2", D0)
-    peat_t = act.peat_area_ha * peat_ef
-    lines.append(Line(
-        "lahan", "Lahan gambut", "direct", "Scope 1",
-        f"{fmt_id(act.peat_area_ha, 1)} ha gambut", f"{fmt_id(peat_ef, 1)} t CO2/ha",
-        "E = luas gambut × EF gambut",
-        f"{fmt_id(act.peat_area_ha, 1)} × {fmt_id(peat_ef, 1)}", peat_t, src("lahan"),
-    ))
+    if not skip("lahan"):
+        peat_ef = f.get("peat_co2", D0)
+        peat_t = act.peat_area_ha * peat_ef
+        lines.append(Line(
+            "lahan", "Lahan gambut", "direct", "Scope 1",
+            f"{fmt_id(act.peat_area_ha, 1)} ha gambut", f"{fmt_id(peat_ef, 1)} t CO2/ha",
+            "E = luas gambut × EF gambut",
+            f"{fmt_id(act.peat_area_ha, 1)} × {fmt_id(peat_ef, 1)}", peat_t, src("lahan"),
+        ))
 
     # 7. Limbah padat & B3
-    wef = f.get("waste_default", D0)
-    waste_mass = sum((w.mass_t for w in act.wastes), D0)
-    waste_t = waste_mass * wef
-    lines.append(Line(
-        "b3", "Limbah padat & B3", "direct", "Scope 1/3",
-        f"{fmt_id(waste_mass, 1)} t", f"{fmt_id(wef, 2)} t CO2e/t",
-        "E = massa × EF metode olah",
-        f"{fmt_id(waste_mass, 1)} × {fmt_id(wef, 2)}", waste_t, src("b3"),
-    ))
+    if not skip("b3"):
+        wef = f.get("waste_default", D0)
+        waste_mass = sum((w.mass_t for w in act.wastes), D0)
+        waste_t = waste_mass * wef
+        lines.append(Line(
+            "b3", "Limbah padat & B3", "direct", "Scope 1/3",
+            f"{fmt_id(waste_mass, 1)} t", f"{fmt_id(wef, 2)} t CO2e/t",
+            "E = massa × EF metode olah",
+            f"{fmt_id(waste_mass, 1)} × {fmt_id(wef, 2)}", waste_t, src("b3"),
+        ))
 
     # 8. Transportasi (hulu)
-    tef = f.get("truck_tkm", D0)
-    trans_t = act.transport_tkm * tef / THOUSAND
-    lines.append(Line(
-        "transport", "Transportasi", "upstream", "Hulu",
-        f"{fmt_id(act.transport_tkm)} t-km", f"{fmt_id(tef, 2)} kg/t-km",
-        "E = muatan × jarak × EF moda ÷ 1000",
-        f"{fmt_id(act.transport_tkm)} × {fmt_id(tef, 2)} ÷ 1000", trans_t, src("transport"),
-    ))
+    if not skip("transport"):
+        tef = f.get("truck_tkm", D0)
+        trans_t = act.transport_tkm * tef / THOUSAND
+        lines.append(Line(
+            "transport", "Transportasi", "upstream", "Hulu",
+            f"{fmt_id(act.transport_tkm)} t-km", f"{fmt_id(tef, 2)} kg/t-km",
+            "E = muatan × jarak × EF moda ÷ 1000",
+            f"{fmt_id(act.transport_tkm)} × {fmt_id(tef, 2)} ÷ 1000", trans_t, src("transport"),
+        ))
 
     # 9. Material prekursor (hulu)
-    mat_t = sum((m.quantity_t * m.see for m in act.materials), D0)
-    lines.append(Line(
-        "material", "Material prekursor", "upstream", "Hulu",
-        f"{len(act.materials)} baris material", "SEE pemasok",
-        "E = Σ massa material × SEE material",
-        " + ".join(f"{fmt_id(m.quantity_t, 1)} × {fmt_id(m.see, 3)}" for m in act.materials) or "0",
-        mat_t, src("material"),
-    ))
+    if not skip("material"):
+        mat_t = sum((m.quantity_t * m.see for m in act.materials), D0)
+        lines.append(Line(
+            "material", "Material prekursor", "upstream", "Hulu",
+            f"{len(act.materials)} baris material", "SEE pemasok",
+            "E = Σ massa material × SEE material",
+            " + ".join(f"{fmt_id(m.quantity_t, 1)} × {fmt_id(m.see, 3)}" for m in act.materials) or "0",
+            mat_t, src("material"),
+        ))
 
     direct = sum((ln.value_t for ln in lines if ln.group == "direct"), D0)
     indirect = sum((ln.value_t for ln in lines if ln.group == "indirect"), D0)
@@ -307,4 +323,4 @@ def calculate(
         ))
 
     return Result(gwp_set, allocation, lines, direct, indirect, upstream,
-                  act.electricity_sold_mwh, allocs, bio_t)
+                  act.electricity_sold_mwh, allocs, bio_t, dict(act.excluded))

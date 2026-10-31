@@ -29,6 +29,14 @@ class DocType:
     description: str
     keywords: tuple[str, ...]
     fields: tuple[FieldSpec, ...] = field(default_factory=tuple)
+    # aturan pengaman kebutuhan per perusahaan (lihat services/requirements.py)
+    can_exclude: bool = True    # boleh berstatus "Tidak berlaku"
+    has_default: bool = False   # punya nilai bawaan literatur bila dokumen tidak ada
+    scope12: bool = False       # memengaruhi Scope 1/2 → perubahan status wajib beralasan
+
+    @property
+    def default_status(self) -> str:
+        return "required" if self.required else "optional"
 
     def field(self, key: str) -> FieldSpec | None:
         return next((f for f in self.fields if f.key == key), None)
@@ -57,6 +65,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("kwh_sold", "kWh dijual", "kWh", required=False),
             FieldSpec("customer_id", "ID pelanggan", kind="text", required=False),
         ),
+        scope12=True,
     ),
     DocType(
         "bbm", 3, "BBM energi fosil", True, "Scope 1",
@@ -67,6 +76,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("volume_l", "Volume", "L"),
             FieldSpec("usage", "Penggunaan", kind="text", required=False),
         ),
+        scope12=True,
     ),
     DocType(
         "pupuk", 4, "Pupuk aplikasi kebun", True, "Scope 1 · N2O",
@@ -79,6 +89,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("organic_mass_t", "Pupuk organik (tankos)", "t", required=False),
             FieldSpec("organic_n_pct", "Kadar N organik", "%", required=False),
         ),
+        scope12=True,
     ),
     DocType(
         "lahan", 5, "Lahan kebun & panen", True, "Scope 1 · lahan",
@@ -91,6 +102,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("ffb_harvested_t", "TBS dipanen", "t", required=False),
             FieldSpec("planting_year", "Tahun tanam", kind="text", required=False),
         ),
+        scope12=True,
     ),
     DocType(
         "produksi", 6, "Pabrik & produksi", True, "Pembagi SEE",
@@ -103,6 +115,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("product_code", "Kode produk lain", kind="text", required=False),
             FieldSpec("product_t", "Tonase produk lain", "t", required=False),
         ),
+        can_exclude=False,
     ),
     DocType(
         "pome", 7, "Limbah cair (POME)", True, "Scope 1 · CH4",
@@ -115,6 +128,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("biogas_m3", "Biogas tertangkap", "m3", required=False),
             FieldSpec("ch4_fraction", "Fraksi CH4 biogas", "", required=False),
         ),
+        has_default=True, scope12=True,
     ),
     DocType(
         "transport", 8, "Transportasi & logistik", False, "Hulu / hilir",
@@ -137,6 +151,7 @@ DOC_TYPES: tuple[DocType, ...] = (
             FieldSpec("mass_t", "Massa", "t"),
             FieldSpec("treatment", "Metode olah", kind="text", required=False),
         ),
+        scope12=True,
     ),
     DocType(
         "air", 10, "Air & bukti pendukung", False, "Pemeriksa silang",
@@ -181,6 +196,29 @@ DEFAULT_FACTORS: tuple[FactorSpec, ...] = (
 )
 
 FACTOR_BY_CODE = {f.code: f for f in DEFAULT_FACTORS}
+
+# Kategori dokumen yang memakai tiap faktor. Faktor yang semua kategorinya berstatus
+# "Tidak berlaku" tidak dipakai perhitungan, sehingga tidak perlu disetujui untuk mengunci periode.
+FACTOR_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "diesel_co2": ("bbm", "transport"),
+    "gasoline_co2": ("bbm", "transport"),
+    "grid_ef": ("listrik",),
+    "ef1_n2o": ("pupuk",),
+    "urea_c": ("pupuk",),
+    "pome_bo": ("pome",),
+    "pome_mcf": ("pome",),
+    "pome_m3_per_t_ffb": ("pome",),
+    "pome_dcod_default": ("pome",),
+    "biogas_ch4_fraction": ("pome",),
+    "peat_co2": ("lahan",),
+    "truck_tkm": ("transport",),
+    "waste_default": ("b3",),
+}
+
+
+def factor_in_use(code: str, excluded: set[str] | frozenset[str]) -> bool:
+    cats = FACTOR_CATEGORIES.get(code)
+    return not cats or not all(c in excluded for c in cats)
 
 GWP_SETS: dict[str, dict[str, Decimal]] = {
     "AR5": {"CH4": Decimal("28"), "N2O": Decimal("265")},

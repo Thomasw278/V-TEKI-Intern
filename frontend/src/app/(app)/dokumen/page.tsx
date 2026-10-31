@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconFile, IconSearch, IconTrash, IconUpload } from "@/components/Icons";
+import { ReqStatusBadge } from "@/components/requirements";
 import { Badge, Button, Dialog, Empty, ErrorBox, Loading, PageHead, StatusBadge, useLoad, useToast } from "@/components/ui";
-import { api, uploadWithProgress } from "@/lib/api";
-import { bytes, when, type Tone } from "@/lib/format";
+import { api, requirementsApi, uploadWithProgress } from "@/lib/api";
+import { bytes, reqStatusLabel, when, type Tone } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useSummary } from "@/lib/summary";
@@ -28,6 +29,7 @@ export default function DokumenPage() {
   const [over, setOver] = useState(false);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [confirmDel, setConfirmDel] = useState<DocumentItem | null>(null);
+  const [askFor, setAskFor] = useState<Requirement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -37,10 +39,12 @@ export default function DokumenPage() {
     in_review: { label: t("Dalam proses", "In progress"), tone: "info" },
     default: { label: t("Nilai bawaan", "Default value"), tone: "bad" },
     missing: { label: t("Belum ada", "Missing"), tone: "neutral" },
+    excluded: { label: t("Tidak berlaku", "Not applicable"), tone: "neutral" },
   };
 
   const reqs = useLoad(() => (period ? api<Requirement[]>(`/api/periods/${period.id}/requirements`) : Promise.resolve([])), [period?.id, epoch]);
   const docs = useLoad(() => (period ? api<DocumentItem[]>(`/api/periods/${period.id}/documents`) : Promise.resolve([])), [period?.id, epoch]);
+  const exc = useLoad(() => requirementsApi.mine(), [epoch]);
   const reloadDocs = docs.reload;
   const reloadReqs = reqs.reload;
 
@@ -110,8 +114,8 @@ export default function DokumenPage() {
       <PageHead title={t("Dokumen", "Documents")}
         description={isAdmin
           ? t("Kebutuhan data dan semua dokumen yang diunggah perusahaan ini.", "Data requirements and every document this company uploaded.")
-          : t("Sepuluh kategori yang dipakai perhitungan. Unggah apa saja yang Anda punya: sistem mengenali jenisnya dan membaca angkanya.",
-            "The ten categories used in the calculation. Upload whatever you have: the system recognises the type and reads the figures.")}>
+          : t("Kategori dokumen untuk perusahaan Anda. Unggah apa saja yang Anda punya: sistem mengenali jenisnya dan membaca angkanya.",
+            "The document categories for your company. Upload whatever you have: the system recognises the type and reads the figures.")}>
         {writable && <Button variant="primary" onClick={() => inputRef.current?.click()}><IconUpload size={16} />{t("Unggah dokumen", "Upload documents")}</Button>}
       </PageHead>
 
@@ -151,6 +155,9 @@ export default function DokumenPage() {
           ))}
         </section>
       )}
+      {isAdmin && (
+        <div className="banner info small"><span className="grow">{t("Status kebutuhan (Wajib, Opsional, Tidak berlaku) diatur superadmin. Anda melihatnya dalam mode baca saja.", "Requirement statuses (Required, Optional, Not applicable) are set by the superadmin. You see them read-only.")}</span></div>
+      )}
       {!isAdmin && period.status === "locked" && (
         <div className="banner info">{t("Periode ini sudah dikunci admin. Dokumen tidak bisa ditambah atau diubah.", "This period has been locked by the reviewer. Documents cannot be added or changed.")}</div>
       )}
@@ -182,14 +189,35 @@ export default function DokumenPage() {
 
       {tab === "req" ? (
         <div className="req-grid">
-          {cats.map((r) => (
-            <article key={r.code} className={`req ${r.state}`}>
+          {cats.map((r) => r.excluded ? (
+            // "Tidak berlaku" tetap tampil (ringkas) agar perusahaan tahu kategori ini sengaja tidak dihitung
+            <article key={r.code} className="req excluded" aria-label={r.name}>
+              <div className="req-top">
+                <span className="req-no">{r.no}</span>
+                <span className="t"><b className="wrap">{r.name}</b><span>{r.scope}</span></span>
+              </div>
+              <div className="req-compact">
+                <span><ReqStatusBadge status="not_applicable" label={isAdmin ? t("Tidak berlaku untuk perusahaan ini", "Not applicable to this company") : t("Tidak berlaku untuk perusahaan Anda", "Not applicable to your company")} /></span>
+                {r.status_reason && <p className="req-reason wrap">{r.status_reason}</p>}
+                <p className="tiny muted">{t("Tidak ikut dihitung; laporan mencantumkannya sebagai kategori yang dikecualikan.", "Not calculated; the report lists it as an excluded category.")}{r.status_set_by ? ` ${t("Ditetapkan oleh", "Set by")} ${r.status_set_by}.` : ""}</p>
+                {r.total > 0 && <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => { setTypeFilter(r.code); setTab("docs"); }}>{t(`Lihat ${r.total} dokumen (tidak dihitung)`, `View ${r.total} documents (not counted)`)}</button>}
+              </div>
+            </article>
+          ) : (
+            <article key={r.code} className={`req ${r.state}`} aria-label={r.name}>
               <div className="req-top">
                 <span className="req-no">{r.state === "complete" ? "✓" : r.no}</span>
-                <span className="t"><b>{r.name}</b><span>{r.scope}{r.required ? "" : ` · ${t("opsional", "optional")}`}</span></span>
+                <span className="t"><b className="wrap">{r.name}</b><span>{r.scope}</span></span>
                 <Badge tone={STATE[r.state].tone}>{STATE[r.state].label}</Badge>
               </div>
+              <div className="req-status">
+                <ReqStatusBadge status={r.status} />
+                {!r.builtin && <Badge>{t("Dokumen pendukung", "Supporting document")}</Badge>}
+                {r.exception_pending && <Badge tone="info" pip>{t("Menunggu keputusan", "Awaiting decision")}</Badge>}
+              </div>
+              {r.status_source !== "default" && r.status_reason && <p className="req-reason wrap">{r.status_reason}</p>}
               <p className="small muted">{r.description}</p>
+              {!r.builtin && <p className="tiny muted">{t("Dokumen pendukung hanya bukti: tidak dibaca otomatis dan tidak ikut perhitungan emisi.", "Supporting documents are evidence only: not read automatically and not part of the emission calculation.")}</p>}
               {r.items && r.items.length > 0 && (
                 <div className="req-items">
                   {r.items.map((s) => (
@@ -207,11 +235,39 @@ export default function DokumenPage() {
                 {r.total > 0 && <button type="button" className="btn ghost sm" onClick={() => { setTypeFilter(r.code); setTab("docs"); }}>{t("Lihat dokumen", "View documents")}</button>}
                 {writable && <button type="button" className="btn secondary sm" onClick={() => { setUploadType(r.code); inputRef.current?.click(); }}><IconUpload size={14} />{t("Unggah", "Upload")}</button>}
               </div>
+              {!isAdmin && r.required && r.state !== "complete" && !r.exception_pending && (
+                <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start", paddingInline: 0, textDecoration: "underline", textUnderlineOffset: 3 }} onClick={() => setAskFor(r)}>
+                  {t("Kami tidak punya dokumen ini", "We do not have this document")}
+                </button>
+              )}
             </article>
           ))}
           {!cats.length && <Empty title={t("Semua kategori sudah lengkap", "Every category is complete")} />}
         </div>
-      ) : (
+      ) : null}
+      {tab === "req" && (exc.data?.exceptions.length ?? 0) > 0 && (
+        <section className="panel flush" aria-label={t("Permintaan pengecualian", "Exception requests")}>
+          <div className="panel-head" style={{ padding: "16px 18px 0" }}>
+            <div><h2>{t("Permintaan pengecualian", "Exception requests")}</h2><div className="sub">{t("Diputus oleh superadmin. Status yang disetujui berlaku untuk periode yang masih terbuka.", "Decided by the superadmin. Approved statuses apply to periods that are still open.")}</div></div>
+          </div>
+          <div className="list" style={{ padding: "6px 18px 12px" }}>
+            {exc.data!.exceptions.map((x) => (
+              <div key={x.id} className="list-row" style={{ alignItems: "flex-start" }}>
+                <span className={`sev ${x.status === "approved" ? "info" : x.status === "rejected" ? "critical" : "warning"}`} />
+                <span className="body">
+                  <b className="wrap">{x.type_name} → {reqStatusLabel(x.requested_status, t).label}</b>
+                  <span className="wrap">{x.reason}</span>
+                  {x.decision_note && <span className="wrap">{t("Catatan superadmin", "Superadmin note")}: {x.decision_note}</span>}
+                </span>
+                <Badge tone={x.status === "approved" ? "ok" : x.status === "rejected" ? "bad" : "info"}>
+                  {x.status === "approved" ? t("Disetujui", "Approved") : x.status === "rejected" ? t("Ditolak", "Rejected") : t("Menunggu", "Pending")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {tab !== "req" && (
         <section className="panel flush" data-ui="true" aria-label={t("Daftar dokumen", "Document list")}>
           {docs.error ? <div style={{ padding: 16 }}><ErrorBox error={docs.error} onRetry={() => docs.reload()} /></div> : docList.length === 0 ? (
             <Empty icon={<IconFile />} title={list.length ? t("Tidak ada yang cocok", "No matches") : t("Belum ada dokumen", "No documents yet")}>
@@ -251,6 +307,63 @@ export default function DokumenPage() {
         actions={<><Button variant="ghost" onClick={() => setConfirmDel(null)}>{t("Batal", "Cancel")}</Button><Button variant="danger" onClick={() => confirmDel && remove(confirmDel)}>{t("Hapus", "Delete")}</Button></>}>
         <p className="wrap">{t(`${confirmDel?.original_name} akan dihapus dan angkanya tidak lagi dihitung.`, `${confirmDel?.original_name} will be deleted and its figures will no longer be counted.`)}</p>
       </Dialog>
+      {askFor && <ExceptionDialog req={askFor} onClose={() => setAskFor(null)} onSent={() => { setAskFor(null); reloadReqs(true); exc.reload(true); refreshSummary(); }} />}
     </>
+  );
+}
+
+const MIN_REASON = 15;
+
+/** "Kami tidak punya dokumen ini": perusahaan meminta status Opsional atau Tidak berlaku; superadmin yang memutuskan. */
+function ExceptionDialog({ req, onClose, onSent }: { req: Requirement; onClose: () => void; onSent: () => void }) {
+  const t = useT();
+  const toast = useToast();
+  const options = ([
+    ["optional", t("Opsional", "Optional"), t("Kegiatan ada, tetapi dokumennya tidak selalu tersedia. Dokumen dipakai bila ada dan tidak menghalangi penguncian bila tidak ada.",
+      "The activity exists but documents are not always available. Documents are used when present and do not block locking when absent.")],
+    ...(req.can_exclude ? [["not_applicable", t("Tidak berlaku", "Not applicable"), t("Perusahaan memang tidak punya kegiatan ini. Kategori dikeluarkan dari perhitungan emisi dan laporan mencantumkannya sebagai kategori yang dikecualikan beserta alasan Anda.",
+      "The company does not have this activity at all. The category is left out of the emission calculation and the report lists it as excluded, with your reason.")]] : []),
+  ] as [string, string, string][]);
+  const [status, setStatus] = useState(options[0][0]);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const min = req.scope12 ? MIN_REASON : 5;
+  const send = async () => {
+    setBusy(true);
+    try {
+      await requirementsApi.requestException(req.code, status as "optional" | "not_applicable", reason.trim());
+      toast(t("Permintaan dikirim", "Request sent"));
+      onSent();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog open title={t(`Kami tidak punya dokumen ini: ${req.name}`, `We do not have this document: ${req.name}`)} onClose={onClose}
+      actions={<><Button variant="ghost" onClick={onClose}>{t("Batal", "Cancel")}</Button>
+        <Button variant="primary" loading={busy} disabled={reason.trim().length < min} onClick={send}>{t("Kirim permintaan", "Send request")}</Button></>}>
+      <p className="small">{t("Superadmin akan meninjau permintaan ini. Sampai diputus, kategori tetap berstatus Wajib dan tampil sebagai Menunggu keputusan.",
+        "The superadmin will review this request. Until it is decided, the category stays Required and shows as Awaiting decision.")}</p>
+      <fieldset className="stack tight" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="small strong" style={{ marginBottom: 6 }}>{t("Status yang diminta", "Requested status")}</legend>
+        {options.map(([v, l, help]) => (
+          <label key={v} className="impact-period" style={{ cursor: "pointer", borderColor: status === v ? "var(--primary)" : undefined }}>
+            <span className="inline" style={{ gap: 8 }}><input type="radio" name="exc-status" value={v} checked={status === v} onChange={() => setStatus(v)} /><ReqStatusBadge status={v} label={l} /></span>
+            <span className="muted">{help}</span>
+          </label>
+        ))}
+        {!req.can_exclude && <span className="tiny muted">{t(`${req.name} tidak bisa dikecualikan karena menjadi pembagi emisi per ton produk.`, `${req.name} cannot be excluded because it is the denominator of emissions per tonne of product.`)}</span>}
+      </fieldset>
+      <div className="field">
+        <label htmlFor="exc-reason">{t("Alasan", "Reason")} *</label>
+        <textarea id="exc-reason" className="textarea" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} aria-describedby="exc-hint"
+          placeholder={t("Mis. TBS seluruhnya dibeli dari pihak ketiga; pabrik tidak punya kebun sendiri.", "E.g. all FFB is bought from third parties; the mill has no plantation of its own.")} />
+        <span id="exc-hint" className="tiny muted">
+          {req.scope12 ? t(`Kategori Scope 1/2: minimal ${MIN_REASON} karakter.`, `Scope 1/2 category: at least ${MIN_REASON} characters.`) : t("Minimal 5 karakter.", "At least 5 characters.")} ({reason.trim().length}/{min})
+        </span>
+      </div>
+    </Dialog>
   );
 }

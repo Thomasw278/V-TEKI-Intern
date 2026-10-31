@@ -76,6 +76,14 @@ def run_extraction(db: Session, doc: Document, layout: DocLayout, type_code: str
         doc.error = "Kategori tidak dikenali. Pilih kategori secara manual."
         doc.notes = layout.warnings or None
         return
+    if doc.type_code not in DOC_TYPE_BY_CODE:
+        # dokumen pendukung buatan superadmin: hanya bukti, tanpa ekstraksi angka & tanpa rumus emisi
+        for f in list(doc.fields):
+            if f.source == "auto":
+                doc.fields.remove(f)
+        doc.status, doc.error, doc.extract_mode = "needs_review", None, "kosong"
+        doc.notes = ["Dokumen pendukung: tidak ada pembacaan angka otomatis. Periksa isinya lalu ajukan."] + (layout.warnings or [])
+        return
     products = [(c, n) for c, n in db.execute(select(Product.code, Product.name).where(Product.company_id == doc.company_id))]
     res = extract(layout, doc.type_code, products)
     apply_result(doc, res)

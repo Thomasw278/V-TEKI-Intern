@@ -5,6 +5,7 @@ import { ContributionBars, EmissionFlow, GroupLegend } from "@/components/charts
 import { Contours } from "@/components/Contours";
 import { IconArrow, IconCalc, IconInbox, IconUpload } from "@/components/Icons";
 import { Badge, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad } from "@/components/ui";
+import { ExcludedNote } from "@/components/requirements";
 import { api } from "@/lib/api";
 import { initials, num, when } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const STATE: Record<ReqState, string> = {
     complete: t("Lengkap", "Complete"), partial: t("Sebagian", "Partial"), in_review: t("Dalam proses", "In progress"),
     default: t("Nilai bawaan", "Default value"), missing: t("Belum ada", "Missing"),
+    excluded: t("Tidak berlaku", "Not applicable"),
   };
 
   if (!period) return <Empty title={t("Belum ada periode pelaporan", "No reporting period yet")}>{t("Buka periode baru di menu Perusahaan & akun.", "Open a new period under Company & account.")}</Empty>;
@@ -134,6 +136,10 @@ export default function DashboardPage() {
         )}
       </section>
 
+      <ExcludedNote items={data.requirements.filter((r) => r.excluded).map((r) => ({
+        code: r.code, name: r.name, reason: r.status_reason, set_by: r.status_set_by, set_at: r.status_set_at, source: r.status_source,
+      }))} />
+
       <div className="kpis" data-ui="true">
         <div className="kpi"><div className="k">{t("Dokumen", "Documents")}</div><div className="v">{data.documents_total}</div><div className="d">{t(`${reading} sedang dibaca`, `${reading} being read`)}</div></div>
         <div className="kpi"><div className="k">{isAdmin ? t("Menunggu persetujuan", "Awaiting approval") : t("Perlu diperiksa", "To check")}</div><div className="v">{isAdmin ? submitted : toCheck + returned}</div><div className="d">{isAdmin ? t("dari perusahaan ini", "from this company") : returned ? t(`${returned} dikembalikan admin`, `${returned} returned by reviewer`) : t("sebelum diajukan", "before submitting")}</div></div>
@@ -203,7 +209,7 @@ export default function DashboardPage() {
             {data.requirements.map((r) => (
               <Link key={r.code} href="/dokumen" className="list-row" style={{ borderTop: "1px solid var(--line-2)" }}>
                 <span className={`state-icon ${r.state}`}>{r.state === "complete" ? "✓" : r.state === "default" ? "!" : ""}</span>
-                <span className="body"><b style={{ fontSize: 14 }}>{r.name}</b><span>{STATE[r.state]}{!r.required ? ` · ${t("opsional", "optional")}` : ""}</span></span>
+                <span className="body"><b style={{ fontSize: 14 }}>{r.name}</b><span>{STATE[r.state]}{!r.required && !r.excluded ? ` · ${t("opsional", "optional")}` : ""}</span></span>
               </Link>
             ))}
           </div>

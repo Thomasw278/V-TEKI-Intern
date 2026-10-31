@@ -1,10 +1,13 @@
 """Model tabel MySQL (SQLAlchemy 2.0).
 
-Dua jenis akun:
-- company : akun perusahaan yang mendaftar sendiri. Mengunggah dokumen, memeriksa hasil baca,
-            mengajukan dokumen, dan menjalankan kalkulasi untuk perusahaannya sendiri.
-- admin   : peninjau (reviewer). Hanya dibuat oleh superuser lewat database/CLI (python -m app.cli),
-            lalu ditugaskan ke satu atau beberapa perusahaan melalui tabel admin_companies.
+Tiga jenis akun:
+- company    : akun perusahaan yang mendaftar sendiri. Mengunggah dokumen, memeriksa hasil baca,
+               mengajukan dokumen, dan menjalankan kalkulasi untuk perusahaannya sendiri.
+- admin      : peninjau (reviewer). Dibuat oleh superadmin (web) atau lewat CLI (python -m app.cli),
+               lalu ditugaskan ke satu atau beberapa perusahaan melalui tabel admin_companies.
+- superadmin : pengelola sistem. Hanya dibuat lewat CLI (create-superadmin). Mengelola katalog dokumen,
+               status kebutuhan dokumen per perusahaan, profil kebutuhan, permintaan pengecualian,
+               akun admin & penugasannya. Tidak mengunggah/menyetujui dokumen dan tidak mengubah angka emisi.
 
 Semua tabel bisnis punya company_id sehingga data antarperusahaan terpisah.
 """
@@ -63,7 +66,7 @@ class User(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(190), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(16), default="company")  # company | admin
+    role: Mapped[str] = mapped_column(String(16), default="company")  # company | admin | superadmin
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
@@ -116,17 +119,85 @@ class ReportingPeriod(TimestampMixin, Base):
     data_changed_at: Mapped[datetime | None] = mapped_column(DateTime, default=utcnow)
     locked_at: Mapped[datetime | None] = mapped_column(DateTime)
     locked_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    # salinan status kebutuhan efektif saat dikunci ({kode: {status, reason, ...}}); perubahan status
+    # setelah itu tidak memengaruhi periode ini. Dikosongkan lagi saat revisi dibuka.
+    requirements_snapshot: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
 
 
 class DocumentType(Base):
+    """Katalog jenis dokumen: 10 jenis bawaan (dari core/catalog.py) + dokumen pendukung buatan superadmin."""
     __tablename__ = "document_types"
     code: Mapped[str] = mapped_column(String(20), primary_key=True)
     no: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(100))
+    # disamakan dengan default_status == "required" (kompatibilitas kode/SQL lama)
     required: Mapped[bool] = mapped_column(Boolean, default=True)
     scope: Mapped[str] = mapped_column(String(60))
     description: Mapped[str] = mapped_column(Text)
     field_schema: Mapped[list] = mapped_column(JSON)
+    name_en: Mapped[str | None] = mapped_column(String(100))
+    description_en: Mapped[str | None] = mapped_column(Text)
+    # status bawaan bila perusahaan tidak punya pengaturan sendiri: required | optional | not_applicable
+    default_status: Mapped[str | None] = mapped_column(String(16), default="required")
+    builtin: Mapped[bool | None] = mapped_column(Boolean, default=False)      # 10 jenis bawaan: tidak bisa dihapus
+    can_exclude: Mapped[bool | None] = mapped_column(Boolean, default=True)   # produksi = False (pembagi SEE)
+    has_default: Mapped[bool | None] = mapped_column(Boolean, default=False)  # punya nilai bawaan literatur (POME)
+    scope12: Mapped[bool | None] = mapped_column(Boolean, default=False)      # ubah status wajib beralasan ≥15 karakter
+    active: Mapped[bool | None] = mapped_column(Boolean, default=True)        # jenis pendukung bisa dinonaktifkan
+
+
+class CompanyDocRequirement(Base):
+    """Status kebutuhan satu jenis dokumen untuk satu perusahaan (override atas default katalog).
+
+    Tidak ada baris → perusahaan memakai `document_types.default_status`.
+    """
+    __tablename__ = "company_doc_requirements"
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), primary_key=True)
+    type_code: Mapped[str] = mapped_column(ForeignKey("document_types.code", ondelete="CASCADE"), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16))  # required | optional | not_applicable
+    reason: Mapped[str | None] = mapped_column(String(500))
+    source: Mapped[str] = mapped_column(String(40), default="manual")  # manual | profile:<id> | exception:<id>
+    set_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    set_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class RequirementProfile(TimestampMixin, Base):
+    """Templat status kebutuhan (mis. "PKS tanpa kebun"). Menerapkan profil menyalin nilainya ke
+    company_doc_requirements; mengubah profil kemudian tidak mengubah perusahaan yang sudah memakainya."""
+    __tablename__ = "requirement_profiles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    items: Mapped[list[RequirementProfileItem]] = relationship(
+        back_populates="profile", cascade="all, delete-orphan", order_by="RequirementProfileItem.type_code")
+
+
+class RequirementProfileItem(Base):
+    __tablename__ = "requirement_profile_items"
+    profile_id: Mapped[int] = mapped_column(ForeignKey("requirement_profiles.id", ondelete="CASCADE"), primary_key=True)
+    type_code: Mapped[str] = mapped_column(ForeignKey("document_types.code", ondelete="CASCADE"), primary_key=True)
+    status: Mapped[str] = mapped_column(String(16))
+
+    profile: Mapped[RequirementProfile] = relationship(back_populates="items")
+
+
+class ExceptionRequest(TimestampMixin, Base):
+    """Permintaan perusahaan: "kami tidak punya dokumen ini" → diputus superadmin."""
+    __tablename__ = "exception_requests"
+    __table_args__ = (Index("ix_exception_company_status", "company_id", "status"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"))
+    type_code: Mapped[str] = mapped_column(ForeignKey("document_types.code", ondelete="CASCADE"))
+    requested_status: Mapped[str] = mapped_column(String(16))  # optional | not_applicable
+    reason: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | approved | rejected
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime)
+    decision_note: Mapped[str | None] = mapped_column(String(500))
 
 
 class Document(TimestampMixin, Base):
@@ -231,7 +302,8 @@ class AuditLog(TimestampMixin, Base):
     __tablename__ = "audit_logs"
     __table_args__ = (Index("ix_audit_company_time", "company_id", "created_at"),)
     id: Mapped[int] = mapped_column(primary_key=True)
-    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"))
+    # NULL = perubahan global oleh superadmin (katalog dokumen, profil, akun admin)
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     entity: Mapped[str] = mapped_column(String(40))
     entity_id: Mapped[str | None] = mapped_column(String(40))

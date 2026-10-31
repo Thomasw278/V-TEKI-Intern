@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { api } from "@/lib/api";
+import { api, superApi } from "@/lib/api";
 import { initials, periodLabel, roleLabel } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useSummary } from "@/lib/summary";
 import type { DocumentItem } from "@/lib/types";
 import {
-  IconBuilding, IconCalc, IconCheck, IconChevron, IconFactor, IconFile, IconHome, IconInbox, IconLogout, IconMenu,
-  IconReport, IconSearch, IconSettings, IconSwap, IconTable, IconX, LogoMark,
+  IconBuilding, IconCalc, IconCheck, IconChevron, IconFactor, IconFile, IconFlow, IconHistory, IconHome, IconInbox,
+  IconLogout, IconMenu, IconReport, IconSearch, IconSettings, IconShield, IconSwap, IconTable, IconUsers, IconX, LogoMark,
 } from "./Icons";
 import { Badge, Toggles } from "./ui";
 
@@ -19,13 +19,33 @@ type NavItem = { href: string; label: string; short: string; icon: ReactNode; gr
 
 function useNav(): NavItem[] {
   const t = useT();
-  const { isAdmin, company } = useSession();
+  const { isAdmin, isSuperadmin, company, epoch } = useSession();
   const { summary } = useSummary();
+  const pathname = usePathname();
+  const [pending, setPending] = useState(0);
+  useEffect(() => {
+    if (!isSuperadmin) return;
+    superApi.exceptions("pending").then((x) => setPending(x.length)).catch(() => setPending(0));
+  }, [isSuperadmin, pathname, epoch]);
   const st = summary?.document_status ?? {};
   const toCheck = (st.needs_review ?? 0) + (st.rejected ?? 0);
   const submitted = st.validated ?? 0;
   const drafts = summary?.issues.find((i) => i.code === "FACTOR_DRAFT") ? Number(summary.issues.find((i) => i.code === "FACTOR_DRAFT")!.title.match(/\d+/)?.[0] ?? 0) : 0;
 
+  if (isSuperadmin) {
+    const g = t("Kebutuhan dokumen", "Document requirements");
+    const a = t("Akses & jejak", "Access & trail");
+    return [
+      { href: "/superadmin", label: t("Ringkasan", "Overview"), short: t("Ringkasan", "Overview"), icon: <IconHome />, group: g },
+      { href: "/superadmin/perusahaan", label: t("Perusahaan", "Companies"), short: t("Perusahaan", "Companies"), icon: <IconBuilding />, group: g },
+      { href: "/superadmin/pengecualian", label: t("Permintaan pengecualian", "Exception requests"), short: t("Pengecualian", "Exceptions"), icon: <IconInbox />, group: g, count: pending, countTone: "info" },
+      { href: "/superadmin/profil", label: t("Profil kebutuhan", "Requirement profiles"), short: t("Profil", "Profiles"), icon: <IconFlow />, group: g },
+      { href: "/superadmin/katalog", label: t("Katalog dokumen", "Document catalogue"), short: t("Katalog", "Catalogue"), icon: <IconFile />, group: g },
+      { href: "/superadmin/admin", label: t("Admin peninjau", "Reviewers"), short: t("Admin", "Reviewers"), icon: <IconUsers />, group: a },
+      { href: "/superadmin/audit", label: t("Log audit", "Audit log"), short: t("Audit", "Audit"), icon: <IconHistory />, group: a },
+      { href: "/pengaturan", label: t("Akun saya", "My account"), short: t("Akun", "Account"), icon: <IconSettings />, group: t("Pengaturan", "Settings") },
+    ];
+  }
   if (isAdmin) {
     const items: NavItem[] = [
       { href: "/admin", label: t("Perusahaan saya", "My companies"), short: t("Portofolio", "Portfolio"), icon: <IconBuilding />, group: t("Portofolio", "Portfolio") },
@@ -131,7 +151,7 @@ function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: strin
 
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useT();
-  const { user, isAdmin, company, logout } = useSession();
+  const { user, isAdmin, isSuperadmin, company, logout } = useSession();
   const { summary, refreshSummary } = useSummary();
   const nav = useNav();
   const pathname = usePathname();
@@ -155,7 +175,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  // "/superadmin" (Ringkasan) hanya aktif di halamannya sendiri; sub-halaman superadmin punya menunya masing-masing
+  const isActive = (href: string) => pathname === href || (href !== "/superadmin" && pathname.startsWith(href + "/"));
+  const home = isSuperadmin ? "/superadmin" : isAdmin ? "/admin" : "/dashboard";
   const current = nav.find((n) => isActive(n.href));
   const groups = nav.reduce<{ name: string; items: NavItem[] }[]>((acc, n) => {
     const g = acc.find((x) => x.name === n.group);
@@ -163,9 +185,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     else acc.push({ name: n.group, items: [n] });
     return acc;
   }, []);
-  const tabs = isAdmin
-    ? (company ? ["/admin", "/validasi", "/dokumen", "/kalkulasi", "/laporan"] : ["/admin", "/pengaturan"])
-    : ["/dashboard", "/dokumen", "/validasi", "/kalkulasi", "/laporan"];
+  const tabs = isSuperadmin
+    ? ["/superadmin", "/superadmin/perusahaan", "/superadmin/pengecualian", "/superadmin/admin", "/superadmin/audit"]
+    : isAdmin
+      ? (company ? ["/admin", "/validasi", "/dokumen", "/kalkulasi", "/laporan"] : ["/admin", "/pengaturan"])
+      : ["/dashboard", "/dokumen", "/validasi", "/kalkulasi", "/laporan"];
   const tabItems = tabs.map((h) => nav.find((n) => n.href === h)).filter(Boolean) as NavItem[];
   const signOut = () => {
     logout();
@@ -177,7 +201,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {open && <div className="drawer-backdrop" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`} aria-label={t("Navigasi utama", "Main navigation")}>
         <div className="inline nowrap" style={{ justifyContent: "space-between" }}>
-          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand">
+          <Link href={home} className="brand">
             <LogoMark size={26} />
             <span className="brand-text">
               <span className="brand-wordmark">KarbonLens</span>
@@ -210,7 +234,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="main-col">
         <header className="topbar">
           <button className="btn ghost icon menu-btn" onClick={() => setOpen(true)} aria-label={t("Buka menu", "Open menu")}><IconMenu /></button>
-          <Link href={isAdmin ? "/admin" : "/dashboard"} className="brand-m">
+          <Link href={home} className="brand-m">
             <LogoMark size={24} />
             <span className="brand-wordmark" style={{ fontSize: 16 }}>KarbonLens</span>
           </Link>
@@ -255,7 +279,7 @@ function PeriodBadge({ status }: { status: string }) {
 function ContextCard() {
   const t = useT();
   const router = useRouter();
-  const { isAdmin, company, companies, selectCompany, periods, period, setPeriodId } = useSession();
+  const { isAdmin, isSuperadmin, company, companies, selectCompany, periods, period, setPeriodId } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -273,7 +297,12 @@ function ContextCard() {
 
   return (
     <div className="stack tight" ref={ref} style={{ position: "relative" }}>
-      {isAdmin ? (
+      {isSuperadmin ? (
+        <div className="ctx-card" style={{ cursor: "default" }}>
+          <span className="avatar"><IconShield size={16} /></span>
+          <span className="who"><b>{t("Pengelola sistem", "System administrator")}</b><span>{t("Semua perusahaan", "All companies")}</span></span>
+        </div>
+      ) : isAdmin ? (
         <button type="button" className="ctx-card" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <span className="avatar">{company ? initials(company.name) : <IconBuilding size={16} />}</span>
           <span className="who">

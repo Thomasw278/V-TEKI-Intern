@@ -9,6 +9,15 @@ from __future__ import annotations
 
 import json
 import re
+from contextvars import ContextVar
+
+# Bahasa permintaan aktif. Dipakai untuk data katalog yang punya terjemahan tersimpan di database
+# (nama/deskripsi jenis dokumen buatan superadmin), yang tidak bisa dicocokkan dengan kamus di bawah.
+LANG: ContextVar[str] = ContextVar("karbonlens_lang", default="id")
+
+
+def is_en() -> bool:
+    return LANG.get() == "en"
 
 # ------------------------------------------------------------------ frasa tetap
 EXACT: dict[str, str] = {
@@ -181,7 +190,30 @@ EXACT: dict[str, str] = {
     "Periode belum terkunci": "The period is not locked",
     "Periode sudah dikunci. Buka revisi untuk mengubah data.": "The period is locked. Open a revision to change data.",
     "Sistem": "System",
+    # kebutuhan dokumen & superadmin
+    "Dokumen pendukung": "Supporting document",
+    "Dikecualikan dari perhitungan oleh superadmin.": "Excluded from the calculation by the superadmin.",
+    "Tidak berlaku untuk perusahaan ini": "Not applicable to this company",
+    "Kategori ini berstatus Tidak berlaku. Ajukan perubahan status bila kegiatan ini ternyata ada.":
+        "This category is marked Not applicable. Request a status change if the activity does exist.",
+    "Superadmin belum memutus permintaan ini. Status kebutuhan bisa berubah setelah diputus.":
+        "The superadmin has not decided on this request yet. The requirement status may change once it is decided.",
+    "Dokumen pendukung: tidak ada pembacaan angka otomatis. Periksa isinya lalu ajukan.":
+        "Supporting document: figures are not read automatically. Check its content, then submit it.",
+    "Hanya superadmin yang bisa melakukan aksi ini": "Only the superadmin can do this",
+    "Superadmin tidak mengakses data operasional perusahaan. Gunakan halaman superadmin.":
+        "The superadmin does not access company operational data. Use the superadmin pages.",
+    "Jenis dokumen tidak ditemukan": "Document type not found", "Perusahaan tidak ditemukan": "Company not found",
+    "Jenis dokumen bawaan hanya bisa diubah status default dan deskripsinya": "Only the default status and description of a built-in document type can be changed",
+    "Status sudah diubah superadmin lain. Muat ulang lalu periksa perbedaannya.": "Another superadmin has already changed these statuses. Reload and review the differences.",
+    "Profil tidak ditemukan": "Profile not found", "Permintaan tidak ditemukan": "Request not found",
+    "Tulis alasan penolakan (minimal 5 karakter)": "Write a reason for rejecting (at least 5 characters)",
+    "Admin tidak ditemukan": "Reviewer not found", "Email sudah dipakai akun lain": "This email is used by another account",
+    "Status kebutuhan tidak dikenal": "Unknown requirement status", "Permintaan ini sudah diputus": "This request has already been decided",
 }
+
+STATUS_EN = {"Wajib": "Required", "Opsional": "Optional", "Tidak berlaku": "Not applicable"}
+_ST = "(Wajib|Opsional|Tidak berlaku)"
 
 # ------------------------------------------------------------------ pola dengan angka/nama
 # Elemen ketiga (opsional) membatasi pola ke kunci JSON tertentu supaya nama milik pengguna
@@ -264,6 +296,40 @@ _P: list[tuple] = [
     (r"Set GWP tidak dikenal: (.+)", r"Unknown GWP set: \1"),
     (r"Metode alokasi tidak dikenal: (.+)", r"Unknown allocation method: \1"),
     (r"Faktor emisi '(.+)' belum tersedia", r"Emission factor '\1' is not available"),
+    # kebutuhan dokumen & superadmin
+    (r"(.+) tidak berlaku", lambda m: f"{translate(m[1])} does not apply", TITLE),
+    (r"(.*) Kategori ini tidak dihitung dan dicantumkan di laporan\.",
+     lambda m: f"{translate(m[1])} This category is not calculated and is listed in the report."),
+    (r"(\d+) dokumen (.+) tidak dihitung", lambda m: f"{m[1]} {translate(m[2])} documents are not counted", TITLE),
+    (r"Permintaan pengecualian (.+) belum diputus", lambda m: f"Exception request for {translate(m[1])} is undecided", TITLE),
+    (r"(.+) tidak boleh berstatus Tidak berlaku karena menjadi pembagi SEE",
+     lambda m: f"{translate(m[1])} cannot be Not applicable because it is the SEE denominator"),
+    (r"Perubahan status (.+) memengaruhi Scope 1/2 dan wajib disertai alasan minimal (\d+) karakter",
+     lambda m: f"Changing the status of {translate(m[1])} affects Scope 1/2 and needs a reason of at least {m[2]} characters"),
+    (rf"(.+) sudah berstatus {_ST}", lambda m: f"{translate(m[1])} is already {STATUS_EN[m[2]]}"),
+    (r"Permintaan untuk (.+) masih menunggu keputusan superadmin",
+     lambda m: f"The request for {translate(m[1])} is still waiting for the superadmin"),
+    (r"Profil ini mengubah kategori Scope 1/2; isi alasan minimal (\d+) karakter",
+     r"This profile changes Scope 1/2 categories; enter a reason of at least \1 characters"),
+    (r"Perusahaan tidak ditemukan: (.+)", r"Companies not found: \1"),
+    (r"Jenis dokumen tidak dikenal: (.+)", r"Unknown document type: \1"),
+    (r"Kode jenis dokumen (\S+) sudah dipakai", r"Document type code \1 is already used"),
+    (r"Profil (.+) sudah ada", r"Profile \1 already exists"),
+    (rf"Status (.+): {_ST} → {_ST}", lambda m: f"Status of {translate(m[1])}: {STATUS_EN[m[2]]} → {STATUS_EN[m[3]]}", SUMMARY),
+    (rf"Mengajukan pengecualian (.+): {_ST}", lambda m: f"Requested an exception for {translate(m[1])}: {STATUS_EN[m[2]]}", SUMMARY),
+    (rf"(Menyetujui|Menolak) pengecualian (.+): {_ST}",
+     lambda m: f"{'Approved' if m[1] == 'Menyetujui' else 'Rejected'} the exception for {translate(m[2])}: {STATUS_EN[m[3]]}", SUMMARY),
+    (rf"Menambah jenis dokumen pendukung (.+) \({_ST}\)", lambda m: f"Added supporting document type {m[1]} ({STATUS_EN[m[2]]})", SUMMARY),
+    (r"Mengubah jenis dokumen (.+)", lambda m: f"Changed document type {translate(m[1])}", SUMMARY),
+    (r"Membuat profil kebutuhan (.+)", r"Created requirement profile \1", SUMMARY),
+    (r"Mengubah profil kebutuhan (.+)", r"Changed requirement profile \1", SUMMARY),
+    (r"Menerapkan profil (.+) \((\d+) perubahan\)", r"Applied profile \1 (\2 changes)", SUMMARY),
+    (r"Membuat admin peninjau (.+)", r"Created reviewer \1", SUMMARY),
+    (r"(Mengaktifkan|Menonaktifkan) admin peninjau (.+)",
+     lambda m: f"{'Activated' if m[1] == 'Mengaktifkan' else 'Deactivated'} reviewer {m[2]}", SUMMARY),
+    (r"Mengubah akun admin peninjau (.+)", r"Changed reviewer account \1", SUMMARY),
+    (r"Menugaskan (.+) meninjau (.+)", r"Assigned \1 to review \2", SUMMARY),
+    (r"Mencabut tugas (.+) meninjau (.+)", r"Unassigned \1 from \2", SUMMARY),
     # jejak audit
     (r"(.+) masuk", r"\1 signed in", SUMMARY),
     (r"Mengunggah (.+)", r"Uploaded \1", SUMMARY),
@@ -355,6 +421,7 @@ class LanguageMiddleware:
         lang = headers.get(b"accept-language", b"").decode("latin-1").strip().lower()
         if not lang.startswith("en"):
             return await self.app(scope, receive, send)
+        LANG.set("en")
 
         start: dict | None = None
         chunks: list[bytes] = []

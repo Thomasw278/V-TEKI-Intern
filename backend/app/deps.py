@@ -4,6 +4,8 @@ Setiap permintaan yang menyentuh data perusahaan berjalan dalam sebuah konteks (
 - akun perusahaan → selalu perusahaannya sendiri;
 - akun admin      → perusahaan yang dipilih lewat header `X-Company-Id`, dan hanya bila admin
                     tersebut sudah ditugaskan ke perusahaan itu (tabel admin_companies).
+- akun superadmin → tidak punya konteks perusahaan. Superadmin hanya memakai /api/superadmin
+                    (katalog, kebutuhan dokumen, admin) dan tidak menyentuh dokumen atau angka emisi.
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ from .models import AdminCompany, Document, ReportingPeriod, User
 from .security import decode_token
 
 bearer = HTTPBearer(auto_error=False)
-ROLES = ("company", "admin")
+ROLES = ("company", "admin", "superadmin")
 
 
 def current_user(
@@ -45,6 +47,12 @@ def current_user(
 def admin_user(user: User = Depends(current_user)) -> User:
     if user.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Hanya admin peninjau yang bisa melakukan aksi ini")
+    return user
+
+
+def superadmin_user(user: User = Depends(current_user)) -> User:
+    if user.role != "superadmin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Hanya superadmin yang bisa melakukan aksi ini")
     return user
 
 
@@ -76,6 +84,9 @@ def company_ctx(
         if not user.company_id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Akun ini tidak terhubung ke perusahaan")
         return Ctx(user, user.company_id)
+    if user.role == "superadmin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            "Superadmin tidak mengakses data operasional perusahaan. Gunakan halaman superadmin.")
     if not x_company_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Pilih perusahaan yang ingin ditinjau terlebih dulu")
     assigned = db.scalar(select(AdminCompany.company_id).where(

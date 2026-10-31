@@ -32,6 +32,48 @@ class Issue:
         return asdict(self)
 
 
+REQ_STATUSES = ("required", "optional", "not_applicable")
+
+
+@dataclass(frozen=True)
+class ReqSpec:
+    """Status kebutuhan efektif satu jenis dokumen untuk satu perusahaan (atau snapshot periode terkunci).
+
+    status: required (wajib) | optional (opsional) | not_applicable (tidak berlaku → dikeluarkan dari perhitungan).
+    source: default (default katalog) | manual (diatur superadmin) | profile:<id> | exception:<id>.
+    """
+    code: str
+    no: int
+    name: str
+    scope: str
+    description: str
+    status: str = "required"
+    reason: str | None = None
+    source: str = "default"
+    builtin: bool = True
+    has_default: bool = False
+    can_exclude: bool = True
+    scope12: bool = False
+    set_by: str | None = None
+    set_at: str | None = None
+    fields: tuple[str, ...] = ()
+
+    @property
+    def required(self) -> bool:
+        return self.status == "required"
+
+    @property
+    def excluded(self) -> bool:
+        return self.status == "not_applicable"
+
+
+def default_specs() -> list[ReqSpec]:
+    """Kebutuhan bawaan katalog (perilaku sebelum ada pengaturan per perusahaan)."""
+    return [ReqSpec(dt.code, dt.no, dt.name, dt.scope, dt.description, dt.default_status,
+                    has_default=dt.has_default, can_exclude=dt.can_exclude, scope12=dt.scope12,
+                    fields=tuple(f.label for f in dt.fields)) for dt in DOC_TYPES]
+
+
 def parse_month(text: str, year: int | None = None) -> tuple[int, int] | None:
     """'2025-08', '08/2025', 'Agustus 2025', '2025-08-01' → (2025, 8)."""
     from .extraction import months_in
@@ -56,8 +98,14 @@ def _lookup(d: dict, item: int, key: str, default=None):
     return d.get(key, default) if item == 0 or (item, key) not in d else default
 
 
-def validate_document(type_code: str | None, fields, confidence: dict, confirmed: dict) -> list[Issue]:
-    """`fields` boleh satu dict (dokumen satu item) atau daftar item (dokumen tabel)."""
+def validate_document(type_code: str | None, fields, confidence: dict, confirmed: dict,
+                      supporting: bool = False) -> list[Issue]:
+    """`fields` boleh satu dict (dokumen satu item) atau daftar item (dokumen tabel).
+
+    `supporting` = jenis dokumen pendukung buatan superadmin: hanya bukti, tanpa field angka.
+    """
+    if supporting:
+        return []
     issues: list[Issue] = []
     if not type_code or type_code not in DOC_TYPE_BY_CODE:
         return [Issue("critical", "NO_TYPE", "Kategori belum dipilih", "Pilih salah satu dari 10 kategori dokumen.", "document")]
@@ -161,10 +209,11 @@ def _months_covered(docs: list[DocInput], year: int | None) -> set[int]:
     return months
 
 
-def requirements(docs: list[DocInput], defaults_used: dict[str, str] | None = None, year: int | None = None) -> list[dict]:
+def requirements(docs: list[DocInput], defaults_used: dict[str, str] | None = None, year: int | None = None,
+                 specs: list[ReqSpec] | None = None) -> list[dict]:
     defaults_used = defaults_used or {}
     out = []
-    for dt in DOC_TYPES:
+    for dt in specs if specs is not None else default_specs():
         mine = [x for x in docs if x.type_code == dt.code]
         counted = [x for x in mine if x.status in COUNTED_STATUSES]
         pending = [x for x in mine if x.status in ("uploaded", "processing", "needs_review")]
@@ -188,7 +237,9 @@ def requirements(docs: list[DocInput], defaults_used: dict[str, str] | None = No
                     st = "missing"
             subs.append({"key": key, "label": label, "hint": hint, "required": req, "state": st, "detail": detail})
         req_subs = [x for x in subs if x["required"]]
-        if counted and all(x["state"] == "complete" for x in req_subs):
+        if dt.excluded:
+            state = "excluded"
+        elif counted and all(x["state"] == "complete" for x in req_subs):
             state = "partial" if pending else "complete"
         elif counted:
             state = "partial"
@@ -199,13 +250,22 @@ def requirements(docs: list[DocInput], defaults_used: dict[str, str] | None = No
         else:
             state = "missing"
         items = sum(len(x.all_items) for x in counted)
+        if req_subs:
+            progress = round(sum(1 for x in req_subs if x["state"] == "complete") / len(req_subs), 2)
+        elif not subs:  # dokumen pendukung tanpa rincian field
+            progress = 1 if counted else 0
+        else:
+            progress = 0
         out.append({
             "code": dt.code, "no": dt.no, "name": dt.name, "required": dt.required,
+            "status": dt.status, "status_reason": dt.reason, "status_source": dt.source,
+            "status_set_by": dt.set_by, "status_set_at": dt.set_at,
+            "excluded": dt.excluded, "builtin": dt.builtin, "has_default": dt.has_default,
+            "can_exclude": dt.can_exclude, "scope12": dt.scope12,
             "scope": dt.scope, "description": dt.description,
-            "fields": [f.label for f in dt.fields],
+            "fields": list(dt.fields),
             "total": len(mine), "counted": len(counted), "pending": len(pending), "rows": items,
-            "state": state, "items": subs,
-            "progress": round(sum(1 for x in req_subs if x["state"] == "complete") / len(req_subs), 2) if req_subs else 0,
+            "state": state, "items": subs, "progress": progress,
         })
     return out
 
@@ -215,20 +275,43 @@ def validate_period(
     act: ActivityData,
     year: int,
     factor_approved: dict[str, bool],
+    specs: list[ReqSpec] | None = None,
+    pending_exceptions: tuple[str, ...] | list[str] = (),
 ) -> list[Issue]:
+    """`factor_approved` sebaiknya sudah dibatasi ke faktor yang dipakai (lihat catalog.factor_in_use)."""
     issues: list[Issue] = []
     counted = [x for x in docs if x.status in COUNTED_STATUSES]
+    specs = specs if specs is not None else default_specs()
 
-    # Kelengkapan kategori wajib
-    for dt in DOC_TYPES:
+    # Kelengkapan kategori sesuai status kebutuhan perusahaan
+    for dt in specs:
+        if dt.excluded:
+            issues.append(Issue("info", "CATEGORY_EXCLUDED", f"{dt.name} tidak berlaku",
+                                (dt.reason or "Dikecualikan dari perhitungan oleh superadmin.")
+                                + " Kategori ini tidak dihitung dan dicantumkan di laporan.", "category", dt.code))
+            mine = [x for x in docs if x.type_code == dt.code and x.status != "failed"]
+            if mine:
+                issues.append(Issue("warning", "EXCLUDED_HAS_DOCS", f"{len(mine)} dokumen {dt.name} tidak dihitung",
+                                    "Kategori ini berstatus Tidak berlaku. Ajukan perubahan status bila kegiatan ini ternyata ada.",
+                                    "category", dt.code))
+            continue
         has = any(x.type_code == dt.code for x in counted)
-        if dt.required and not has:
-            if dt.code in act.defaults_used:
-                issues.append(Issue("critical", "DEFAULT_USED", f"{dt.name} memakai nilai bawaan",
-                                    act.defaults_used[dt.code] + ". Unggah dokumen asli untuk mengganti.", "category", dt.code))
-            else:
-                issues.append(Issue("critical", "CATEGORY_MISSING", f"{dt.name} belum ada",
-                                    "Kategori wajib belum memiliki dokumen tervalidasi.", "category", dt.code))
+        if has:
+            continue
+        if dt.code in act.defaults_used:
+            # nilai bawaan menghalangi penguncian hanya bila kategorinya wajib
+            issues.append(Issue("critical" if dt.required else "warning", "DEFAULT_USED", f"{dt.name} memakai nilai bawaan",
+                                act.defaults_used[dt.code] + ". Unggah dokumen asli untuk mengganti.", "category", dt.code))
+        elif dt.required:
+            issues.append(Issue("critical", "CATEGORY_MISSING", f"{dt.name} belum ada",
+                                "Kategori wajib belum memiliki dokumen tervalidasi.", "category", dt.code))
+
+    # Permintaan pengecualian dari perusahaan yang belum diputus superadmin
+    names = {dt.code: dt.name for dt in specs}
+    for code in pending_exceptions:
+        issues.append(Issue("warning", "EXCEPTION_PENDING", f"Permintaan pengecualian {names.get(code, code)} belum diputus",
+                            "Superadmin belum memutus permintaan ini. Status kebutuhan bisa berubah setelah diputus.",
+                            "category", code))
 
     # Dokumen belum diajukan / dikembalikan / menunggu admin
     pending = [x for x in docs if x.status == "needs_review"]
@@ -246,7 +329,7 @@ def validate_period(
 
     # Cakupan 12 bulan tagihan listrik
     months = _months_covered([x for x in counted if x.type_code == "listrik"], year)
-    if any(x.type_code == "listrik" for x in counted) and len(months) < 12:
+    if "listrik" not in act.excluded and any(x.type_code == "listrik" for x in counted) and len(months) < 12:
         missing = [m for m in range(1, 13) if m not in months]
         names = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
         issues.append(Issue("warning", "ELEC_MONTHS", f"Tagihan listrik {len(months)} dari 12 bulan",

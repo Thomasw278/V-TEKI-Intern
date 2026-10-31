@@ -19,12 +19,13 @@ setiap halaman), serta responsif untuk laptop dan ponsel.
 
 ## 1. Skema pengguna
 
-Hanya ada **dua jenis akun**:
+Ada **tiga jenis akun**:
 
 | Akun | Cara dibuat | Yang bisa dilakukan |
 | --- | --- | --- |
 | **Perusahaan** | Mendaftar sendiri di halaman **Daftarkan perusahaan** (`/register`) dengan email perusahaan + kata sandi | Mengisi profil, fasilitas, produk, periode · mengunggah dokumen · memeriksa & mengoreksi hasil baca · **mengajukan** dokumen ke admin · menjalankan kalkulasi draf · mengunduh laporan |
-| **Admin peninjau** | **Hanya oleh superuser** lewat perintah `python -m app.cli` (tidak ada pendaftaran dari aplikasi) | Melihat portofolio semua perusahaan yang **ditugaskan** kepadanya · **menyetujui / mengembalikan** dokumen dengan catatan · mengoreksi angka saat meninjau · mengubah & menyetujui faktor emisi · **mengunci** periode · membuka revisi |
+| **Admin peninjau** | Oleh **superadmin** di halaman **Admin peninjau** (`/superadmin/admin`) atau lewat `python -m app.cli create-admin` (tidak ada pendaftaran dari aplikasi) | Melihat portofolio semua perusahaan yang **ditugaskan** kepadanya · **menyetujui / mengembalikan** dokumen dengan catatan · mengoreksi angka saat meninjau · mengubah & menyetujui faktor emisi · **mengunci** periode · membuka revisi · membaca status kebutuhan perusahaan yang ditinjau |
+| **Superadmin** | **Hanya** lewat `python -m app.cli create-superadmin` (tidak bisa dibuat atau dipromosikan lewat API maupun halaman registrasi) | Mengelola **katalog dokumen** · mengatur dokumen **Wajib / Opsional / Tidak berlaku per perusahaan** · mengelola **profil kebutuhan** · memutus **permintaan pengecualian** · membuat / menonaktifkan admin & menugaskannya · melihat **log audit**. Superadmin **tidak** mengunggah atau menyetujui dokumen dan **tidak** mengubah angka emisi |
 
 - Satu admin dapat menangani **beberapa perusahaan** (tabel `admin_companies`).
 - Satu perusahaan dapat ditinjau oleh satu atau lebih admin.
@@ -43,6 +44,55 @@ diunggah → sedang dibaca → perlu diperiksa ──(perusahaan: ajukan)──�
 - Periode hanya bisa **dikunci oleh admin** setelah: kategori wajib terpenuhi, tidak ada pengajuan yang
   menunggu, tidak ada isu kritis, semua faktor emisi disetujui, dan kalkulasi terbaru dijalankan.
 - Periode yang dikunci tidak bisa diubah; perubahan berikutnya menjadi **revisi** (v2, v3, …).
+
+### Status kebutuhan dokumen per perusahaan
+
+Tidak semua perusahaan punya semua dokumen. Contohnya pabrik kelapa sawit (PKS) tanpa kebun sendiri tidak
+punya dokumen pupuk dan lahan, dan perusahaan yang POME-nya diolah pihak lain tidak punya log POME. Karena
+itu superadmin menetapkan status tiap pasangan **(perusahaan, jenis dokumen)**:
+
+| Status | Arti | Pengaruh ke penguncian & perhitungan |
+| --- | --- | --- |
+| **Wajib** | Harus ada dan tervalidasi | Menghalangi penguncian bila belum ada |
+| **Opsional** | Dipakai bila ada | Tidak menghalangi penguncian bila tidak ada |
+| **Tidak berlaku** | Perusahaan memang tidak punya kegiatan ini | Kategori emisinya **dikeluarkan** dari perhitungan (bukan diisi 0 diam-diam) dan dicantumkan di laporan bersama alasan serta penetapnya |
+
+**"Tidak berlaku" berbeda dengan "data tidak tersedia".** Kalau kategorinya berlaku tetapi dokumennya tidak
+ada, kategori tetap dihitung. Untuk jenis yang punya nilai bawaan (saat ini POME), nilai bawaan literatur
+dipakai dan ditandai *nilai bawaan* di dashboard, kalkulasi, dan laporan. Kalau POME berstatus Tidak berlaku,
+nilai bawaan **tidak** dipakai.
+
+Aturan pengaman:
+
+- **Pabrik & produksi** tidak boleh berstatus Tidak berlaku, karena menjadi pembagi SEE. API menolaknya.
+- Mengubah status jenis yang memengaruhi **Scope 1/2** (listrik, BBM, pupuk, lahan, POME, limbah B3) wajib
+  disertai alasan tertulis minimal **15 karakter**.
+- Faktor emisi yang hanya dipakai kategori Tidak berlaku (mis. `peat_co2` untuk perusahaan tanpa lahan) tidak
+  perlu disetujui untuk mengunci periode.
+- Perusahaan yang belum diatur memakai **status default katalog**: tujuh jenis pertama Wajib, transportasi,
+  B3, dan air Opsional. Ini sama dengan perilaku sebelum fitur ini ada.
+
+Cara status ditetapkan:
+
+- **Langsung:** superadmin → **Perusahaan** → pilih perusahaan → ubah status. Pratinjau menampilkan gerbang
+  penguncian yang berubah, baris emisi yang keluar dari total, dan periode terbuka yang terdampak.
+- **Profil kebutuhan:** templat seperti "PKS terintegrasi kebun" atau "PKS tanpa kebun", diterapkan ke satu
+  atau banyak perusahaan sekaligus (dengan *dry run* lebih dulu). Nilainya disalin; mengubah profil kemudian
+  tidak mengubah perusahaan yang sudah memakainya.
+- **Permintaan pengecualian:** perusahaan menekan **Ajukan pengecualian** di kartu kategori (halaman Dokumen),
+  memilih *Tidak berlaku* atau *Opsional*, dan menulis alasan. Selama belum diputus, muncul peringatan
+  `EXCEPTION_PENDING`. Superadmin menyetujui (status berubah) atau menolak dengan catatan.
+
+Perubahan status hanya berlaku untuk **periode yang masih terbuka**, dan kalkulasinya ditandai perlu dihitung
+ulang. Saat periode **dikunci**, status yang berlaku disalin ke periode itu (snapshot), sehingga perubahan
+sesudahnya tidak mengubah periode terkunci. Membuka revisi mengembalikan periode ke status yang berlaku saat
+itu. Semua perubahan status, profil, dan keputusan pengecualian tercatat di log audit (nilai lama → nilai
+baru, alasan, pelaku).
+
+Superadmin juga bisa menambah **jenis dokumen pendukung** di **Katalog dokumen**, misalnya sertifikat RSPO.
+Jenis ini hanya berfungsi sebagai bukti: tanpa pembacaan angka otomatis dan tanpa rumus emisi. Jenis ini
+muncul di daftar kebutuhan dan ikut gerbang penguncian bila berstatus Wajib. Sepuluh jenis bawaan tidak bisa
+dihapus; hanya status default-nya yang bisa diubah.
 
 ---
 
@@ -113,9 +163,20 @@ npm run dev
 
 Buka <http://localhost:3000>. Mode produksi lokal: `npm run build` lalu `npm run start`.
 
-### 3.4 Membuat admin peninjau (superuser)
+### 3.4 Membuat superadmin & admin peninjau
 
-Admin **tidak bisa** mendaftar dari aplikasi. Jalankan dari folder `backend` dengan venv aktif:
+Email dan kata sandi superadmin maupun admin **tidak** dikonfigurasi di `.env`. Keduanya disimpan sebagai
+baris di tabel `users` (`role = 'superadmin'` atau `'admin'`, `company_id = NULL`, kata sandi berupa hash
+bcrypt di `password_hash`). Jalankan dari folder `backend` dengan venv aktif:
+
+```bash
+# superadmin (pengelola sistem): HANYA bisa dibuat dari sini
+python -m app.cli create-superadmin --email pengelola@karbonlens.id --name "Dewi Pengelola"
+python -m app.cli list-superadmins
+```
+
+Superadmin masuk lewat halaman login yang sama dan diarahkan ke `/superadmin`. Dari sana superadmin bisa
+membuat admin peninjau dan menugaskannya ke perusahaan. Cara lewat CLI tetap tersedia:
 
 ```bash
 # 1. buat akun admin (kata sandi diketik tersembunyi, minimal 8 karakter)
@@ -136,9 +197,16 @@ python -m app.cli deactivate --email rina@verifikator.id        # nonaktifkan ak
 python -m app.cli activate   --email rina@verifikator.id
 ```
 
-Penugasan juga bisa dilakukan langsung lewat SQL (lihat contoh di akhir `setup_mysql.sql`):
+Penugasan dan status kebutuhan juga bisa diatur langsung lewat SQL (lihat contoh di akhir
+`setup_mysql.sql`). Membuat akun lewat SQL hanya bisa bila hash bcrypt-nya dibuat lebih dulu:
+
+```bash
+python -c "from app.security import hash_password; print(hash_password('KataSandiKuat123'))"
+```
 
 ```sql
+INSERT INTO users (company_id, name, email, password_hash, role, is_active, created_at)
+VALUES (NULL, 'Dewi Pengelola', 'pengelola@karbonlens.id', '<hash dari perintah di atas>', 'superadmin', 1, NOW());
 INSERT INTO admin_companies (admin_id, company_id, assigned_at) VALUES (5, 2, NOW());
 ```
 
@@ -148,7 +216,9 @@ INSERT INTO admin_companies (admin_id, company_id, assigned_at) VALUES (5, 2, NO
    parameter perhitungan, akun login).
 2. Unggah dokumen di menu **Kebutuhan & unggah**. Sistem mengenali kategorinya dan membaca angkanya.
 3. Buka **Periksa & ajukan**, cocokkan angka dengan kotak sumber di dokumen, lalu **ajukan**.
-4. Superuser membuat admin dan menugaskannya ke perusahaan (langkah 3.4).
+4. Superadmin masuk → **Admin peninjau** → buat admin dan tugaskan ke perusahaan (atau lewat CLI, langkah 3.4).
+   Bila perusahaan tidak punya kegiatan tertentu, superadmin mengatur statusnya di **Perusahaan** atau
+   memutus permintaan pengecualian dari perusahaan di **Permintaan pengecualian**.
 5. Admin masuk → **Perusahaan saya** → pilih perusahaan → **Tinjau pengajuan** → setujui / kembalikan,
    setujui faktor emisi, jalankan kalkulasi → **Laporan & penguncian** → kunci periode.
 6. Unduh laporan XLSX (lengkap dengan jejak data) atau XML komunikasi emisi CBAM.
@@ -213,9 +283,10 @@ karbonlens/
 │   │   │   ├── aggregation.py    field dokumen → data aktivitas baku
 │   │   │   ├── engine.py         rumus emisi, alokasi, SEE (Decimal)
 │   │   │   └── validation.py     aturan validasi & kebutuhan dokumen
-│   │   ├── routers/           auth, company, documents, periods, factors, admin
-│   │   ├── services/          penghubung database ↔ logika inti, ekspor laporan
-│   │   ├── cli.py             perintah superuser (buat & tugaskan admin)
+│   │   ├── routers/           auth, company, documents, periods, factors, admin, superadmin
+│   │   ├── services/          penghubung database ↔ logika inti, ekspor laporan,
+│   │   │                      requirements.py (status kebutuhan per perusahaan, snapshot, pengecualian, profil)
+│   │   ├── cli.py             perintah pengelola sistem (buat superadmin, buat & tugaskan admin)
 │   │   ├── deps.py            sesi login, peran, isolasi data per perusahaan
 │   │   ├── i18n.py            terjemahan pesan API ke bahasa Inggris
 │   │   ├── models.py          tabel MySQL
@@ -233,6 +304,7 @@ karbonlens/
         │   ├── login/  register/
         │   └── (app)/            halaman setelah login
         │       ├── admin/          portofolio admin peninjau
+        │       ├── superadmin/     perusahaan & kebutuhan, pengecualian, profil, katalog, admin, audit
         │       ├── dashboard/  dokumen/  dokumen/[id]/  validasi/  data/
         │       └── kalkulasi/  faktor/  laporan/  pengaturan/
         ├── components/        AppShell, DocViewer, charts, Intro, DocDemo, Ways, ui
@@ -258,6 +330,17 @@ karbonlens/
 | POST | `/api/periods/{id}/calculate` | keduanya |
 | POST | `/api/periods/{id}/lock` · `/reopen` | admin |
 | GET | `/api/periods/{id}/export.xlsx` · `/export.xml` | keduanya |
+| GET | `/api/company/requirements` | perusahaan; admin yang ditugaskan (baca) |
+| POST | `/api/company/exception-requests` (`{type_code, requested_status, reason}`) | perusahaan |
+| GET/POST/PATCH | `/api/superadmin/doc-types` · `/doc-types/{code}` | superadmin |
+| GET | `/api/superadmin/companies` · `/companies/{id}/requirements` | superadmin |
+| PUT | `/api/superadmin/companies/{id}/requirements` (`{changes: [{code, status, expected}], reason}`, semua atau tidak sama sekali; 409 + daftar perbedaan bila sudah diubah superadmin lain) | superadmin |
+| PUT | `/api/superadmin/companies/{id}/requirements/{code}` (`{status, reason}`) | superadmin |
+| POST | `/api/superadmin/companies/{id}/requirements/preview` (`{changes: [{code, status}], reason}`, tanpa menyimpan) | superadmin |
+| GET/POST/PATCH | `/api/superadmin/profiles` · `/profiles/{id}` · POST `/profiles/{id}/apply` (`{company_ids, dry_run, reason}`) | superadmin |
+| GET/POST | `/api/superadmin/exceptions?status=pending` · `/exceptions/{id}/decide` (`{decision, note}`) | superadmin |
+| GET/POST/PATCH | `/api/superadmin/admins` · `/admins/{id}` · POST/DELETE `/admins/{id}/companies/{company_id}` | superadmin |
+| GET | `/api/superadmin/audit?company_id=&entity=&user_id=&action=&date_from=&date_to=` · `/audit/actors` | superadmin |
 
 Admin mengirim header `X-Company-Id: <id>` untuk memilih perusahaan yang ditinjau (frontend melakukannya
 otomatis). Header `Accept-Language: en` membuat pesan API berbahasa Inggris.
@@ -268,7 +351,22 @@ otomatis). Header `Accept-Language: en` membuat pesan API berbahasa Inggris.
 
 Saat backend dijalankan, kolom baru ditambahkan otomatis dan akun lama milik perusahaan
 (admin/operator/reviewer/viewer) diubah menjadi akun **perusahaan**. Admin peninjau dibuat ulang dengan
-`python -m app.cli create-admin` lalu ditugaskan. Bila ingin mulai bersih, hapus lalu buat ulang database:
+`python -m app.cli create-admin` lalu ditugaskan.
+
+Pembaruan **superadmin & status kebutuhan** juga berjalan otomatis saat backend dijalankan (atau dengan
+`python -m app.cli init-db`), tanpa menghapus data:
+
+1. Tabel baru dibuat: `company_doc_requirements`, `requirement_profiles`, `requirement_profile_items`,
+   `exception_requests`.
+2. Kolom baru ditambahkan: `document_types` (`name_en`, `description_en`, `default_status`, `builtin`,
+   `can_exclude`, `has_default`, `scope12`, `active`) dan `reporting_periods.requirements_snapshot`.
+   `audit_logs.company_id` dibuat boleh NULL untuk perubahan global.
+3. `default_status` diisi dari katalog. Perusahaan lama tidak punya pengaturan sendiri, sehingga perilakunya
+   sama seperti sebelumnya.
+4. Periode yang sudah terkunci diberi snapshot status default, sehingga tidak ikut berubah.
+5. Buat superadmin pertama: `python -m app.cli create-superadmin --email … --name …`.
+
+Bila ingin mulai bersih, hapus lalu buat ulang database:
 
 ```sql
 DROP DATABASE karbonlens;
@@ -286,7 +384,8 @@ lalu jalankan lagi `setup_mysql.sql` dan `python -m app.cli init-db`.
 | `Access denied for user 'karbon'` | Jalankan ulang `setup_mysql.sql` atau sesuaikan user/sandi di `.env` |
 | Frontend: *Tidak bisa terhubung ke server API* | Backend belum berjalan di port 8000, atau `NEXT_PUBLIC_API_URL` / `CORS_ORIGINS` tidak cocok |
 | Dokumen scan: *Teks tidak terbaca* | Tesseract belum terpasang atau `TESSERACT_CMD` salah; PDF digital tidak membutuhkan Tesseract |
-| Admin melihat *Pilih perusahaan…* | Admin belum ditugaskan: `python -m app.cli assign --admin … --company …` |
+| Admin melihat *Pilih perusahaan…* | Admin belum ditugaskan: superadmin → **Admin peninjau**, atau `python -m app.cli assign --admin … --company …` |
+| Periode tidak bisa dikunci karena kategori yang memang tidak ada | Perusahaan menekan **Ajukan pengecualian**, atau superadmin mengubah statusnya menjadi *Tidak berlaku* / *Opsional* |
 | Tombol kunci periode tidak aktif | Lihat daftar syarat di halaman **Laporan & penguncian**; semuanya harus centang |
 
 ---
@@ -297,3 +396,6 @@ lalu jalankan lagi `setup_mysql.sql` dan `python -m app.cli init-db`.
   dengan sumber resmi terbaru (mis. faktor emisi jaringan KESDM) sebelum periode dikunci.
 - CO₂ biogenik dari biosolar dilaporkan terpisah; bagian fosil mengikuti angka campuran (B40 = 60% fosil).
 - Limbah cair tanpa dokumen memakai nilai bawaan literatur dan ditandai di dashboard, kalkulasi, dan laporan.
+- Kategori berstatus *Tidak berlaku* tidak dihitung sama sekali (baris rumusnya tidak dibuat) dan dicantumkan
+  di lembar **Kategori dikecualikan** (XLSX) serta elemen `ExcludedCategories` (XML). Bila BBM tidak berlaku
+  tetapi ada dokumen transportasi berisi volume BBM, BBM transportasi tetap dihitung.

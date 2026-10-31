@@ -31,10 +31,20 @@ def _sheet(wb: Workbook, title: str, header: list[str], rows: list[list], first:
     return ws
 
 
+def _source_label(source: str | None) -> str:
+    source = source or "default"
+    if source.startswith("profile:"):
+        return "Profil kebutuhan"
+    if source.startswith("exception:"):
+        return "Permintaan pengecualian disetujui"
+    return {"default": "Default katalog", "manual": "Diatur superadmin"}.get(source, source)
+
+
 def build_xlsx(db: Session, period: ReportingPeriod, calc: Calculation) -> bytes:
     company = db.get(Company, period.company_id)
     products = {p.code: p for p in db.scalars(select(Product).where(Product.company_id == company.id))}
     res = calc.result
+    excluded = res.get("excluded", [])
     wb = Workbook()
     status = "TERKUNCI" if period.status == "locked" else "DRAF — bukan untuk pelaporan resmi"
     _sheet(wb, "Ringkasan", ["Item", "Nilai"], [
@@ -45,6 +55,7 @@ def build_xlsx(db: Session, period: ReportingPeriod, calc: Calculation) -> bytes
         ["Emisi hulu (t CO2e)", float(calc.upstream_t)], ["Total (t CO2e)", float(calc.total_t)],
         ["CO2 biogenik dilaporkan terpisah (t)", res.get("biogenic_co2_t", 0)],
         ["Kategori memakai nilai bawaan", ", ".join(res.get("defaults_used", {}).keys()) or "-"],
+        ["Kategori dikecualikan (tidak berlaku)", ", ".join(x["name"] for x in excluded) or "-"],
     ], first=True)
     _sheet(wb, "SEE per produk", ["Kode", "Produk", "Kode CN", "Tonase (t)", "Share", "SEE langsung", "SEE tidak langsung", "SEE total (t CO2e/t)"], [
         [a["code"], a["name"], (products.get(a["code"]).cn_code if products.get(a["code"]) else ""),
@@ -56,6 +67,12 @@ def build_xlsx(db: Session, period: ReportingPeriod, calc: Calculation) -> bytes
          "Nilai bawaan" if ln["source"] == "default" else "Dokumen"]
         for ln in res.get("lines", [])
     ])
+    # "Tidak berlaku" ≠ "data tidak tersedia": kategori ini dikeluarkan dari perhitungan, bukan diisi 0
+    _sheet(wb, "Kategori dikecualikan", ["Kode", "Kategori", "Alasan", "Ditetapkan oleh", "Waktu", "Asal penetapan"], [
+        [x["code"], x["name"], x.get("reason") or "-", x.get("set_by") or "Default katalog",
+         (x.get("set_at") or "")[:16].replace("T", " "), _source_label(x.get("source"))]
+        for x in excluded
+    ] or [["-", "Tidak ada kategori yang dikecualikan", "", "", "", ""]])
     _sheet(wb, "Faktor emisi", ["Kode", "Nilai", "Satuan", "Status", "Versi", "Sumber"], [
         [k, v["value"], v["unit"], v["status"], v["version"], v["source"]] for k, v in (calc.factors_snapshot or {}).items()
     ])
@@ -107,6 +124,16 @@ def build_xml(db: Session, period: ReportingPeriod, calc: Calculation) -> bytes:
     ET.SubElement(tot, "Direct").text = f"{float(calc.direct_t):.3f}"
     ET.SubElement(tot, "Indirect").text = f"{float(calc.indirect_t):.3f}"
     ET.SubElement(tot, "Upstream").text = f"{float(calc.upstream_t):.3f}"
+    excluded = calc.result.get("excluded", [])
+    if excluded:
+        ex = ET.SubElement(root, "ExcludedCategories")
+        for x in excluded:
+            attrs = {"code": x["code"], "name": x["name"]}
+            if x.get("set_by"):
+                attrs["setBy"] = x["set_by"]
+            if x.get("set_at"):
+                attrs["setAt"] = x["set_at"]
+            ET.SubElement(ex, "Category", attrs).text = x.get("reason") or ""
     defaults = calc.result.get("defaults_used", {})
     if defaults:
         dv = ET.SubElement(root, "DefaultValuesUsed")

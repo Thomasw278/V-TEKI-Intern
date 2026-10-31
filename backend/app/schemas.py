@@ -7,7 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-Role = Literal["company", "admin"]
+Role = Literal["company", "admin", "superadmin"]
+ReqStatus = Literal["required", "optional", "not_applicable"]
 
 
 class ORM(BaseModel):
@@ -224,3 +225,87 @@ class FactorUpdate(BaseModel):
 class CalculateIn(BaseModel):
     gwp_set: Literal["AR5", "AR6"] | None = None
     allocation_method: Literal["economic", "mass"] | None = None
+
+
+# ------------------------------------------------------------------ kebutuhan dokumen & superadmin
+class RequirementSet(BaseModel):
+    status: ReqStatus
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class RequirementChange(BaseModel):
+    code: str = Field(max_length=20)
+    status: ReqStatus
+    # status yang dilihat pengguna sebelum mengubah; dipakai mendeteksi perubahan oleh superadmin lain
+    expected: ReqStatus | None = None
+
+
+class RequirementPreviewIn(BaseModel):
+    changes: list[RequirementChange] = Field(min_length=1, max_length=50)
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class RequirementBatch(RequirementPreviewIn):
+    pass
+
+
+class ExceptionRequestIn(BaseModel):
+    type_code: str = Field(max_length=20)
+    requested_status: Literal["optional", "not_applicable"]
+    reason: str = Field(min_length=5, max_length=500)
+
+
+class ExceptionDecision(BaseModel):
+    decision: Literal["approved", "rejected"]
+    note: str | None = Field(default=None, max_length=500)
+
+
+class DocTypeCreate(BaseModel):
+    """Jenis dokumen pendukung baru: bukti saja, tanpa ekstraksi otomatis dan tanpa rumus emisi."""
+    code: str = Field(min_length=3, max_length=20, pattern=r"^[a-z][a-z0-9_]+$")
+    name: str = Field(min_length=3, max_length=100)
+    name_en: str | None = Field(default=None, max_length=100)
+    description: str = Field(min_length=3, max_length=1000)
+    description_en: str | None = Field(default=None, max_length=1000)
+    default_status: ReqStatus = "optional"
+
+
+class DocTypeUpdate(BaseModel):
+    """Jenis bawaan: status default & deskripsi. Jenis pendukung: semua field."""
+    name: str | None = Field(default=None, min_length=3, max_length=100)
+    name_en: str | None = Field(default=None, max_length=100)
+    description: str | None = Field(default=None, min_length=3, max_length=1000)
+    description_en: str | None = Field(default=None, max_length=1000)
+    default_status: ReqStatus | None = None
+    active: bool | None = None
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class ProfileIn(BaseModel):
+    name: str = Field(min_length=3, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+    items: dict[str, ReqStatus] = Field(default_factory=dict)
+
+
+class ProfilePatch(BaseModel):
+    name: str | None = Field(default=None, min_length=3, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+    items: dict[str, ReqStatus] | None = None
+
+
+class ProfileApply(BaseModel):
+    company_ids: list[int] = Field(min_length=1)
+    dry_run: bool = True
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class AdminCreate(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class AdminPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    is_active: bool | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=128)

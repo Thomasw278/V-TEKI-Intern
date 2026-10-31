@@ -1,7 +1,7 @@
 """Login, pendaftaran perusahaan, profil & kata sandi.
 
-Hanya perusahaan yang bisa mendaftar sendiri. Akun admin (peninjau) dibuat oleh superuser
-lewat `python -m app.cli create-admin` dan tidak bisa didaftarkan dari aplikasi.
+Hanya perusahaan yang bisa mendaftar sendiri. Akun admin (peninjau) dibuat oleh superadmin, dan akun
+superadmin hanya lewat `python -m app.cli create-superadmin`; keduanya tidak bisa didaftarkan dari sini.
 """
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select

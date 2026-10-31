@@ -1,6 +1,6 @@
 """Ruang kerja admin peninjau: daftar perusahaan yang ditugaskan dan antrean dokumen yang diajukan.
 
-Admin tidak bisa dibuat atau ditugaskan dari aplikasi; superuser memakai `python -m app.cli`.
+Admin dibuat dan ditugaskan oleh superadmin (halaman /superadmin atau `python -m app.cli`).
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ContributionBars, EmissionFlow, GroupLegend, Waterfall } from "@/components/charts";
 import { Contours } from "@/components/Contours";
+import { ExcludedNote } from "@/components/requirements";
 import { IconArrow, IconChevron } from "@/components/Icons";
 import { Badge, Button, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -88,6 +89,7 @@ export default function KalkulasiPage() {
       </PageHead>
 
       {runError && <div className="banner bad anim-shake" role="alert"><span className="grow">{runError}</span></div>}
+      {calc && <ExcludedNote items={calc.excluded ?? []} />}
       {calc?.has_draft_factors && (
         <div className="banner warn">
           <span className="grow"><b>{t("Hasil masih draf.", "Draft result.")}</b> {t("Ada faktor emisi yang belum disetujui admin peninjau, jadi laporan final belum bisa diterbitkan.", "Some emission factors are not approved by the reviewer yet, so the final report cannot be issued.")}</span>

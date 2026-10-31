@@ -61,7 +61,7 @@ export default function AdminHome() {
         </div>
         {data.companies.length === 0 ? (
           <Empty icon={<IconBuilding />} title={t("Belum ada perusahaan yang ditugaskan", "No companies assigned yet")}>
-            {t("Pengelola sistem menugaskan perusahaan lewat perintah python -m app.cli assign.", "The system administrator assigns companies with the python -m app.cli assign command.")}
+            {t("Superadmin menugaskan perusahaan lewat halaman superadmin atau perintah python -m app.cli assign.", "The superadmin assigns companies on the superadmin pages or with the python -m app.cli assign command.")}
           </Empty>
         ) : (
           <div className="table-wrap" style={{ marginTop: 14 }}>

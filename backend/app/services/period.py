@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..core.aggregation import DocInput, ProductSpec, build_activity
 from ..core.engine import ActivityData, calculate
-from ..core.validation import Issue, requirements, validate_period
+from ..core.validation import Issue, ReqSpec, requirements, validate_period
 from ..models import (
     AuditLog, Calculation, Company, Document, EmissionFactor, Product, ReportingPeriod, User, utcnow,
 )
 from . import audit
+from . import requirements as req
 
 
 def doc_inputs(db: Session, period: ReportingPeriod) -> list[DocInput]:
@@ -57,7 +58,7 @@ def activity_table(db: Session, period: ReportingPeriod) -> dict:
         g["value"] += t["value"]
         g["sources"].append({"doc_id": t["doc_id"], "doc_name": t["doc_name"], "item": t["item"], "value": t["value"],
                              "note": t["note"]})
-    return {"rows": list(groups.values()), "defaults_used": act.defaults_used,
+    return {"rows": list(groups.values()), "defaults_used": act.defaults_used, "excluded": act.excluded,
             "summary": {"ffb_processed_t": float(act.ffb_processed_t), "electricity_mwh": float(act.electricity_purchased_mwh),
                         "fuel_l": float(sum((f.volume_l for f in act.fuels), Decimal(0))), "n_applied_t": float(act.n_applied_t),
                         "pome_m3": float(act.pome_volume_m3), "peat_ha": float(act.peat_area_ha),
@@ -65,12 +66,19 @@ def activity_table(db: Session, period: ReportingPeriod) -> dict:
                         "products": [{"code": p.code, "tonnes": float(p.tonnes)} for p in act.products]}}
 
 
-def analyse(db: Session, period: ReportingPeriod) -> tuple[list[DocInput], ActivityData, list[Issue], list[dict]]:
+def analyse(db: Session, period: ReportingPeriod, specs: list[ReqSpec] | None = None,
+            ) -> tuple[list[DocInput], ActivityData, list[Issue], list[dict]]:
+    """`specs` = status kebutuhan yang dipakai; kosong → status efektif periode (snapshot bila terkunci)."""
+    specs = specs if specs is not None else req.specs_for_period(db, period)
+    excluded = req.excluded_map(specs)
     docs = doc_inputs(db, period)
     factors, approved, _ = factor_map(db, period.company_id)
-    act = build_activity(docs, product_specs(db, period.company_id), factors)
-    issues = validate_period(docs, act, period.year, approved)
-    reqs = requirements(docs, act.defaults_used, period.year)
+    act = build_activity(docs, product_specs(db, period.company_id), factors, excluded)
+    pending = req.pending_exception_codes(db, period.company_id) if period.status != "locked" else []
+    issues = validate_period(docs, act, period.year, req.used_factors(approved, excluded), specs, pending)
+    reqs = requirements(docs, act.defaults_used, period.year, specs)
+    for r in reqs:
+        r["exception_pending"] = r["code"] in pending
     return docs, act, issues, reqs
 
 
@@ -78,17 +86,21 @@ def run_calculation(db: Session, period: ReportingPeriod, user: User, gwp: str |
     company = db.get(Company, period.company_id)
     gwp = gwp or company.gwp_set
     alloc = alloc or company.allocation_method
+    specs = req.specs_for_period(db, period)
+    excluded = req.excluded_map(specs)
     docs = doc_inputs(db, period)
     factors, approved, rows = factor_map(db, period.company_id)
-    act = build_activity(docs, product_specs(db, period.company_id), factors)
+    act = build_activity(docs, product_specs(db, period.company_id), factors, excluded)
     result = calculate(act, factors, gwp, alloc)  # CalculationError ditangani router
     version = (db.scalar(select(func.max(Calculation.version)).where(Calculation.period_id == period.id)) or 0) + 1
     data = result.to_dict()
     data["defaults_used"] = act.defaults_used
+    # kategori "Tidak berlaku" beserta alasan & penetapnya (dicantumkan di laporan)
+    data["excluded"] = req.excluded_details(specs)
     calc = Calculation(
         company_id=period.company_id, period_id=period.id, version=version, gwp_set=gwp, allocation_method=alloc,
         direct_t=result.direct_t, indirect_t=result.indirect_t, upstream_t=result.upstream_t, total_t=result.total_t,
-        has_draft_factors=not all(approved.values()),
+        has_draft_factors=not all(req.used_factors(approved, excluded).values()),
         factors_snapshot={r.code: {"value": str(r.value), "unit": r.unit, "status": r.status, "version": r.version,
                                    "source": r.source} for r in rows},
         result=data, created_by=user.id,
@@ -108,15 +120,15 @@ def latest_calculation(db: Session, period: ReportingPeriod) -> Calculation | No
                      .order_by(Calculation.version.desc()).limit(1))
 
 
-def gates(db: Session, period: ReportingPeriod, user: User) -> list[dict]:
-    """Syarat sebelum periode dikunci oleh admin peninjau."""
-    docs, act, issues, reqs = analyse(db, period)
+def gates(db: Session, period: ReportingPeriod, user: User, specs: list[ReqSpec] | None = None) -> list[dict]:
+    """Syarat sebelum periode dikunci oleh admin peninjau. `specs` dipakai pratinjau perubahan status."""
+    docs, act, issues, reqs = analyse(db, period, specs)
     _, approved, _ = factor_map(db, period.company_id)
     calc = latest_calculation(db, period)
     required_ok = [r for r in reqs if r["required"]]
     complete = [r for r in required_ok if r["state"] in ("complete", "partial")]
     critical = [i for i in issues if i.severity == "critical"]
-    drafts = [c for c, ok in approved.items() if not ok]
+    drafts = [c for c, ok in req.used_factors(approved, act.excluded).items() if not ok]
     waiting = sum(1 for d in docs if d.status == "validated")
     fresh = bool(calc and period.data_changed_at and calc.created_at and calc.created_at >= period.data_changed_at)
     return [
@@ -164,6 +176,7 @@ def dashboard(db: Session, period: ReportingPeriod) -> dict:
             "total_t": float(calc.total_t), "direct_t": float(calc.direct_t), "indirect_t": float(calc.indirect_t),
             "upstream_t": float(calc.upstream_t), "has_draft_factors": calc.has_draft_factors,
             "lines": calc.result.get("lines", []), "allocations": calc.result.get("allocations", []),
+            "excluded": calc.result.get("excluded", []),
         },
         "activity": [
             {"user": name or "Sistem", "summary": a.summary, "at": a.created_at.isoformat() if a.created_at else None}

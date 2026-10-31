@@ -1,5 +1,8 @@
-/** company = akun perusahaan (mendaftar sendiri); admin = peninjau yang dibuat superuser. */
-export type Role = "company" | "admin";
+/** company = akun perusahaan (mendaftar sendiri); admin = peninjau; superadmin = pengelola sistem (dibuat lewat CLI). */
+export type Role = "company" | "admin" | "superadmin";
+
+/** Status kebutuhan dokumen per perusahaan (diatur superadmin). */
+export type ReqStatus = "required" | "optional" | "not_applicable";
 
 export interface User {
   id: number;
@@ -104,6 +107,17 @@ export interface Requirement {
   no: number;
   name: string;
   required: boolean;
+  status: ReqStatus;
+  status_reason: string | null;
+  status_source: string;
+  status_set_by: string | null;
+  status_set_at: string | null;
+  excluded: boolean;
+  builtin: boolean;
+  has_default: boolean;
+  can_exclude: boolean;
+  scope12: boolean;
+  exception_pending?: boolean;
   scope: string;
   description: string;
   fields: string[];
@@ -116,7 +130,7 @@ export interface Requirement {
   items?: SubRequirement[];
 }
 
-export type ReqState = "complete" | "partial" | "default" | "in_review" | "missing";
+export type ReqState = "complete" | "partial" | "default" | "in_review" | "missing" | "excluded";
 
 export interface SubRequirement {
   key: string;
@@ -296,6 +310,17 @@ export interface Calculation {
   lines: CalcLine[];
   allocations: Allocation[];
   defaults_used: Record<string, string>;
+  excluded?: ExcludedCategory[];
+}
+
+/** Kategori "Tidak berlaku": dikeluarkan dari perhitungan dan dicantumkan di laporan. */
+export interface ExcludedCategory {
+  code: string;
+  name: string;
+  reason: string | null;
+  set_by: string | null;
+  set_at: string | null;
+  source: string;
 }
 
 export interface Dashboard {
@@ -346,5 +371,169 @@ export interface AuditEntry {
   entity: string;
   summary: string;
   reason: string | null;
+  at: string | null;
+}
+
+export interface ExceptionRequest {
+  id: number;
+  company_id: number;
+  company: string | null;
+  type_code: string;
+  type_name: string;
+  requested_status: "optional" | "not_applicable";
+  reason: string;
+  status: "pending" | "approved" | "rejected";
+  requested_by: string | null;
+  created_at: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+}
+
+/** Status kebutuhan efektif satu jenis dokumen untuk satu perusahaan. */
+export interface CompanyRequirement {
+  code: string;
+  no: number;
+  name: string;
+  scope: string;
+  status: ReqStatus;
+  reason: string | null;
+  source: string;
+  set_by: string | null;
+  set_at: string | null;
+  default_status?: ReqStatus;
+  overridden?: boolean;
+  /** Nama profil bila status berasal dari profil kebutuhan. */
+  source_profile?: string | null;
+  description?: string;
+  builtin: boolean;
+  can_exclude: boolean;
+  has_default: boolean;
+  scope12: boolean;
+  exception_pending: boolean;
+}
+
+/* ------------------------------------------------------------------ superadmin */
+export interface SuperCompanyRow extends CompanyBrief {
+  required: number;
+  optional: number;
+  not_applicable: number;
+  overrides: number;
+  pending_exceptions: number;
+  reviewers: string[];
+  period: { id: number; year: number; status: Period["status"]; version: number } | null;
+}
+
+export interface CatalogType {
+  code: string;
+  no: number;
+  name: string;
+  name_id: string;
+  name_en: string | null;
+  description: string;
+  description_id: string;
+  description_en: string | null;
+  scope: string;
+  default_status: ReqStatus;
+  builtin: boolean;
+  can_exclude: boolean;
+  has_default: boolean;
+  scope12: boolean;
+  active: boolean;
+  overrides: number;
+}
+
+export interface RequirementProfile {
+  id: number;
+  name: string;
+  description: string | null;
+  items: Record<string, ReqStatus>;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface ProfileApplyResult {
+  dry_run: boolean;
+  needs_reason: boolean;
+  companies: { company_id: number; company: string; changes: { code: string; name: string; before: ReqStatus; after: ReqStatus; scope12: boolean }[] }[];
+}
+
+export interface RequirementChangePreview {
+  code: string;
+  name: string;
+  before: ReqStatus;
+  after: ReqStatus;
+  changed: boolean;
+  valid: boolean;
+  error: string | null;
+  scope12: boolean;
+  needs_reason: boolean;
+  emission_excluded: boolean;
+  emission_restored: boolean;
+}
+
+/** Dampak satu atau beberapa perubahan status (POST .../requirements/preview, tidak menyimpan). */
+export interface RequirementPreview {
+  changes: RequirementChangePreview[];
+  valid: boolean;
+  needs_reason: boolean;
+  scope12_excluded: string[];
+  open_periods: {
+    id: number; year: number; status: Period["status"]; version: number;
+    calc_version: number | null; calc_total_t: number | null; removed_t: number;
+    gates_changed: { key: string; name: string; before: boolean; after: boolean; note_before: string; note_after: string }[];
+    lines_removed: { key: string; name: string; value_t: number }[];
+  }[];
+  locked_periods: { id: number; year: number; version: number }[];
+}
+
+export interface CompanyRequirementsDetail {
+  company: { id: number; name: string; city: string | null; province: string | null };
+  requirements: CompanyRequirement[];
+  exceptions: ExceptionRequest[];
+  periods: Pick<Period, "id" | "year" | "status" | "version">[];
+  /** Snapshot status saat periode dikunci (baca saja). */
+  locked_periods: { id: number; year: number; version: number; locked_at: string | null; statuses: { code: string; name: string; status: ReqStatus; reason: string | null }[] }[];
+}
+
+/** Isi 409 saat status sudah diubah superadmin lain. */
+export interface RequirementConflict {
+  code: string;
+  name: string;
+  expected: ReqStatus;
+  current: ReqStatus;
+  set_by: string | null;
+  set_at: string | null;
+}
+
+export interface AuditActor {
+  id: number;
+  name: string;
+  role: Role;
+}
+
+export interface AdminAccount {
+  id: number;
+  name: string;
+  email: string;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string | null;
+  companies: { id: number; name: string }[];
+}
+
+export interface SuperAuditEntry {
+  id: number;
+  user: string;
+  user_id: number | null;
+  company_id: number | null;
+  company: string | null;
+  entity: string;
+  entity_id: string | null;
+  action: string;
+  summary: string;
+  reason: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown> | null;
   at: string | null;
 }

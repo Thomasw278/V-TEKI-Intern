@@ -4,7 +4,7 @@ import { useState } from "react";
 import { IconDownload, IconLock } from "@/components/Icons";
 import { Badge, Button, Dialog, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
 import { api, ApiError, downloadFile } from "@/lib/api";
-import { num, when } from "@/lib/format";
+import { num, reqSourceLabel, when } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import type { AuditEntry, Calculation, Gate, Reviewer } from "@/lib/types";
@@ -120,6 +120,26 @@ export default function LaporanPage() {
                 </table>
               </div>
               {Object.keys(calc.defaults_used ?? {}).length > 0 && <div className="banner warn small"><span className="grow">{t("Memakai nilai bawaan", "Uses default values")}: {Object.values(calc.defaults_used).join("; ")}</span></div>}
+              {(calc.excluded ?? []).length > 0 && (
+                <div className="stack tight">
+                  <b className="small">{t("Kategori yang dikecualikan", "Excluded categories")}</b>
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead><tr><th>{t("Kategori", "Category")}</th><th>{t("Alasan", "Reason")}</th><th>{t("Ditetapkan oleh", "Set by")}</th></tr></thead>
+                      <tbody>
+                        {calc.excluded!.map((x) => (
+                          <tr key={x.code}>
+                            <td><b>{x.name}</b></td>
+                            <td className="small wrap">{x.reason || "—"}</td>
+                            <td className="small muted">{x.set_by || reqSourceLabel(x.source, t)}{x.set_at ? ` · ${when(x.set_at)}` : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <span className="tiny muted">{t("Kategori ini tidak berlaku untuk perusahaan dan tidak ikut dihitung (bukan diisi nol).", "These categories do not apply to the company and are left out of the calculation (not filled with zero).")}</span>
+                </div>
+              )}
               <p className="tiny muted">{t("SEE dalam t CO₂e per ton produk. Setiap angka tertaut ke dokumen sumber di ekspor XLSX.", "SEE in t CO₂e per tonne of product. Every figure links to its source document in the XLSX export.")}</p>
               <div className="grid-2" style={{ gap: 12 }}>
                 {([["xlsx", t("Laporan & data aktivitas", "Report & activity data"), t("Ringkasan, SEE, rumus, faktor, jejak data", "Summary, SEE, formulas, factors, data trail")],

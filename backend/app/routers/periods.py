@@ -8,7 +8,10 @@ from ..deps import Ctx, company_ctx, ctx_roles, get_period
 from ..models import AuditLog, ReportingPeriod, User, utcnow
 from ..schemas import CalculateIn, PeriodCreate, PeriodOut
 from ..services import audit
-from ..services.period import activity_table, analyse, dashboard, gates, latest_calculation, run_calculation
+from ..services import requirements as req
+from ..services.period import (
+    activity_table, analyse, dashboard, gates, latest_calculation, mark_changed, run_calculation,
+)
 from ..services.reports import build_xlsx, build_xml
 
 router = APIRouter(prefix="/api/periods", tags=["periode"])
@@ -95,6 +98,8 @@ def lock_period(period_id: int, ctx: Ctx = Depends(ctx_roles("admin")), db: Sess
     failed = [x for x in g if not x["ok"]]
     if failed:
         raise HTTPException(status.HTTP_409_CONFLICT, {"message": "Syarat penguncian belum terpenuhi", "gates": g})
+    # salin status kebutuhan efektif: perubahan status sesudah ini tidak mengubah periode yang terkunci
+    period.requirements_snapshot = req.snapshot(req.effective_specs(db, period.company_id))
     period.status, period.locked_at, period.locked_by = "locked", utcnow(), ctx.user.id
     audit.log(db, ctx.user, ctx.company_id, "period", period.id, "lock", f"Mengunci periode {period.year} (v{period.version})")
     db.commit()
@@ -107,7 +112,12 @@ def reopen_period(period_id: int, ctx: Ctx = Depends(ctx_roles("admin")), db: Se
     period = get_period(period_id, ctx, db)
     if period.status != "locked":
         raise HTTPException(status.HTTP_409_CONFLICT, "Periode belum terkunci")
+    old_snap = period.requirements_snapshot or {}
     period.status, period.version, period.locked_at, period.locked_by = "open", period.version + 1, None, None
+    period.requirements_snapshot = None  # revisi memakai status kebutuhan yang berlaku sekarang
+    now = req.effective_specs(db, period.company_id)
+    if {s.code: s.status for s in now} != {k: v.get("status") for k, v in old_snap.items()}:
+        mark_changed(period)  # status berubah sejak dikunci → kalkulasi harus dijalankan ulang
     audit.log(db, ctx.user, ctx.company_id, "period", period.id, "reopen", f"Membuka revisi v{period.version} periode {period.year}")
     db.commit()
     return {"status": period.status, "version": period.version}

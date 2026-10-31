@@ -1,7 +1,11 @@
-"""Alat superuser untuk mengelola admin peninjau (dijalankan di server, bukan dari aplikasi web).
+"""Alat pengelola sistem untuk akun superadmin & admin peninjau (dijalankan di server, bukan dari aplikasi web).
+
+Superadmin HANYA bisa dibuat dari sini; tidak ada API atau halaman pendaftaran untuk peran tersebut.
 
 Contoh:
     python -m app.cli init-db
+    python -m app.cli create-superadmin --email pengelola@karbonlens.id --name "Dewi Pengelola"
+    python -m app.cli list-superadmins
     python -m app.cli create-admin --email reviewer@karbonlens.id --name "Rina Peninjau"
     python -m app.cli list-companies
     python -m app.cli assign --admin reviewer@karbonlens.id --company 3
@@ -23,6 +27,7 @@ from . import models  # noqa: F401  (registrasi tabel)
 from .database import Base, SessionLocal, engine, ensure_columns, migrate_legacy
 from .models import AdminCompany, Company, User
 from .security import hash_password
+from .services.requirements import migrate_requirements
 from .services.setup import seed_document_types
 
 
@@ -69,19 +74,44 @@ def init_db(_args) -> None:
     migrate_legacy()
     with SessionLocal() as db:
         seed_document_types(db)
+        for msg in migrate_requirements(db):
+            print(msg)
     print("Tabel dan katalog dokumen siap.")
 
 
-def create_admin(args) -> None:
+def _create_user(args, role: str) -> User:
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
+    migrate_legacy()
     with SessionLocal() as db:
         if db.scalar(select(User.id).where(User.email == args.email.lower())):
             _fail(f"email {args.email} sudah dipakai")
-        u = User(company_id=None, name=args.name, email=args.email.lower(), role="admin",
+        u = User(company_id=None, name=args.name, email=args.email.lower(), role=role,
                  password_hash=hash_password(_ask_password(args.password)))
         db.add(u)
         db.commit()
-        print(f"Admin dibuat: {u.name} <{u.email}> (id {u.id}). Tugaskan ke perusahaan dengan perintah assign.")
+        return u
+
+
+def create_admin(args) -> None:
+    u = _create_user(args, "admin")
+    print(f"Admin dibuat: {u.name} <{u.email}> (id {u.id}). Tugaskan ke perusahaan dengan perintah assign.")
+
+
+def create_superadmin(args) -> None:
+    u = _create_user(args, "superadmin")
+    print(f"Superadmin dibuat: {u.name} <{u.email}> (id {u.id}). Masuk lewat halaman login yang sama.")
+
+
+def list_superadmins(_args) -> None:
+    with SessionLocal() as db:
+        rows = db.scalars(select(User).where(User.role == "superadmin").order_by(User.id)).all()
+        if not rows:
+            print("Belum ada superadmin. Buat dengan: python -m app.cli create-superadmin --email ... --name ...")
+        for u in rows:
+            state = "" if u.is_active else "  [nonaktif]"
+            last = u.last_login_at.strftime("%Y-%m-%d %H:%M") if u.last_login_at else "-"
+            print(f"{u.id:>4}  {u.name} <{u.email}>{state}  ·  login terakhir: {last}")
 
 
 def assign(args) -> None:
@@ -152,14 +182,17 @@ def set_active(args, active: bool) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(prog="python -m app.cli", description="Pengelolaan admin peninjau KarbonLens (superuser).")
+    ap = argparse.ArgumentParser(prog="python -m app.cli", description="Pengelolaan superadmin & admin peninjau KarbonLens.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init-db", help="buat tabel & katalog dokumen").set_defaults(fn=init_db)
-    p = sub.add_parser("create-admin", help="buat akun admin peninjau")
-    p.add_argument("--email", required=True)
-    p.add_argument("--name", required=True)
-    p.add_argument("--password", help="kosongkan untuk diketik tersembunyi")
-    p.set_defaults(fn=create_admin)
+    for name, fn, what in (("create-admin", create_admin, "admin peninjau"),
+                           ("create-superadmin", create_superadmin, "superadmin (pengelola sistem)")):
+        p = sub.add_parser(name, help=f"buat akun {what}")
+        p.add_argument("--email", required=True)
+        p.add_argument("--name", required=True)
+        p.add_argument("--password", help="kosongkan untuk diketik tersembunyi")
+        p.set_defaults(fn=fn)
+    sub.add_parser("list-superadmins", help="daftar akun superadmin").set_defaults(fn=list_superadmins)
     for name, fn in (("assign", assign), ("unassign", unassign)):
         p = sub.add_parser(name, help=f"{'tugaskan' if name == 'assign' else 'cabut'} admin ke/dari perusahaan")
         p.add_argument("--admin", required=True, help="email admin")

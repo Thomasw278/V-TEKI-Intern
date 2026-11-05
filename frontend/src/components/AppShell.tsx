@@ -11,9 +11,11 @@ import { useSummary } from "@/lib/summary";
 import type { DocumentItem } from "@/lib/types";
 import {
   IconBuilding, IconCalc, IconCheck, IconChevron, IconFactor, IconFile, IconFlow, IconHistory, IconHome, IconInbox,
-  IconLogout, IconMenu, IconReport, IconSearch, IconSettings, IconShield, IconSwap, IconTable, IconUsers, IconX, LogoMark,
+  IconLogout, IconMenu, IconReport, IconSearch, IconSettings, IconShield, IconSidebar, IconSwap, IconTable, IconUsers, IconX, LogoMark,
 } from "./Icons";
 import { Badge, Toggles } from "./ui";
+
+const COMPACT_KEY = "karbonlens.sidebar-compact";
 
 type NavItem = { href: string; label: string; short: string; icon: ReactNode; group: string; count?: number; countTone?: "info" };
 
@@ -78,77 +80,6 @@ function useNav(): NavItem[] {
   ];
 }
 
-function HeaderNav({ items, activeHref }: { items: NavItem[]; activeHref?: string }) {
-  const containerRef = useRef<HTMLElement>(null);
-  const [indicator, setIndicator] = useState<{ x: number; w: number; h: number; opacity: number } | null>(null);
-  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-
-  const moveToHref = (href?: string) => {
-    if (!href || !containerRef.current) {
-      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
-      return;
-    }
-    const el = linkRefs.current.get(href);
-    if (!el || !containerRef.current) {
-      setIndicator((prev) => (prev ? { ...prev, opacity: 0 } : null));
-      return;
-    }
-    setIndicator({
-      x: el.offsetLeft,
-      w: el.offsetWidth,
-      h: el.offsetHeight || 36,
-      opacity: 1,
-    });
-  };
-
-  useEffect(() => {
-    moveToHref(activeHref);
-    const onResize = () => moveToHref(activeHref);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [activeHref]);
-
-  return (
-    <nav
-      ref={containerRef}
-      className="topbar-nav hide-m sliding-nav-container"
-      aria-label="Menu navigasi"
-      onMouseLeave={() => moveToHref(activeHref)}
-    >
-      {indicator && (
-        <span
-          className="sliding-nav-box"
-          aria-hidden="true"
-          style={{
-            transform: `translate3d(${indicator.x}px, -50%, 0)`,
-            width: `${indicator.w}px`,
-            height: `${indicator.h}px`,
-            opacity: indicator.opacity,
-          }}
-        />
-      )}
-      {items.map((n) => {
-        const active = activeHref === n.href;
-        return (
-          <Link
-            key={n.href}
-            href={n.href}
-            ref={(el) => {
-              if (el) linkRefs.current.set(n.href, el);
-              else linkRefs.current.delete(n.href);
-            }}
-            onMouseEnter={() => moveToHref(n.href)}
-            aria-current={active ? "page" : undefined}
-          >
-            <span>{n.short}</span>
-            {!!n.count && <span className={`count mono ${n.countTone ?? ""}`} style={{ marginLeft: 2 }}>{n.count}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useT();
   const { user, isAdmin, isSuperadmin, company, logout } = useSession();
@@ -158,10 +89,31 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  // sidebar yang diciutkan diingat per peramban (pilihan tampilan, bukan data)
+  useEffect(() => {
+    try {
+      setCompact(window.localStorage.getItem(COMPACT_KEY) === "1");
+    } catch {
+      /* mode privat */
+    }
+  }, []);
+  const toggleCompact = () => setCompact((c) => {
+    try {
+      window.localStorage.setItem(COMPACT_KEY, c ? "0" : "1");
+    } catch {
+      /* mode privat */
+    }
+    return !c;
+  });
 
   useEffect(() => {
     setOpen(false);
     refreshSummary();
+    // konten menggulir di dalam kanvas, bukan jendela → kembalikan ke atas setiap pindah halaman
+    mainRef.current?.scrollTo({ top: 0 });
   }, [pathname, refreshSummary]);
 
   useEffect(() => {
@@ -197,7 +149,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="shell">
+    <div className={`shell ${compact ? "compact" : ""}`}>
       {open && <div className="drawer-backdrop" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`} aria-label={t("Navigasi utama", "Main navigation")}>
         <div className="inline nowrap" style={{ justifyContent: "space-between" }}>
@@ -209,6 +161,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
           </Link>
           <button className="btn ghost icon sm menu-btn" onClick={() => setOpen(false)} aria-label={t("Tutup menu", "Close menu")}><IconX size={18} /></button>
+          <button className="btn ghost icon sm compact-btn" onClick={toggleCompact} aria-pressed={compact}
+            aria-label={compact ? t("Lebarkan sidebar", "Expand sidebar") : t("Ciutkan sidebar", "Collapse sidebar")}
+            title={compact ? t("Lebarkan sidebar", "Expand sidebar") : t("Ciutkan sidebar", "Collapse sidebar")}><IconSidebar size={17} /></button>
         </div>
         <ContextCard />
         <nav className="nav">
@@ -216,8 +171,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div key={g.name} style={{ display: "contents" }}>
               <div className="nav-group">{g.name}</div>
               {g.items.map((n) => (
-                <Link key={n.href} href={n.href} aria-current={isActive(n.href) ? "page" : undefined}>
-                  {n.icon}<span>{n.label}</span>
+                <Link key={n.href} href={n.href} aria-current={isActive(n.href) ? "page" : undefined} title={compact ? n.label : undefined}>
+                  {n.icon}<span className="label">{n.label}</span>
                   {!!n.count && <span className={`count mono ${n.countTone ?? ""}`}>{n.count}</span>}
                 </Link>
               ))}
@@ -231,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="main-col">
+      <div className="main-col" ref={mainRef}>
         <header className="topbar">
           <button className="btn ghost icon menu-btn" onClick={() => setOpen(true)} aria-label={t("Buka menu", "Open menu")}><IconMenu /></button>
           <Link href={home} className="brand-m">
@@ -240,18 +195,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="crumbs">
             {company && <span className="hide-s ellipsis" style={{ maxWidth: 260 }}>{company.name}</span>}
-            {company && summary && <span className="sep hide-s">/</span>}
-            {summary && <span className="hide-s">{t("Periode", "Period")} {summary.period.year}</span>}
-            {(company || summary) && <span className="sep hide-s">/</span>}
+            {company && <span className="sep hide-s">/</span>}
             <b className="ellipsis">{current?.label ?? "KarbonLens"}</b>
           </div>
-          <HeaderNav items={tabItems} activeHref={current?.href} />
           <span className="spacer" />
-          {summary && <span className="hide-m"><PeriodBadge status={summary.period.status} /></span>}
+          <PeriodPicker />
           <button className="search-btn" onClick={() => setPalette(true)} aria-label={t("Cari", "Search")}>
             <IconSearch size={16} /><span>{t("Cari dokumen atau halaman", "Search documents or pages")}</span><kbd>Ctrl K</kbd>
           </button>
-          <Toggles />
+          <span className="hide-m"><Toggles /></span>
           <UserMenu onSignOut={signOut} />
         </header>
         <main className="content" id="main">{children}</main>
@@ -269,17 +221,33 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function PeriodBadge({ status }: { status: string }) {
+/** Pemilih periode di topbar: tahun + status periode (teks, bukan hanya warna). */
+function PeriodPicker() {
   const t = useT();
-  const p = periodLabel(status, t);
-  return <Badge tone={p.tone} pip>{p.label}</Badge>;
+  const { periods, period, setPeriodId } = useSession();
+  if (!periods.length || !period) return null;
+  const st = periodLabel(period.status, t);
+  return (
+    <label className="period-pick" title={t("Periode pelaporan", "Reporting period")}>
+      <span className="sr-only">{t("Periode pelaporan", "Reporting period")}</span>
+      <span className={`pip ${st.tone}`} aria-hidden="true" />
+      <select value={period.id} onChange={(e) => setPeriodId(Number(e.target.value))}>
+        {periods.map((p) => (
+          <option key={p.id} value={p.id}>
+            {t("Periode", "Period")} {p.year}{p.version > 1 ? ` · v${p.version}` : ""}
+          </option>
+        ))}
+      </select>
+      <span className="st hide-m">{st.label}</span>
+    </label>
+  );
 }
 
 /** Kartu konteks: perusahaan aktif + periode. Admin dapat berganti perusahaan dari sini. */
 function ContextCard() {
   const t = useT();
   const router = useRouter();
-  const { isAdmin, isSuperadmin, company, companies, selectCompany, periods, period, setPeriodId } = useSession();
+  const { isAdmin, isSuperadmin, company, companies, selectCompany } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -329,18 +297,6 @@ function ContextCard() {
           {!companies.length && <div className="tiny muted" style={{ padding: 10 }}>{t("Belum ada perusahaan yang ditugaskan.", "No companies assigned yet.")}</div>}
         </div>
       )}
-      {periods.length > 0 && (
-        <label className="field" style={{ gap: 4 }}>
-          <span className="sr-only">{t("Periode pelaporan", "Reporting period")}</span>
-          <select className="select" style={{ height: 36, fontSize: 13.5 }} value={period?.id ?? ""} onChange={(e) => setPeriodId(Number(e.target.value))}>
-            {periods.map((p) => (
-              <option key={p.id} value={p.id}>
-                {t("Periode", "Period")} {p.year}{p.version > 1 ? ` · v${p.version}` : ""}{p.status === "locked" ? ` · ${t("dikunci", "locked")}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
     </div>
   );
 }
@@ -364,6 +320,7 @@ function UserMenu({ onSignOut }: { onSignOut: () => void }) {
       {open && (
         <div className="menu-pop" role="menu">
           <div className="head"><b>{user?.name}</b><span>{user?.email}</span><div style={{ marginTop: 6 }}><Badge tone="info">{roleLabel(user?.role, t)}</Badge></div></div>
+          <div className="menu-toggles only-narrow"><span className="tiny muted">{t("Bahasa & tema", "Language & theme")}</span><Toggles /></div>
           <Link href="/pengaturan#akun" onClick={() => setOpen(false)}><IconSettings size={16} />{t("Pengaturan akun", "Account settings")}</Link>
           <button type="button" onClick={onSignOut}><IconLogout size={16} />{t("Keluar", "Sign out")}</button>
         </div>

@@ -45,8 +45,11 @@ export default function AdminHome() {
   return (
     <>
       <PageHead
-        title={t(`Selamat datang, ${user?.name.split(" ")[0]}`, `Welcome, ${user?.name.split(" ")[0]}`)}
-        description={t("Perusahaan yang ditugaskan kepada Anda dan dokumen yang menunggu persetujuan.", "The companies assigned to you and the documents waiting for approval.")} />
+        eyebrow={user?.name}
+        title={t("Portofolio tinjauan", "Review portfolio")}
+        description={waiting
+          ? t(`${waiting} dokumen menunggu persetujuan di ${data.companies.length} perusahaan.`, `${waiting} documents await approval across ${data.companies.length} companies.`)
+          : t(`Tidak ada dokumen yang menunggu. ${data.companies.length} perusahaan ditugaskan.`, `Nothing is waiting. ${data.companies.length} companies assigned.`)} />
 
       <div className="kpis">
         <div className="kpi"><div className="k">{t("Perusahaan ditinjau", "Companies reviewed")}</div><div className="v">{data.companies.length}</div><div className="d">{t("ditugaskan oleh pengelola sistem", "assigned by the system administrator")}</div></div>

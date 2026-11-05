@@ -65,6 +65,16 @@ def apply_result(doc: Document, res: ExtractionResult) -> None:
     doc.notes = res.notes or None
 
 
+PHOTO_TIP = ("Ambil ulang dengan cahaya merata tanpa bayangan, kamera sejajar kertas, dan seluruh halaman masuk bingkai. "
+             "Untuk scan, pakai minimal 200 dpi.")
+
+
+def _ocr_conf(layout: DocLayout) -> float | None:
+    """Keyakinan OCR rata-rata (None bila dokumen bukan hasil OCR)."""
+    ws = [w for p in layout.pages if p.ocr for ln in p.lines for w in ln.words]
+    return sum(w.conf for w in ws) / len(ws) if ws else None
+
+
 def run_extraction(db: Session, doc: Document, layout: DocLayout, type_code: str | None = None) -> None:
     if type_code:
         doc.type_code, doc.classify_confidence = type_code, 1.0
@@ -88,13 +98,23 @@ def run_extraction(db: Session, doc: Document, layout: DocLayout, type_code: str
     res = extract(layout, doc.type_code, products)
     apply_result(doc, res)
     doc.status = "needs_review"
+    conf = _ocr_conf(layout)
+    blurry = conf is not None and conf < 0.75
     if not layout.text.strip():
-        doc.error = ("Teks tidak terbaca. Pasang Tesseract OCR untuk dokumen hasil scan, atau isi field secara manual."
-                     if layout.method != "error" else (layout.warnings or ["Berkas rusak"])[0])
+        if layout.method == "error":
+            doc.error = (layout.warnings or ["Berkas rusak"])[0]
+        elif layout.method == "none":
+            doc.error = "Teks tidak terbaca. Pasang Tesseract OCR untuk dokumen hasil scan, atau isi field secara manual."
+        else:
+            doc.error = "Tidak ada teks yang terbaca dari gambar. " + PHOTO_TIP
     elif not res.items:
-        doc.error = "Tidak ada field yang terbaca untuk kategori ini. Periksa kategori atau isi field secara manual."
+        doc.error = ("Angka tidak terbaca karena gambar kurang jelas. " + PHOTO_TIP if blurry else
+                     "Tidak ada field yang terbaca untuk kategori ini. Pastikan kategorinya benar (ubah di atas), "
+                     "atau isi field secara manual.")
     else:
         doc.error = None
+        if blurry:
+            doc.notes = (doc.notes or []) + ["Gambar kurang jelas: periksa setiap angka dengan teliti. " + PHOTO_TIP]
 
 
 def process_document(doc_id: int, force_type: str | None = None) -> None:

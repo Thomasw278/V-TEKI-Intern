@@ -25,7 +25,7 @@ from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 
 from .catalog import DOC_TYPE_BY_CODE, DOC_TYPES
-from .layout import DocLayout, Line, Page, Word, layout_from_text
+from .layout import DocLayout, Line, Page, Segment, Word, layout_from_text
 from .rules import (
     ID_CONTEXT_RE, MONEY_BEFORE_RE, MONEY_HEADER_RE, MONTH_NAME_RE, MONTHS, N_STANDARD, NPK_GRADE_RE, RATE_AFTER_RE,
     RULES, SKIP_ROW_RE, TARGET, TOTAL_RE, TOTAL_WORD_RE, UNIT_ONLY_RE, UNIT_RE, Rule, TypeRules, product_rule, unit_info,
@@ -405,6 +405,10 @@ def _overlaps(a: tuple[float, float], b: tuple[float, float], kind: str) -> bool
     return b[1] >= a[0] - tol and b[0] <= a[1] + tol
 
 
+# Field penanda baris: nilainya khas per baris, jadi tidak boleh disalin dari bagian lain dokumen ke banyak baris.
+ROW_IDENTITY = {"block", "billing_month", "planting_year"}
+
+
 class Extractor:
     def __init__(self, layout: DocLayout, tr: TypeRules, extra_rules: list[Rule] | None = None):
         self.layout = layout
@@ -719,12 +723,18 @@ class Extractor:
 
     def _map_header(self, v: View) -> dict[int, str]:
         mapping: dict[int, tuple[str, float, int]] = {}
+        num_best: dict[int, tuple[str, float, int]] = {}
         for si in range(len(v.line.segments)):
             st = v.seg_text(si).lower()
             if sum(c.isdigit() for c in st) > len(st) * 0.4 or len(st) > 60:
                 continue
             for rule in self.rules:
                 if rule.row_label:
+                    # mis. kolom "COD Inlet (mg/L)" pada tabel log bulanan
+                    if re.search(rule.row_label, st) and rule.col_label and re.search(rule.col_label, st):
+                        sc = 1.2
+                        if si not in mapping or sc > mapping[si][1]:
+                            mapping[si] = (rule.key, sc, len(st))
                     continue
                 for strength, rx in ((1.0, _rx(rule.anchors)), (0.6, _rx(rule.weak))):
                     m = rx.search(st) if rx else None
@@ -733,9 +743,17 @@ class Extractor:
                     if rule.kind == "number" and MONEY_HEADER_RE.search(st) and not _inherited_unit(st):
                         continue
                     sc = strength + 0.01 * len(m.group(0))
+                    if rule.avoid and _rx(rule.avoid).search(st):
+                        sc -= 0.5  # mis. kolom "LWBP (kWh)" bukan kolom total kWh
+                    if rule.kind == "number" and (si not in num_best or sc > num_best[si][1]):
+                        num_best[si] = (rule.key, sc, m.end() - m.start())
                     if si not in mapping or sc > mapping[si][1]:
                         mapping[si] = (rule.key, sc, m.end() - m.start())
                     break
+            # judul bersatuan ("SEE Pemasok (t CO2e/t)") → kolom angka, walau kata "pemasok" cocok dengan kolom nama
+            cur = mapping.get(si)
+            if cur and si in num_best and self._rule(cur[0]).kind != "number" and re.search(r"\(.+\)|/", st):
+                mapping[si] = num_best[si]
         # satu rule hanya untuk satu kolom: ambil kolom terkuat (yang ber-satuan didahulukan nanti)
         by_rule: dict[str, list[int]] = {}
         for si, (k, sc, _) in mapping.items():
@@ -746,8 +764,59 @@ class Extractor:
             out[cols[0]] = k
         return out
 
-    def _table_at(self, views: list[View], li: int) -> dict | None:
+    def _merged_header(self, views: list[View], li: int) -> tuple[View, int]:
+        """Kepala tabel bertingkat → satu kepala virtual.
+
+        Judul kolom sering terbungkus dua baris ("Jumlah" / "(kg)") dan sel yang ditengahkan secara vertikal
+        ("Total (Rp)") muncul sebagai baris tersendiri di antaranya. Baris lanjutan (tanpa angka, rapat di bawah
+        judul) digabung ke kolom yang bertumpuk; bagian yang tidak bertumpuk menjadi kolom baru.
+        """
         h = views[li]
+        if h.kind not in ("pdf", "image"):
+            return h, li
+        cols = [list(sg.words) for sg in h.line.segments]
+        last, y1 = li, h.line.y1
+        lh = max(h.line.y1 - h.line.y0, 1e-6)
+        for j in range(li + 1, min(li + 4, len(views))):
+            v = views[j]
+            if v.line.y0 - y1 > lh * 0.9:
+                break
+            if any(not n.year_ctx for n in v.nums) or any(len(sg.text) > 40 for sg in v.line.segments):
+                break
+            for sg in v.line.segments:
+                ov = [(min(max(w.x1 for w in c), sg.x1) - max(min(w.x0 for w in c), sg.x0), i) for i, c in enumerate(cols)]
+                best = max(ov) if ov else (0, -1)
+                if best[0] > 0:
+                    cols[best[1]].extend(sg.words)
+                else:
+                    cols.append(list(sg.words))
+            last, y1 = j, max(y1, v.line.y1)
+        if last == li:
+            return h, li
+        cols.sort(key=lambda c: min(w.x0 for w in c))
+        segs = [Segment(self._rejoin(sorted(c, key=lambda w: (round(w.y0 / lh), w.x0)), lh)) for c in cols]
+        return _build_view(h.page, Line(h.line.page, h.line.index, segs)), last
+
+    def _rejoin(self, words: list[Word], lh: float) -> list[Word]:
+        """Kata judul yang terbelah di kolom sempit ("Kuanti" / "tas") disambung kembali, tetapi hanya bila
+        bentuk sambungannya cocok dengan label yang dikenal dan bentuk berspasinya tidak."""
+        if len(words) < 2 or not self._any_anchor:
+            return words
+        out = [words[0]]
+        for w in words[1:]:
+            p = out[-1]
+            new_line = w.y0 - p.y0 > lh * 0.5
+            if new_line and re.fullmatch(r"[A-Za-z]{2,}[/-]?", p.text) and re.fullmatch(r"[a-z]{1,}\W*", w.text):
+                spaced = " ".join(x.text for x in out) + " " + w.text
+                joined = " ".join(x.text for x in out[:-1] + [Word(p.text + w.text, 0, 0, 0, 0)])
+                if self._any_anchor.search(joined.lower()) and not self._any_anchor.search(spaced.lower()):
+                    out[-1] = Word(p.text + w.text, min(p.x0, w.x0), p.y0, max(p.x1, w.x1), w.y1, min(p.conf, w.conf))
+                    continue
+            out.append(w)
+        return out
+
+    def _table_at(self, views: list[View], li: int) -> dict | None:
+        h, head_end = self._merged_header(views, li)
         if len(h.line.segments) < 2:
             return None
         if any(n.unit_dim for n in h.nums) or sum(1 for i in range(len(h.line.segments))
@@ -777,7 +846,7 @@ class Extractor:
             return min(range(len(heads)), key=key)
 
         rows, totals = [], {}
-        start = li + 1
+        start = head_end + 1
         if start < len(views):
             sub = views[start]
             cells = self._cells(sub, band, len(heads))
@@ -796,6 +865,8 @@ class Extractor:
         text_cols = [si for si, k in mapping.items() if (r := self._rule(k)) and r.kind in ("text", "enum")]
         row_views: list[int] = []          # indeks baris dokumen untuk setiap item
         loose: list[int] = []              # baris tanpa angka di dalam tabel (teks sel yang terbungkus)
+        pending_total = False              # label "TOTAL" berdiri sendiri; angka totalnya di baris berikutnya
+        label_cols = max(1, min(2, len(heads) - 1))
         for j in range(start, len(views)):
             r = views[j]
             gap = r.line.y0 - prev_y
@@ -805,9 +876,14 @@ class Extractor:
             cells = self._cells(r, band, len(heads))
             first = next((t for t, _ in cells if t.strip()), "")
             real_nums = [n for n in r.nums if not n.year_ctx]
+            if len(r.line.segments) == 1 < len(heads) and len(re.findall(r"[A-Za-z]{2,}", r.text)) >= 6:
+                break  # catatan kaki / keterangan metode, bukan baris tabel
             if not real_nums:
                 if re.sub(r"\W+", " ", r.low).strip() == head_norm:
                     continue  # judul kolom berulang (tabel bersambung)
+                if TOTAL_RE.match(first) and not SKIP_ROW_RE.match(first):
+                    pending_total = True
+                    continue
                 alpha_segs = sum(1 for i in range(len(r.line.segments)) if re.search(r"[a-zA-Z]{2,}", r.seg_text(i)))
                 if alpha_segs >= 3 and alpha_segs >= len(heads) - 2:
                     break  # judul tabel lain dimulai
@@ -816,7 +892,11 @@ class Extractor:
                     break
                 loose.append(j)
                 continue
-            if TOTAL_RE.match(first) and not SKIP_ROW_RE.match(first):
+            unlabeled = not any(re.search(r"[A-Za-z]{2,}", t) for t, _ in cells[:label_cols])
+            nxt = views[j + 1] if j + 1 < len(views) else None
+            total_below = bool(unlabeled and nxt and nxt.line.y0 - r.line.y1 < med_h * 0.9
+                               and not any(not n.year_ctx for n in nxt.nums) and TOTAL_RE.match(nxt.text.strip()))
+            if (TOTAL_RE.match(first) and not SKIP_ROW_RE.match(first)) or (pending_total and unlabeled) or total_below:
                 item = self._row_item(mapping, r, cells, units, unit_col, h)
                 for k, fr in item.items():
                     if self._rule(k).kind == "number":
@@ -1031,6 +1111,8 @@ class Extractor:
                     continue
                 if key in getattr(self, "table_keys", set()):
                     continue  # kolomnya ada di tabel tetapi sel kosong → jangan diisi dari bagian lain
+                if key in ROW_IDENTITY and len(items) > 1:
+                    continue  # satu kode blok/bulan untuk banyak baris pasti salah; biarkan kosong untuk diisi manual
                 for it in items:
                     if key not in it:
                         it[key] = FieldResult(fr.key, fr.value, fr.unit, round(fr.confidence * 0.92, 2), fr.snippet, fr.page,

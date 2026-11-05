@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { IconArrow, IconCheck, IconInbox } from "@/components/Icons";
+import { IconArrow, IconCheck, IconInbox, IconSend } from "@/components/Icons";
 import { Badge, Button, Empty, ErrorBox, Loading, PageHead, StatusBadge, useLoad, useToast } from "@/components/ui";
 import { api } from "@/lib/api";
 import { loadDocTypes } from "@/lib/doctypes";
@@ -20,6 +20,8 @@ export default function ReviewQueue() {
   const toast = useToast();
   const [busy, setBusy] = useState<number | null>(null);
   const [view, setView] = useState<"todo" | "done">("todo");
+  const [picked, setPicked] = useState<number[]>([]);
+  const [bulk, setBulk] = useState(false);
   const { data, error, loading, reload } = useLoad(async () => {
     if (!period) return null;
     const [docs, types] = await Promise.all([api<DocumentItem[]>(`/api/periods/${period.id}/documents`), loadDocTypes()]);
@@ -46,6 +48,30 @@ export default function ReviewQueue() {
   if (error) return <ErrorBox error={error} onRetry={() => reload()} />;
   if (!data) return null;
 
+  // dokumen yang bisa diproses massal: perusahaan → siap diajukan, admin → menunggu persetujuan
+  const bulkable = (d: DocumentItem) => period.status !== "locked" && view === "todo"
+    && (isAdmin ? d.status === "validated" : d.status === "needs_review");
+  const selectable = (view === "todo" ? groups.todo : []).filter(bulkable);
+  const chosen = selectable.filter((d) => picked.includes(d.id));
+  const toggle = (id: number) => setPicked((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  const runBulk = async () => {
+    setBulk(true);
+    const failed: { id: number; text: string }[] = [];
+    for (const d of chosen) {
+      try {
+        await api(`/api/documents/${d.id}/${isAdmin ? "approve" : "validate"}`, { method: "POST" });
+      } catch (e) {
+        failed.push({ id: d.id, text: `${d.original_name}: ${(e as Error).message}` });
+      }
+    }
+    const ok = chosen.length - failed.length;
+    if (ok) toast(isAdmin ? t(`${ok} dokumen disetujui`, `${ok} documents approved`) : t(`${ok} dokumen diajukan`, `${ok} documents submitted`));
+    if (failed.length) toast(t(`${failed.length} gagal. ${failed[0].text}`, `${failed.length} failed. ${failed[0].text}`), "error");
+    setPicked(failed.map((f) => f.id));  // yang gagal tetap terpilih untuk diperbaiki
+    setBulk(false);
+    reload(true);
+    refreshSummary();
+  };
   const typeName = (code: string | null) => data.types.find((x: DocType) => x.code === code)?.name ?? t("Belum dikenali", "Not recognised");
   const list = view === "todo" ? groups.todo : groups.done;
   const approve = async (d: DocumentItem) => {
@@ -81,6 +107,24 @@ export default function ReviewQueue() {
         </button>
       </div>
 
+      {selectable.length > 0 && (
+        <div className="review-bar" role="toolbar" aria-label={t("Tindakan massal", "Bulk actions")}>
+          <label className="check small strong">
+            <input type="checkbox" checked={chosen.length === selectable.length} ref={(el) => { if (el) el.indeterminate = chosen.length > 0 && chosen.length < selectable.length; }}
+              onChange={() => setPicked(chosen.length === selectable.length ? [] : selectable.map((d) => d.id))} />
+            {chosen.length ? t(`${chosen.length} dipilih`, `${chosen.length} selected`) : t("Pilih semua", "Select all")}
+          </label>
+          <span className="spacer" />
+          <span className="tiny muted">{isAdmin
+            ? t("Setujui sekaligus hanya bila angkanya sudah Anda bandingkan dengan dokumen asli.", "Bulk-approve only after comparing the figures with the originals.")
+            : t("Dokumen dengan isu kritis akan ditolak dan tetap terpilih.", "Documents with critical issues are rejected and stay selected.")}</span>
+          <Button size="sm" variant="primary" disabled={!chosen.length} loading={bulk} onClick={runBulk}>
+            {isAdmin ? <IconCheck size={15} /> : <IconSend size={15} />}
+            {isAdmin ? t(`Setujui ${chosen.length || ""} dokumen`, `Approve ${chosen.length || ""} documents`) : t(`Ajukan ${chosen.length || ""} dokumen`, `Submit ${chosen.length || ""} documents`)}
+          </Button>
+        </div>
+      )}
+
       <section className="panel flush" data-ui="true">
         {list.length === 0 ? (
           <Empty icon={view === "todo" ? <IconCheck /> : <IconInbox />}
@@ -97,9 +141,15 @@ export default function ReviewQueue() {
                 {list.map((d) => (
                   <tr key={d.id}>
                     <td className="primary">
+                      <span className="inline nowrap" style={{ alignItems: "flex-start", gap: 10 }}>
+                      {bulkable(d) && <input type="checkbox" style={{ marginTop: 4, accentColor: "var(--primary)" }} checked={picked.includes(d.id)} onChange={() => toggle(d.id)}
+                        aria-label={t(`Pilih ${d.original_name}`, `Select ${d.original_name}`)} />}
+                      <span style={{ minWidth: 0 }}>
                       <Link href={`/dokumen/${d.id}`} className="strong wrap" style={{ color: "var(--ink)" }}>{d.original_name}</Link>
                       {d.status === "rejected" && d.review_note && <div className="tiny" style={{ color: "var(--bad)" }}>{t("Catatan admin", "Reviewer note")}: {d.review_note}</div>}
                       {d.status !== "rejected" && (d.doc_number || d.supplier) && <div className="tiny muted wrap">{[d.doc_number, d.supplier].filter(Boolean).join(" · ")}</div>}
+                      </span>
+                      </span>
                     </td>
                     <td data-label={t("Kategori", "Category")} className="small">{typeName(d.type_code)}</td>
                     <td data-label="Status"><StatusBadge status={d.status} /></td>

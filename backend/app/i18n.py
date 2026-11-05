@@ -209,7 +209,15 @@ EXACT: dict[str, str] = {
     "Profil tidak ditemukan": "Profile not found", "Permintaan tidak ditemukan": "Request not found",
     "Tulis alasan penolakan (minimal 5 karakter)": "Write a reason for rejecting (at least 5 characters)",
     "Admin tidak ditemukan": "Reviewer not found", "Email sudah dipakai akun lain": "This email is used by another account",
-    "Status kebutuhan tidak dikenal": "Unknown requirement status", "Permintaan ini sudah diputus": "This request has already been decided",
+    "Status kebutuhan tidak dikenal": "Unknown requirement status",
+    "Tidak ada teks yang terbaca dari gambar. Ambil ulang dengan cahaya merata tanpa bayangan, kamera sejajar kertas, dan seluruh halaman masuk bingkai. Untuk scan, pakai minimal 200 dpi.":
+        "No text could be read from the image. Retake it in even light without shadows, with the camera parallel to the page and the whole page in frame. For scans, use at least 200 dpi.",
+    "Angka tidak terbaca karena gambar kurang jelas. Ambil ulang dengan cahaya merata tanpa bayangan, kamera sejajar kertas, dan seluruh halaman masuk bingkai. Untuk scan, pakai minimal 200 dpi.":
+        "The figures could not be read because the image is unclear. Retake it in even light without shadows, with the camera parallel to the page and the whole page in frame. For scans, use at least 200 dpi.",
+    "Tidak ada field yang terbaca untuk kategori ini. Pastikan kategorinya benar (ubah di atas), atau isi field secara manual.":
+        "No fields were read for this category. Check that the category is right (change it above), or fill the fields in manually.",
+    "Gambar kurang jelas: periksa setiap angka dengan teliti. Ambil ulang dengan cahaya merata tanpa bayangan, kamera sejajar kertas, dan seluruh halaman masuk bingkai. Untuk scan, pakai minimal 200 dpi.":
+        "The image is unclear: check every figure carefully. Retake it in even light without shadows, with the camera parallel to the page and the whole page in frame. For scans, use at least 200 dpi.", "Permintaan ini sudah diputus": "This request has already been decided",
 }
 
 STATUS_EN = {"Wajib": "Required", "Opsional": "Optional", "Tidak berlaku": "Not applicable"}

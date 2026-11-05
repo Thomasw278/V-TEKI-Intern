@@ -301,6 +301,9 @@ export interface Calculation {
   allocation_method: "economic" | "mass";
   created_at: string | null;
   has_draft_factors: boolean;
+  /** Data berubah setelah kalkulasi ini → angkanya kedaluwarsa (tidak berlaku untuk periode terkunci). */
+  stale?: boolean;
+  stale_since?: string | null;
   direct_t: number;
   indirect_t: number;
   upstream_t: number;
@@ -339,10 +342,15 @@ export interface Dashboard {
     indirect_t: number;
     upstream_t: number;
     has_draft_factors: boolean;
+  /** Data berubah setelah kalkulasi ini → angkanya kedaluwarsa (tidak berlaku untuk periode terkunci). */
+  stale?: boolean;
+  stale_since?: string | null;
     lines: CalcLine[];
     allocations: Allocation[];
   };
   activity: { user: string; summary: string; at: string | null }[];
+  /** Langkah awal perusahaan baru. */
+  setup?: { profile: boolean; documents: boolean; submitted: boolean; calculated: boolean };
 }
 
 export interface Factor {

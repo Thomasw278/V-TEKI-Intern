@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { Contours } from "./Contours";
 
+// diingat lintas kunjungan; tombol "Putar ulang intro" di kaki halaman menghapusnya
 const KEY = "karbonlens.intro.seen";
 
 /**
@@ -22,7 +23,7 @@ export function Intro({ force = false, onDone }: { force?: boolean; onDone?: () 
   useEffect(() => {
     let seen = false;
     try {
-      seen = window.sessionStorage.getItem(KEY) === "1";
+      seen = window.localStorage.getItem(KEY) === "1";
     } catch {
       seen = false;
     }
@@ -35,7 +36,7 @@ export function Intro({ force = false, onDone }: { force?: boolean; onDone?: () 
   const finish = useCallback(() => {
     timers.current.forEach((t) => window.clearTimeout(t));
     try {
-      window.sessionStorage.setItem(KEY, "1");
+      window.localStorage.setItem(KEY, "1");
     } catch {
       /* mode privat */
     }
@@ -143,7 +144,7 @@ export function Intro({ force = false, onDone }: { force?: boolean; onDone?: () 
 
 export function replayIntro() {
   try {
-    window.sessionStorage.removeItem(KEY);
+    window.localStorage.removeItem(KEY);
   } catch {
     /* abaikan */
   }

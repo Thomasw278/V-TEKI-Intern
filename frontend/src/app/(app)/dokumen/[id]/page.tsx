@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { DocViewer } from "@/components/DocViewer";
 import { IconBack, IconCheck, IconRefresh, IconSend, IconUndo, IconX } from "@/components/Icons";
 import { Badge, Button, ConfMeter, Dialog, ErrorBox, Loading, PageHead, StatusBadge, useLoad, useToast } from "@/components/ui";
@@ -37,6 +37,14 @@ export default function DocumentDetailPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [serverIssues, setServerIssues] = useState<Issue[] | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [onlyLow, setOnlyLow] = useState(false);
+  // pintasan keyboard: listener dipasang sekali, isinya diperbarui setiap render
+  const keyRef = useRef<((e: globalThis.KeyboardEvent) => void) | null>(null);
+  useEffect(() => {
+    const h = (e: globalThis.KeyboardEvent) => keyRef.current?.(e);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
   const [reason, setReason] = useState("");
 
   const { data, error, loading, reload, setData } = useLoad(async () => {
@@ -80,6 +88,10 @@ export default function DocumentDetailPage() {
   const specs = type?.fields ?? [];
   const multi = nItems > 1;
   const pending = Object.keys(edits).length > 0;
+  // antrean pemeriksaan: angka yang belum dikonfirmasi, keyakinan terendah lebih dulu
+  const unconfirmed = doc.fields.filter((f) => !f.confirmed);
+  const sure = unconfirmed.filter((f) => f.confidence >= 0.9);
+  const queue = [...unconfirmed].sort((a, b) => a.confidence - b.confidence);
 
   const update = (d: DocumentDetail) => { setData({ doc: d, types: data.types }); setServerIssues(null); refreshSummary(); };
   const run = async (key: string, fn: () => Promise<DocumentDetail | void>, ok?: string) => {
@@ -122,6 +134,35 @@ export default function DocumentDetailPage() {
   const onKey = (item: number, key: string) => (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") { e.preventDefault(); save(item, key); }
     if (e.key === "Escape") setEdits(({ [keyOf(item, key)]: _, ...rest }) => rest);
+  };
+
+  const goNext = () => {
+    if (!queue.length) return;
+    const i = queue.findIndex((f) => f.id === selId);
+    const nxt = queue[i < 0 ? 0 : (i + 1) % queue.length];
+    setSelId(nxt.id);
+    document.querySelector(`[data-fid="${nxt.id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+  const confirmSelected = () => {
+    if (selected && !selected.confirmed) {
+      run("conf", () => api<DocumentDetail>(`/api/documents/${doc.id}/fields/${selected.id}`, { method: "PATCH", body: {} }), t("Dikonfirmasi", "Confirmed"));
+    }
+  };
+  const confirmSure = () => run("sure", async () => {
+    let d: DocumentDetail | undefined;
+    for (const f of sure) d = await api<DocumentDetail>(`/api/documents/${doc.id}/fields/${f.id}`, { method: "PATCH", body: {} });
+    return d;
+  }, t(`${sure.length} angka dikonfirmasi`, `${sure.length} values confirmed`));
+  keyRef.current = (e) => {
+    const el = e.target as HTMLElement;
+    if (!editable || e.metaKey || e.ctrlKey || e.altKey || el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(el.tagName)) return;
+    if (e.key === "n" || e.key === "N") {
+      e.preventDefault();
+      goNext();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      confirmSelected();
+    }
   };
 
   const pageInfo = doc.layout?.pages ?? [];
@@ -190,6 +231,23 @@ export default function DocumentDetailPage() {
             )}
             {!type && <p className="small muted">{t("Pilih kategori agar sistem tahu angka apa yang dicari.", "Choose a category so the system knows which figures to look for.")}</p>}
 
+            {editable && type && doc.fields.length > 0 && (
+              <div className="review-bar" role="toolbar" aria-label={t("Alat pemeriksaan", "Review tools")}>
+                <span className="small strong">{unconfirmed.length
+                  ? t(`${unconfirmed.length} angka belum dikonfirmasi`, `${unconfirmed.length} values not confirmed`)
+                  : t("Semua angka sudah dikonfirmasi", "Every value is confirmed")}</span>
+                <span className="spacer" />
+                <label className="check small"><input type="checkbox" checked={onlyLow} onChange={(e) => setOnlyLow(e.target.checked)} />{t("Perlu dicek saja", "Needs checking only")}</label>
+                {queue.length > 0 && <Button size="sm" variant="ghost" onClick={goNext}>{t("Cek berikutnya", "Next to check")}<kbd>N</kbd></Button>}
+                {sure.length > 0 && (
+                  <Button size="sm" loading={busy === "sure"} onClick={confirmSure}>
+                    <IconCheck size={15} />{t(`Konfirmasi ${sure.length} angka ≥ 90%`, `Confirm ${sure.length} values ≥ 90%`)}
+                  </Button>
+                )}
+                <span className="tiny muted" style={{ flexBasis: "100%" }}>{t("Pintasan: N ke angka berikutnya yang perlu dicek, Enter untuk mengonfirmasi angka terpilih.", "Shortcuts: N for the next value to check, Enter to confirm the selected value.")}</span>
+              </div>
+            )}
+
             {type && Array.from({ length: nItems }).map((_, item) => (
               <div key={item} className={`item-card ${multi ? "multi" : ""}`}>
                 {multi && (
@@ -210,8 +268,9 @@ export default function DocumentDetailPage() {
                   const isHov = !!f && f.id === hoveredFieldId;
                   const value = edits[k] ?? shown(f, spec);
                   const lowConf = !!f && f.confidence < 0.75 && !f.confirmed;
+                  if (onlyLow && f && (f.confirmed || f.confidence >= 0.75)) return null;
                   return (
-                    <div key={spec.key}
+                    <div key={spec.key} data-fid={f?.id}
                       className={`frow ${active ? "active" : ""} ${isHov ? "hovered" : ""} ${spec.kind === "text" && value.length > 20 ? "wide" : ""}`}
                       onClick={() => f && setSelId(f.id)}
                       onMouseEnter={() => f && setHoveredFieldId(f.id)}
@@ -274,9 +333,8 @@ export default function DocumentDetailPage() {
                 </div>
               )}
               {editable && !selected.confirmed && (
-                <Button size="sm" style={{ marginTop: 14 }} loading={busy === "conf"}
-                  onClick={() => run("conf", () => api<DocumentDetail>(`/api/documents/${doc.id}/fields/${selected.id}`, { method: "PATCH", body: {} }), t("Dikonfirmasi", "Confirmed"))}>
-                  <IconCheck size={15} />{t("Angka ini benar", "This value is correct")}
+                <Button size="sm" style={{ marginTop: 14 }} loading={busy === "conf"} onClick={confirmSelected}>
+                  <IconCheck size={15} />{t("Angka ini benar", "This value is correct")}<kbd>Enter</kbd>
                 </Button>
               )}
             </section>

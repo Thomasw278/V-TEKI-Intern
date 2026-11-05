@@ -30,9 +30,9 @@ export default function SuperadminHome() {
 
   return (
     <>
-      <PageHead title={t(`Selamat datang, ${user?.name.split(" ")[0]}`, `Welcome, ${user?.name.split(" ")[0]}`)}
-        description={t("Atur dokumen yang wajib, opsional, atau tidak berlaku untuk tiap perusahaan. Superadmin tidak mengunggah atau menyetujui dokumen.",
-          "Set which documents are required, optional or not applicable for each company. The superadmin does not upload or approve documents.")} />
+      <PageHead eyebrow={user?.name} title={t("Kebutuhan dokumen", "Document requirements")}
+        description={t(`${data.companies.length} perusahaan · ${excluded.length} dengan kategori tidak berlaku · ${data.pending.length} permintaan menunggu`,
+          `${data.companies.length} companies · ${excluded.length} with excluded categories · ${data.pending.length} pending requests`)} />
 
       {data.pending.length > 0 ? (
         <section className="banner info" aria-label={t("Permintaan menunggu", "Pending requests")}>

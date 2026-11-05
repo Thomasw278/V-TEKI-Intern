@@ -3,11 +3,15 @@
 Langkah:
 1. Koreksi orientasi EXIF dan rotasi 90/180/270° (Tesseract OSD).
 2. Normalisasi ukuran agar tinggi huruf cukup untuk dibaca (upscale bila kecil).
-3. Peningkatan kontras, penajaman, binarisasi Otsu.
+3. Peningkatan kontras, binarisasi Otsu (untuk deteksi kemiringan).
 4. Koreksi kemiringan kecil (deskew ±7°) dengan profil proyeksi.
-5. Dua kali OCR (blok seragam psm 6 + teks tersebar psm 11) lalu digabung,
+5. Versi asli dan versi berlatar rata (arsiran sel, bayangan foto dihilangkan) dibaca; yang lebih terbaca dipakai.
+6. Garis tabel (deretan piksel gelap horizontal/vertikal yang panjang) diputihkan, karena Tesseract sering
+   kehilangan huruf dan angka yang menempel pada garis sel.
+7. Dua kali OCR (blok seragam psm 6 + teks tersebar psm 11) lalu digabung,
    sehingga teks di pojok, kotak terpisah, atau tabel tanpa garis tetap terbaca.
-6. Setiap kata disimpan dengan koordinat + skor keyakinan Tesseract.
+8. Setiap kata disimpan dengan koordinat + skor keyakinan Tesseract; salah baca satuan yang khas
+   ("(m7)" untuk m³, "(6)" untuk %) dibetulkan.
 """
 from __future__ import annotations
 
@@ -113,6 +117,26 @@ def _skew_angle(binary) -> float:
     return best_angle
 
 
+def _flatten(gray):
+    """Ratakan latar: sel tabel yang diarsir abu-abu dan bayangan/pencahayaan foto yang tidak rata menjadi putih.
+
+    Warna kertas lokal diperkirakan dengan filter maksimum pada gambar yang diperkecil (huruf hilang, latar
+    tersisa), lalu gambar asli dibagi dengan perkiraan itu.
+    """
+    try:
+        import numpy as np
+        from PIL import Image, ImageFilter
+    except ImportError:
+        return gray
+    f = 8
+    small = gray.resize((max(1, gray.width // f), max(1, gray.height // f)), resample=2)
+    bg = small.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1))
+    bg = np.asarray(bg.resize(gray.size, resample=2), dtype=np.float32)
+    a = np.asarray(gray, dtype=np.float32)
+    out = np.clip(a / np.maximum(bg, 1) * 255.0, 0, 255).astype(np.uint8)
+    return Image.fromarray(out, mode="L")
+
+
 def _prepare(img):
     """Gambar abu-abu yang sudah diputar, diluruskan, dan dibersihkan derau (LSTM Tesseract lebih akurat
     pada citra abu-abu dibanding citra hitam-putih keras)."""
@@ -152,6 +176,70 @@ def _prepare(img):
     return gray, notes
 
 
+def _long_runs(mask, length: int, axis: int):
+    """True untuk piksel yang berada di dalam deretan True sepanjang ≥ length pada sumbu `axis`."""
+    import numpy as np
+
+    m = np.moveaxis(mask, axis, -1).astype(np.int32)
+    n = m.shape[-1]
+    if n < length:
+        return np.zeros_like(mask, dtype=bool)
+    zeros = np.zeros(m.shape[:-1] + (1,), dtype=np.int32)
+    c = np.concatenate([zeros, np.cumsum(m, axis=-1)], axis=-1)
+    full = (c[..., length:] - c[..., :-length]) == length          # jendela yang seluruhnya gelap, per titik awal
+    wc = np.concatenate([zeros, np.cumsum(full, axis=-1, dtype=np.int32)], axis=-1)
+    k = np.arange(n)
+    lo = np.clip(k - length + 1, 0, n - length + 1)
+    hi = np.clip(k + 1, 0, n - length + 1)
+    return np.moveaxis((wc[..., hi] - wc[..., lo]) > 0, -1, axis)
+
+
+def remove_rules(gray):
+    """Putihkan garis tabel: deretan gelap sepanjang ≥ 1/14 lebar (atau 1/18 tinggi) halaman yang tebalnya
+    hanya beberapa piksel. Huruf tidak pernah sepanjang dan setipis itu."""
+    try:
+        import numpy as np
+        from PIL import Image
+    except ImportError:
+        return gray
+    a = np.asarray(gray, dtype=np.uint8)
+    dark = a < min(_otsu(gray), 170)
+    h, w = dark.shape
+    # garis = deretan gelap yang panjang DAN tipis; huruf tebal yang menyatu karena buram itu panjang tetapi tebal
+    thin = max(4, round(max(h, w) / 450))
+    horiz = _long_runs(dark, max(60, w // 14), 1)
+    horiz &= ~_long_runs(horiz, thin + 1, 0)
+    vert = _long_runs(dark, max(60, h // 18), 0)
+    vert &= ~_long_runs(vert, thin + 1, 1)
+    lines = horiz | vert
+    if lines.sum() < 0.0005 * h * w:
+        return gray
+    # tepi garis yang anti-aliased ikut dibersihkan
+    grown = lines.copy()
+    grown[1:, :] |= lines[:-1, :]
+    grown[:-1, :] |= lines[1:, :]
+    grown[:, 1:] |= lines[:, :-1]
+    grown[:, :-1] |= lines[:, 1:]
+    out = a.copy()
+    out[grown] = 255
+    return Image.fromarray(out, mode="L")
+
+
+# salah baca satuan yang khas: superskrip ³ → "7"/"?" dan tanda % → "6"/"96"
+_UNIT_FIXES = [
+    (re.compile(r"^\(m[37?2³]\)(\W*)$"), r"(m3)\1"),
+    (re.compile(r"^m[7?]$"), "m3"),
+    (re.compile(r"^\((?:6|96|%6|o/o)\)(\W*)$"), r"(%)\1"),
+]
+
+
+def _fix_units(t: str) -> str:
+    for rx, rep in _UNIT_FIXES:
+        if rx.match(t):
+            return rx.sub(rep, t)
+    return t
+
+
 def _run(img, psm: int) -> list[Word]:
     import pytesseract
 
@@ -171,6 +259,7 @@ def _run(img, psm: int) -> list[Word]:
         alnum = sum(ch.isalnum() for ch in t)
         if alnum <= 1 and conf < 70 and t != "%":
             continue  # bintik / derau yang terbaca sebagai huruf tunggal
+        t = _fix_units(t)
         x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
         key = (data["block_num"][i], data["par_num"][i], data["line_num"][i])
         rows.append((key, Word(t, float(x), float(y), float(x + w), float(y + h), conf / 100)))
@@ -186,6 +275,11 @@ def _run(img, psm: int) -> list[Word]:
         out.append(w)
         prev_key = key
     return out
+
+
+def _quality(ws: list[Word]) -> float:
+    """Skor keterbacaan satu hasil OCR: jumlah keyakinan kata yang berisi ≥ 2 huruf/angka."""
+    return sum(w.conf for w in ws if sum(ch.isalnum() for ch in w.text) >= 2)
 
 
 def _mean(ws: list[Word]) -> float:
@@ -240,15 +334,23 @@ def _drop_giants(words: list[Word]) -> tuple[list[Word], str]:
 
 def ocr_image(img) -> OcrResult | None:
     """OCR berlapis: beberapa mode segmentasi × tingkat pembersihan derau, lalu difusi per posisi kata."""
-    from PIL import ImageFilter
+    from PIL import ImageFilter, ImageOps
 
     if not available():
         return None
     prepared, notes = _prepare(img)
-    passes = [_run(prepared, 6), _run(prepared, 11)]
+    # Perataan latar menolong foto (bayangan, sel diarsir) tetapi bisa merugikan scan yang sudah bersih:
+    # baca keduanya dengan psm 6 lalu pakai versi yang lebih terbaca.
+    reads = []
+    for g in (prepared, ImageOps.autocontrast(_flatten(prepared), cutoff=1)):
+        c = remove_rules(g)
+        reads.append((g, c, _run(c, 6)))
+    prepared, clean, _ = max(reads, key=lambda r: _quality(r[2]))
+    # kedua bacaan psm 6 digabung per posisi kata (keyakinan tertinggi menang), lalu psm 11 pada versi terbaik
+    passes = [r[2] for r in reads] + [_run(clean, 11)]
     fused = _fuse(passes)
     if _mean(fused) < 0.88 or len(fused) < 8:
-        strong = prepared.filter(ImageFilter.MedianFilter(5))
+        strong = clean.filter(ImageFilter.MedianFilter(5))
         passes += [_run(strong, 6), _run(strong, 11)]
         fused = _fuse(passes)
         notes.append("Derau terdeteksi: hasil beberapa pembacaan OCR digabung.")

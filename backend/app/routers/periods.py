@@ -10,7 +10,7 @@ from ..schemas import CalculateIn, PeriodCreate, PeriodOut
 from ..services import audit
 from ..services import requirements as req
 from ..services.period import (
-    activity_table, analyse, dashboard, gates, latest_calculation, mark_changed, run_calculation,
+    activity_table, analyse, calc_freshness, dashboard, gates, latest_calculation, mark_changed, run_calculation,
 )
 from ..services.reports import build_xlsx, build_xml
 
@@ -67,23 +67,24 @@ def calculate_period(period_id: int, data: CalculateIn, ctx: Ctx = Depends(compa
         calc = run_calculation(db, period, ctx.user, data.gwp_set, data.allocation_method)
     except CalculationError as e:
         raise HTTPException(422, str(e)) from e
-    return _calc_out(calc)
+    return _calc_out(calc, period)
 
 
-def _calc_out(calc) -> dict:
+def _calc_out(calc, period) -> dict:
     return {
         "id": calc.id, "version": calc.version, "gwp_set": calc.gwp_set, "allocation_method": calc.allocation_method,
         "created_at": calc.created_at.isoformat() if calc.created_at else None,
-        "has_draft_factors": calc.has_draft_factors, **calc.result,
+        "has_draft_factors": calc.has_draft_factors, **calc.result, **calc_freshness(period, calc),
     }
 
 
 @router.get("/{period_id}/calculation")
 def get_calculation(period_id: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
-    calc = latest_calculation(db, get_period(period_id, ctx, db))
+    period = get_period(period_id, ctx, db)
+    calc = latest_calculation(db, period)
     if not calc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Belum ada kalkulasi untuk periode ini")
-    return _calc_out(calc)
+    return _calc_out(calc, period)
 
 
 @router.get("/{period_id}/gates")

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ContributionBars, EmissionFlow, GroupLegend, Waterfall } from "@/components/charts";
 import { Contours } from "@/components/Contours";
 import { ExcludedNote } from "@/components/requirements";
-import { IconArrow, IconChevron } from "@/components/Icons";
+import { IconArrow, IconChevron, IconWarn } from "@/components/Icons";
 import { Badge, Button, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { num, pct, when } from "@/lib/format";
@@ -89,6 +89,14 @@ export default function KalkulasiPage() {
       </PageHead>
 
       {runError && <div className="banner bad anim-shake" role="alert"><span className="grow">{runError}</span></div>}
+      {calc?.stale && canRun && (
+        <div className="banner warn" role="alert">
+          <IconWarn size={16} style={{ flex: "none", marginTop: 2 }} aria-hidden="true" />
+          <span className="grow">{t(`Data berubah ${when(calc.stale_since ?? null)} setelah kalkulasi v${calc.version}. Angka di bawah sudah kedaluwarsa.`,
+            `Data changed ${when(calc.stale_since ?? null)} after calculation v${calc.version}. The figures below are out of date.`)}</span>
+          <Button size="sm" variant="primary" loading={running} onClick={() => run()}>{t("Hitung ulang", "Recalculate")}</Button>
+        </div>
+      )}
       {calc && <ExcludedNote items={calc.excluded ?? []} />}
       {calc?.has_draft_factors && (
         <div className="banner warn">
@@ -106,7 +114,7 @@ export default function KalkulasiPage() {
         </section>
       ) : (
         <>
-          <section className="overview box-3d-contrast" data-ui="true" aria-label={t("Hasil per produk", "Results per product")}>
+          <section className="overview surface-band" data-ui="true" aria-label={t("Hasil per produk", "Results per product")}>
             <Contours className="contours" rings={7} />
             <div>
               <div className="ov-label">{t(`Total emisi periode ${period.year}`, `Total emissions, period ${period.year}`)}</div>

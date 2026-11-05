@@ -22,7 +22,7 @@ export function AuthLayout({ children, wide }: { children: ReactNode; wide?: boo
           )}</p>
           <div className="facts">
             <div><b>10</b><span>{t("kategori dokumen", "document categories")}</span></div>
-            <div><b>2</b><span>{t("peran: perusahaan & peninjau", "roles: company & reviewer")}</span></div>
+            <div><b>3</b><span>{t("peran: perusahaan, peninjau, pengelola", "roles: company, reviewer, administrator")}</span></div>
             <div><b>AR5/6</b><span>{t("set GWP IPCC", "IPCC GWP sets")}</span></div>
           </div>
         </div>

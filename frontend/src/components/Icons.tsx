@@ -53,6 +53,7 @@ export const IconBuilding = (p: P) => <Base {...p}><path d="M4 21V5.5A1.5 1.5 0 
 export const IconInbox = (p: P) => <Base {...p}><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8" /><path d="M3.5 13.5V18a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5H15a3 3 0 0 1-6 0z" /></Base>;
 export const IconLogout = (p: P) => <Base {...p}><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15" /><path d="M10 16.5 5.5 12 10 7.5M5.5 12H15" /></Base>;
 export const IconKey = (p: P) => <Base {...p}><circle cx="8" cy="15" r="4" /><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2" /></Base>;
+export const IconSidebar = (p: P) => <Base {...p}><rect x="3.5" y="4.5" width="17" height="15" rx="3" /><path d="M9.5 4.5v15" /></Base>;
 export const IconSwap = (p: P) => <Base {...p}><path d="M7 4 3.5 7.5 7 11M3.5 7.5h13M17 13l3.5 3.5L17 20M20.5 16.5h-13" /></Base>;
 export const IconSend = (p: P) => <Base {...p}><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z" /></Base>;
 export const IconUndo = (p: P) => <Base {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></Base>;

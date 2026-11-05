@@ -10,7 +10,7 @@ from ..core.aggregation import DocInput, ProductSpec, build_activity
 from ..core.engine import ActivityData, calculate
 from ..core.validation import Issue, ReqSpec, requirements, validate_period
 from ..models import (
-    AuditLog, Calculation, Company, Document, EmissionFactor, Product, ReportingPeriod, User, utcnow,
+    AuditLog, Calculation, Company, Document, EmissionFactor, Facility, Product, ReportingPeriod, User, utcnow,
 )
 from . import audit
 from . import requirements as req
@@ -109,7 +109,8 @@ def run_calculation(db: Session, period: ReportingPeriod, user: User, gwp: str |
     if period.status == "open":
         period.status = "calculated"
     audit.log(db, user, period.company_id, "calculation", period.id, "calculate",
-              f"Kalkulasi v{version} ({gwp}, alokasi {'ekonomi' if alloc == 'economic' else 'massa'}) total {result.total_t:,.0f} t CO2e".replace(",", "."))
+              f"Kalkulasi v{version} ({gwp}, alokasi {'ekonomi' if alloc == 'economic' else 'massa'}) total "
+              f"{f'{result.total_t:,.0f}'.replace(',', '.')} t CO2e")
     db.commit()
     db.refresh(calc)
     return calc
@@ -148,6 +149,18 @@ def gates(db: Session, period: ReportingPeriod, user: User, specs: list[ReqSpec]
     ]
 
 
+def calc_is_stale(period: ReportingPeriod, calc: Calculation | None) -> bool:
+    """Data (dokumen, faktor, status kebutuhan) berubah setelah kalkulasi terakhir → angkanya kedaluwarsa."""
+    if not calc or period.status == "locked" or not period.data_changed_at or not calc.created_at:
+        return False
+    return calc.created_at < period.data_changed_at
+
+
+def calc_freshness(period: ReportingPeriod, calc: Calculation | None) -> dict:
+    stale = calc_is_stale(period, calc)
+    return {"stale": stale, "stale_since": period.data_changed_at.isoformat() if stale else None}
+
+
 def mark_changed(period: ReportingPeriod) -> None:
     period.data_changed_at = utcnow()
     if period.status == "calculated":
@@ -160,10 +173,14 @@ def dashboard(db: Session, period: ReportingPeriod) -> dict:
     status_count: dict[str, int] = {}
     for d in docs:
         status_count[d.status] = status_count.get(d.status, 0) + 1
+    # catatan "masuk" (login) bukan aktivitas pekerjaan → tidak ditampilkan di ringkasan
     recent = db.execute(
         select(AuditLog, User.name).join(User, User.id == AuditLog.user_id, isouter=True)
-        .where(AuditLog.company_id == period.company_id).order_by(AuditLog.id.desc()).limit(8)
+        .where(AuditLog.company_id == period.company_id, AuditLog.action != "login")
+        .order_by(AuditLog.id.desc()).limit(8)
     ).all()
+    company = db.get(Company, period.company_id)
+    has_facility = db.scalar(select(func.count(Facility.id)).where(Facility.company_id == period.company_id)) or 0
     return {
         "period": {"id": period.id, "year": period.year, "status": period.status},
         "requirements": reqs,
@@ -176,7 +193,14 @@ def dashboard(db: Session, period: ReportingPeriod) -> dict:
             "total_t": float(calc.total_t), "direct_t": float(calc.direct_t), "indirect_t": float(calc.indirect_t),
             "upstream_t": float(calc.upstream_t), "has_draft_factors": calc.has_draft_factors,
             "lines": calc.result.get("lines", []), "allocations": calc.result.get("allocations", []),
-            "excluded": calc.result.get("excluded", []),
+            "excluded": calc.result.get("excluded", []), **calc_freshness(period, calc),
+        },
+        # langkah awal untuk perusahaan baru (panduan di ringkasan)
+        "setup": {
+            "profile": bool(company and company.address and company.legal_id and has_facility),
+            "documents": len(docs) > 0,
+            "submitted": any(d.status in ("validated", "approved") for d in docs),
+            "calculated": calc is not None,
         },
         "activity": [
             {"user": name or "Sistem", "summary": a.summary, "at": a.created_at.isoformat() if a.created_at else None}

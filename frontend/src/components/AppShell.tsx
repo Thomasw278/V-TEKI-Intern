@@ -11,7 +11,7 @@ import { useSummary } from "@/lib/summary";
 import type { DocumentItem } from "@/lib/types";
 import {
   IconBuilding, IconCalc, IconCheck, IconChevron, IconFactor, IconFile, IconFlow, IconHistory, IconHome, IconInbox,
-  IconLogout, IconMenu, IconReport, IconSearch, IconSettings, IconShield, IconSidebar, IconSwap, IconTable, IconUsers, IconX, LogoMark,
+  IconLogout, IconMenu, IconReport, IconSeal, IconSearch, IconSettings, IconShield, IconSidebar, IconSwap, IconTable, IconUsers, IconX, LogoMark,
 } from "./Icons";
 import { Badge, Toggles } from "./ui";
 
@@ -62,6 +62,7 @@ function useNav(): NavItem[] {
         { href: "/faktor", label: t("Faktor emisi", "Emission factors"), short: t("Faktor", "Factors"), icon: <IconFactor />, group: g, count: drafts },
         { href: "/kalkulasi", label: t("Kalkulasi", "Calculation"), short: t("Hitung", "Calculate"), icon: <IconCalc />, group: g },
         { href: "/laporan", label: t("Laporan & penguncian", "Report & lock"), short: t("Laporan", "Report"), icon: <IconReport />, group: g },
+        { href: "/pernyataan", label: t("Pernyataan emisi", "Emissions statement"), short: t("Pernyataan", "Statement"), icon: <IconSeal />, group: g },
       );
     }
     items.push({ href: "/pengaturan", label: company ? t("Profil & akun", "Profile & account") : t("Akun saya", "My account"), short: t("Akun", "Account"), icon: <IconSettings />, group: t("Pengaturan", "Settings") });
@@ -76,6 +77,7 @@ function useNav(): NavItem[] {
     { href: "/faktor", label: t("Faktor emisi", "Emission factors"), short: t("Faktor", "Factors"), icon: <IconFactor />, group: t("Emisi", "Emissions") },
     { href: "/kalkulasi", label: t("Kalkulasi CBAM", "CBAM calculation"), short: t("Hitung", "Calculate"), icon: <IconCalc />, group: t("Emisi", "Emissions") },
     { href: "/laporan", label: t("Tinjauan & laporan", "Review & report"), short: t("Laporan", "Report"), icon: <IconReport />, group: t("Pelaporan", "Reporting") },
+    { href: "/pernyataan", label: t("Pernyataan emisi", "Emissions statement"), short: t("Pernyataan", "Statement"), icon: <IconSeal />, group: t("Pelaporan", "Reporting") },
     { href: "/pengaturan", label: t("Perusahaan & akun", "Company & account"), short: t("Akun", "Account"), icon: <IconSettings />, group: t("Pengaturan", "Settings") },
   ];
 }

@@ -152,3 +152,18 @@ export const MONTHS = {
   en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 };
 export const monthNames = () => MONTHS[getLang()];
+
+/** Tanggal panjang untuk dokumen resmi: "5 November 2026". */
+export function longDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = parseIso(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(locale(), { day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Nilai faktor emisi apa adanya (maks. 6 angka penting, tanpa nol berlebih). */
+export function sig(value: number | string | null | undefined): string {
+  const n = typeof value === "string" ? Number(value) : value;
+  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat(locale(), { maximumSignificantDigits: 6 }).format(n);
+}

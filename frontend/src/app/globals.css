@@ -1157,3 +1157,44 @@ button.list-row { width: 100%; background: transparent; border: 0; border-top: 1
 
 .req.excluded .req-compact { display: flex; flex-direction: column; gap: 6px; }
 .inbox-card .impact { font-size: 13px; color: var(--muted); }
+
+/* ---------- pernyataan emisi tertanam (/pernyataan) ---------- */
+.stmt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.stmt-preview {
+  position: relative; min-width: 0; border-radius: var(--radius-lg); border: var(--hairline); overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 0%, var(--surface-2), var(--surface-3));
+}
+.stmt-frame { display: block; width: 100%; border: 0; background: transparent; transition: opacity 220ms var(--ease); }
+.stmt-loading { position: absolute; inset: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 16px; color: var(--muted); font-size: 14px; }
+.stmt-side { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.stmt-side .kv { grid-template-columns: auto minmax(0, 1fr); font-size: 13.5px; }
+.stmt-verify { border-color: color-mix(in srgb, var(--ok) 30%, var(--line)); background: linear-gradient(180deg, var(--ok-soft), var(--surface) 70%); }
+.stmt-verify svg { color: var(--ok-ink); }
+.stmt-code { font-size: 17px; letter-spacing: 0.04em; color: var(--ink); padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface); border: var(--hairline); text-align: center; }
+.stmt-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+.stmt-checks li { display: flex; gap: 8px; align-items: flex-start; }
+.stmt-checks svg { flex: none; margin-top: 3px; color: var(--warn); }
+@media (max-width: 1180px) {
+  .stmt-layout { grid-template-columns: minmax(0, 1fr); }
+  .stmt-side { position: static; order: -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+}
+
+/* ---------- cek keaslian (/verifikasi) ---------- */
+.verify-form { display: flex; align-items: flex-start; gap: 12px; margin-top: 28px; }
+.verify-form .field { flex: 1; min-width: 0; }
+.verify-form > .btn { margin-top: 26px; }
+.verify-input { font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; }
+.verify-result { display: flex; gap: 14px; margin-top: 24px; padding: 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); }
+.verify-result p { margin: 4px 0 0; color: var(--ink-2); }
+.verify-icon { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
+.verify-result.ok { border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
+.verify-result.ok .verify-icon { background: var(--ok-soft); color: var(--ok-ink); }
+.verify-result.warn { border-color: color-mix(in srgb, var(--warn) 35%, var(--line)); }
+.verify-result.warn .verify-icon { background: var(--warn-soft); color: var(--warn-ink); }
+.verify-result.bad { border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); }
+.verify-result.bad .verify-icon { background: var(--bad-soft); color: var(--bad-ink); }
+@media (max-width: 560px) {
+  .verify-form { flex-direction: column; align-items: stretch; }
+  .verify-form > .btn { margin-top: 0; }
+  .verify-result { flex-direction: column; }
+}

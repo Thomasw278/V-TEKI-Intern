@@ -1,0 +1,210 @@
+/* Pernyataan Hasil Perhitungan Emisi Tertanam — lembar A4 (layar & cetak).
+   Warna dokumen tetap terang di tema gelap: ini kertas, bukan antarmuka. Semua kelas berawalan .sd- */
+
+@page { size: A4; margin: 0; }
+
+.sd-root {
+  --sd-ink: #141413; --sd-ink-2: #2E2E2C; --sd-muted: #57534E; --sd-faint: #8A8884; --sd-line: #E2DFD7;
+  --sd-green: #0F5338; --sd-deep: #0e2c1f; --sd-lime: #c8f05a; --sd-paper: #FFFEFB; --sd-amber: #B45309;
+  --sd-direct: #15803D; --sd-indirect: #A08B14; --sd-upstream: #2B74C7;
+  color: var(--sd-ink); font-family: var(--font);
+}
+
+/* ---------- lembar ---------- */
+.sd-pages { display: flex; flex-direction: column; align-items: center; gap: 22px; zoom: var(--sd-zoom, 1); }
+.sd-page {
+  width: 210mm; height: 296.8mm; padding: 16mm 20mm 12mm; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; background: var(--sd-paper); color-scheme: light;
+  box-shadow: 0 0 0 1px rgba(20, 20, 19, 0.06), 0 2px 4px rgba(20, 20, 19, 0.06), 0 24px 60px -28px rgba(20, 20, 19, 0.45);
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.sd-body { position: relative; z-index: 1; flex: 1; min-height: 0; }
+.sd-measure { position: absolute; left: -10000px; top: 0; width: 170mm; visibility: hidden; pointer-events: none; }
+.sd-block { display: flow-root; }
+
+.sd-wm { position: absolute; left: 50%; top: 53%; width: 150mm; height: 150mm; transform: translate(-50%, -50%); color: var(--sd-green); opacity: 0.055; pointer-events: none; }
+.sd-draftmark {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-36deg); pointer-events: none;
+  font-family: var(--display); font-size: 170pt; line-height: 1; letter-spacing: 0.06em; color: var(--sd-amber); opacity: 0.075; white-space: nowrap;
+}
+.sd-frame { position: absolute; inset: 8.5mm; border: 0.5pt solid rgba(15, 83, 56, 0.2); pointer-events: none; }
+.sd-frame i { position: absolute; width: 7mm; height: 7mm; border: 0 solid var(--sd-green); }
+.sd-frame i:nth-child(1) { top: -0.5pt; left: -0.5pt; border-top-width: 1.3pt; border-left-width: 1.3pt; }
+.sd-frame i:nth-child(2) { top: -0.5pt; right: -0.5pt; border-top-width: 1.3pt; border-right-width: 1.3pt; }
+.sd-frame i:nth-child(3) { bottom: -0.5pt; left: -0.5pt; border-bottom-width: 1.3pt; border-left-width: 1.3pt; }
+.sd-frame i:nth-child(4) { bottom: -0.5pt; right: -0.5pt; border-bottom-width: 1.3pt; border-right-width: 1.3pt; }
+
+.sd-run {
+  position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 6mm;
+  height: 9mm; margin-bottom: 4mm; border-bottom: 0.5pt solid var(--sd-line); font-size: 7.2pt; color: var(--sd-muted);
+}
+.sd-run-brand { display: inline-flex; align-items: center; gap: 2mm; color: var(--sd-green); }
+.sd-run-brand b { font-family: var(--display); font-weight: 400; font-size: 10.5pt; color: var(--sd-deep); }
+.sd-run-brand span { padding-left: 2mm; border-left: 0.5pt solid var(--sd-line); color: var(--sd-muted); }
+.sd-foot {
+  position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 4mm;
+  height: 8mm; margin-top: 2mm; padding-top: 2mm; border-top: 0.5pt solid var(--sd-line); font-size: 6.8pt; color: var(--sd-faint);
+}
+.sd-foot-mid { font-family: var(--mono); letter-spacing: 0.02em; }
+
+/* ---------- tipografi isi ---------- */
+.sd-type { font-size: 9.3pt; line-height: 1.58; color: var(--sd-ink-2); }
+.sd-type p {
+  margin: 0 0 2.4mm; text-align: justify; text-justify: inter-word; hyphens: auto; -webkit-hyphens: auto;
+  orphans: 3; widows: 3;
+}
+.sd-type b { color: var(--sd-ink); font-weight: 650; }
+.sd-type em { font-style: italic; }
+.sd-type .mono { font-family: var(--mono); font-size: 0.92em; }
+.sd-soft { color: var(--sd-muted); font-weight: 400; }
+
+.sd-sec { padding-top: 6.5mm; }
+.sd-cont { padding-top: 1.2mm; }
+.sd-h2 {
+  display: flex; align-items: baseline; gap: 3mm; margin: 0 0 3mm;
+  font: 700 7.6pt/1.2 var(--font); letter-spacing: 0.15em; text-transform: uppercase; color: var(--sd-green);
+}
+.sd-h2 .sd-n { font: 400 14pt/1 var(--display); letter-spacing: 0; color: var(--sd-deep); }
+.sd-h2::after { content: ""; flex: 1; height: 0.5pt; background: var(--sd-line); align-self: center; }
+
+/* ---------- kop & judul ---------- */
+.sd-mast { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; }
+.sd-brand { display: flex; align-items: center; gap: 3mm; color: var(--sd-green); }
+.sd-brand b { display: block; font: 400 19pt/1 var(--display); color: var(--sd-deep); }
+.sd-brand span { display: block; margin-top: 1.2mm; font-size: 7pt; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sd-muted); }
+.sd-meta { display: grid; grid-template-columns: auto auto; gap: 0.6mm 4mm; margin: 0; font-size: 7.8pt; text-align: right; }
+.sd-meta dt { color: var(--sd-muted); }
+.sd-meta dd { margin: 0; color: var(--sd-ink); font-weight: 600; }
+.sd-micro {
+  margin-top: 5mm; padding: 0.8mm 0; border-top: 1.2pt solid var(--sd-deep); border-bottom: 0.4pt solid var(--sd-deep);
+  font: 400 4.6pt/1 var(--mono); letter-spacing: 0.18em; color: rgba(15, 83, 56, 0.55); white-space: nowrap; overflow: hidden;
+}
+.sd-title { padding-top: 7mm; }
+.sd-kicker { font-size: 7.6pt; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sd-green); }
+.sd-title h1 { margin: 3mm 0 2mm; font: 400 26pt/1.08 var(--display); letter-spacing: -0.005em; color: var(--sd-deep); }
+.sd-alt { font-size: 9pt; font-style: italic; color: var(--sd-muted); }
+.sd-pill {
+  display: inline-flex; align-items: center; gap: 2mm; margin-top: 4.5mm; padding: 1.3mm 3.4mm; border-radius: 99px;
+  font-size: 7.6pt; font-weight: 700; letter-spacing: 0.04em;
+}
+.sd-pill i { width: 1.9mm; height: 1.9mm; border-radius: 50%; background: currentColor; }
+.sd-pill.final { background: #E6F3EA; color: #0F5C2A; box-shadow: inset 0 0 0 0.5pt rgba(21, 128, 61, 0.35); }
+.sd-pill.draft { background: #FDF0D5; color: #7C3A06; box-shadow: inset 0 0 0 0.5pt rgba(180, 83, 9, 0.35); }
+
+.sd-callout {
+  margin-top: 6mm; padding: 3.5mm 4.5mm; border-radius: 2.5mm; background: #FDF6E7;
+  border: 0.5pt solid rgba(180, 83, 9, 0.35); border-left: 2pt solid var(--sd-amber); font-size: 8.4pt; color: #5C2D06;
+}
+.sd-callout b { color: #7C3A06; }
+.sd-callout ul { margin: 1.2mm 0 1.6mm; padding-left: 4.5mm; }
+.sd-type .sd-callout p { margin: 0; color: #5C2D06; }
+
+.sd-lead { padding-top: 5.5mm; }
+.sd-lead p { font-size: 9.9pt; line-height: 1.62; color: var(--sd-ink); }
+
+/* ---------- identitas ---------- */
+.sd-id { display: grid; grid-template-columns: 31mm 1fr; gap: 1.8mm 5mm; margin: 0; font-size: 8.9pt; }
+.sd-id dt { color: var(--sd-muted); }
+.sd-id dd { margin: 0; color: var(--sd-ink); font-weight: 600; }
+
+/* ---------- ringkasan ---------- */
+.sd-hero {
+  position: relative; display: grid; grid-template-columns: 0.95fr 1.15fr; gap: 8mm; margin-top: 3.5mm; padding: 6mm 7mm;
+  border-radius: 3.5mm; overflow: hidden; color: #F5F3EF;
+  background: radial-gradient(120% 140% at 0% 0%, #164a33 0%, var(--sd-deep) 55%, #0a2318 100%);
+}
+.sd-hero::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.12;
+  background: repeating-radial-gradient(circle at 18% 120%, transparent 0 7mm, rgba(200, 240, 90, 0.9) 7mm 7.25mm);
+}
+.sd-hero > * { position: relative; }
+.sd-hero .sd-lbl { font-size: 7.2pt; letter-spacing: 0.14em; text-transform: uppercase; color: #a9c2b3; }
+.sd-hero .sd-big { margin: 3mm 0 2mm; font: 400 33pt/1 var(--display); color: var(--sd-lime); font-variant-numeric: tabular-nums; }
+.sd-hero .sd-unit { font-size: 8pt; color: #c9d8cf; }
+.sd-hero .sd-unit.sd-bio { margin-top: 3mm; padding-top: 2mm; border-top: 0.5pt solid rgba(200, 240, 90, 0.18); color: #a9c2b3; }
+.sd-hero .sd-rows > div {
+  display: grid; grid-template-columns: 1fr auto; gap: 1.2mm 4mm; padding: 2.1mm 0;
+  border-bottom: 0.5pt solid rgba(200, 240, 90, 0.16);
+}
+.sd-hero .sd-rows > div:last-child { border-bottom: 0; }
+.sd-hero .sd-rows b { color: #F5F3EF; font-weight: 650; font-size: 8.8pt; }
+.sd-hero .sd-rows small { display: block; font-size: 6.9pt; color: #a9c2b3; }
+.sd-hero .sd-rows em { font: normal 400 9pt/1.3 var(--mono); text-align: right; white-space: nowrap; color: #F5F3EF; }
+.sd-hero .sd-rows em small { text-align: right; font-family: var(--font); }
+.sd-hero .sd-hbar { grid-column: 1 / -1; height: 1.1mm; border-radius: 1mm; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.sd-hero .sd-hbar i { display: block; height: 100%; border-radius: inherit; background: var(--sd-lime); }
+
+/* ---------- tabel ---------- */
+.sd-table { width: 100%; border-collapse: collapse; font-size: 8.4pt; line-height: 1.4; color: var(--sd-ink); }
+.sd-table th {
+  padding: 0 2mm 1.6mm; border-bottom: 0.9pt solid var(--sd-deep); vertical-align: bottom; text-align: left;
+  font-size: 6.6pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sd-muted);
+}
+.sd-table td { padding: 1.7mm 2mm; border-bottom: 0.4pt solid var(--sd-line); vertical-align: top; background: rgba(255, 254, 251, 0.6); }
+.sd-table th:first-child, .sd-table td:first-child { padding-left: 0; }
+.sd-table th:last-child, .sd-table td:last-child { padding-right: 0; }
+.sd-table .sd-r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sd-table .sd-sub { display: block; font-size: 7.2pt; color: var(--sd-muted); }
+.sd-table tfoot td { border-top: 0.9pt solid var(--sd-deep); border-bottom: 0; font-weight: 700; padding-top: 2mm; }
+.sd-see td.sd-seev { font: 400 12pt/1.1 var(--display); color: var(--sd-green); }
+.sd-compact td { padding: 1.25mm 2mm; font-size: 7.9pt; }
+.sd-share { display: inline-flex; align-items: center; gap: 2mm; }
+.sd-bar { display: inline-block; width: 16mm; height: 1.2mm; border-radius: 1mm; background: #EDEBE5; overflow: hidden; }
+.sd-bar i { display: block; height: 100%; border-radius: inherit; background: var(--sd-direct); }
+.sd-bar.indirect i { background: var(--sd-indirect); }
+.sd-bar.upstream i { background: var(--sd-upstream); }
+.sd-dag { margin-left: 0.6mm; color: var(--sd-amber); font-weight: 700; }
+.sd-tag { margin-left: 1.5mm; padding: 0.2mm 1.4mm; border-radius: 99px; background: #FDF0D5; color: #7C3A06; font-size: 6.4pt; font-weight: 700; }
+.sd-type p.sd-note { margin-top: 2.4mm; font-size: 7.8pt; line-height: 1.5; color: var(--sd-muted); }
+.sd-list { margin: 0 0 2.4mm; padding-left: 4.5mm; }
+.sd-list li { margin: 0.8mm 0; text-align: justify; }
+
+/* ---------- pengesahan ---------- */
+.sd-type p.sd-place { margin-top: 3.5mm; text-align: left; color: var(--sd-ink); font-weight: 600; }
+.sd-signs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4.5mm; margin-top: 2.5mm; }
+.sd-sign {
+  position: relative; display: flex; flex-direction: column; min-height: 45mm; padding: 3.5mm 4mm;
+  border: 0.5pt solid var(--sd-line); border-radius: 2.5mm; background: rgba(255, 254, 251, 0.85);
+}
+.sd-sign .sd-role { font-size: 6.5pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sd-green); }
+.sd-sign .sd-space { flex: 1; min-height: 15mm; display: flex; align-items: center; font-size: 7.2pt; font-style: italic; color: var(--sd-faint); }
+.sd-sign .sd-who { padding-top: 1.6mm; border-top: 0.6pt solid var(--sd-ink); font-weight: 700; color: var(--sd-ink); }
+.sd-sign .sd-who.blank { border-top-style: dotted; }
+.sd-sign .sd-smeta { font-size: 7.1pt; line-height: 1.4; color: var(--sd-muted); }
+.sd-seal { position: absolute; right: 3mm; bottom: 7.5mm; width: 24mm; height: 24mm; color: #12603f; opacity: 0.88; transform: rotate(-11deg); }
+
+/* ---------- keaslian ---------- */
+.sd-verify {
+  display: grid; grid-template-columns: 0.9fr 1.3fr; gap: 6mm; padding: 4.5mm 5mm; border-radius: 3mm;
+  border: 0.6pt solid rgba(15, 83, 56, 0.32); background: linear-gradient(180deg, rgba(232, 243, 236, 0.92), rgba(250, 253, 251, 0.92));
+}
+.sd-verify.pending { display: block; border-style: dashed; background: rgba(244, 243, 239, 0.9); }
+.sd-type .sd-verify p { margin: 0 0 2.2mm; font-size: 8pt; line-height: 1.5; }
+.sd-verify.pending p { margin: 0; }
+.sd-verify .sd-k { display: block; font-size: 6.4pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sd-green); }
+.sd-code { margin: 1mm 0 3mm; font: 400 14.5pt/1.1 var(--mono); letter-spacing: 0.04em; color: var(--sd-deep); white-space: nowrap; }
+.sd-url { margin-top: 0.8mm; font: 400 7.8pt/1.3 var(--mono); color: var(--sd-ink); word-break: break-all; }
+.sd-hash { margin-top: 0.8mm; font: 400 6.6pt/1.45 var(--mono); color: var(--sd-muted); word-break: break-all; }
+.sd-type p.sd-fine { margin-top: 5.5mm; padding-top: 3mm; border-top: 0.5pt solid var(--sd-line); font-size: 7.3pt; line-height: 1.5; color: var(--sd-muted); }
+
+/* ---------- halaman cetak (/cetak/pernyataan) ---------- */
+.sd-canvas { min-height: 100vh; padding: 0 16px 56px; background: var(--surface-3); }
+.sd-canvas.embed { padding: 18px 12px 28px; background: transparent; }
+.sd-toolbar {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 -16px 24px; padding: 10px 16px; background: var(--glass-bg-strong); border-bottom: 1px solid var(--line);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+}
+.sd-toolbar .t { min-width: 0; display: flex; flex-direction: column; }
+.sd-toolbar .t b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sd-toolbar .t span { font-size: 12px; color: var(--muted); }
+.sd-state { min-height: 60vh; display: grid; place-items: center; text-align: center; padding: 24px; }
+
+@media print {
+  html, body { background: #fff !important; }
+  .sd-canvas, .sd-canvas.embed { padding: 0; background: none; min-height: 0; }
+  .sd-toolbar, .sd-noprint { display: none !important; }
+  .sd-pages { display: block; zoom: 1 !important; }
+  .sd-page { box-shadow: none; margin: 0; break-after: page; page-break-after: always; }
+  .sd-page:last-child { break-after: auto; page-break-after: auto; }
+}

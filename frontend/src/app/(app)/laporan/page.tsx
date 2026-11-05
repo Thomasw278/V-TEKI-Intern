@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { IconDownload, IconLock } from "@/components/Icons";
+import Link from "next/link";
+import { IconArrow, IconDownload, IconLock, IconSeal } from "@/components/Icons";
 import { Badge, Button, Dialog, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
 import { api, ApiError, downloadFile } from "@/lib/api";
 import { num, reqSourceLabel, when } from "@/lib/format";
@@ -151,6 +152,14 @@ export default function LaporanPage() {
                   </button>
                 ))}
               </div>
+              <Link href="/pernyataan" className="btn secondary" style={{ height: "auto", padding: 14, justifyContent: "flex-start", textAlign: "left", whiteSpace: "normal" }}>
+                <IconSeal size={18} />
+                <span className="grow"><b style={{ display: "block" }}>{t("Pernyataan hasil perhitungan emisi tertanam", "Embedded emissions calculation statement")}</b>
+                  <span className="tiny muted" style={{ fontWeight: 400 }}>{locked
+                    ? t("PDF · final, dengan kode verifikasi", "PDF · final, with verification code")
+                    : t("PDF · draf sampai periode dikunci", "PDF · draft until the period is locked")}</span></span>
+                <IconArrow size={15} />
+              </Link>
               {!locked && <span className="tiny muted">{t("Ekspor sebelum dikunci diberi tanda DRAF di dalam berkas.", "Exports before locking are marked DRAFT inside the file.")}</span>}
             </div>
           )}

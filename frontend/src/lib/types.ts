@@ -545,3 +545,46 @@ export interface SuperAuditEntry {
   after: Record<string, unknown> | null;
   at: string | null;
 }
+
+/** Pernyataan Hasil Perhitungan Emisi Tertanam (GET /api/periods/{id}/statement). */
+export interface StatementData {
+  status: "final" | "draft";
+  /** Alasan dokumen masih draf (periode belum dikunci, kalkulasi kedaluwarsa, faktor draf). */
+  notes: string[];
+  number: string;
+  code: string | null;
+  sha256: string | null;
+  issued_at: string | null;
+  generated_at: string;
+  company: { name: string; legal_id: string | null; sector: string; address: string | null; city: string | null; province: string | null; postal_code: string | null };
+  facilities: { name: string; type: string; capacity_tph: number | null; area_ha: number | null }[];
+  period: { id: number; year: number; revision: number; status: string; locked_at: string | null; locked_by: string | null };
+  calculation: {
+    id: number; version: number; created_at: string | null; created_by: string | null;
+    gwp_set: "AR5" | "AR6"; allocation_method: "economic" | "mass"; stale: boolean; has_draft_factors: boolean;
+    direct_t: number; indirect_t: number; upstream_t: number; total_t: number; biogenic_co2_t: number;
+    lines: { key: string; name: string; group: "direct" | "indirect" | "upstream"; scope: string; value_t: number; source: string }[];
+    allocations: (Allocation & { cn_code: string | null; product_name: string })[];
+    excluded: ExcludedCategory[];
+    defaults_used: Record<string, string>;
+  };
+  factors: { code: string; name: string; value: string; unit: string; status: string; source: string }[];
+  verify_path: string | null;
+}
+
+/** Hasil cek keaslian publik (GET /api/public/statements/{kode}). */
+export interface StatementCheck {
+  code: string;
+  number: string;
+  sha256: string;
+  status: "valid" | "superseded";
+  superseded_at: string | null;
+  replaced_by: string | null;
+  company: string | null;
+  legal_id: string | null;
+  year: number;
+  revision: number;
+  issued_at: string | null;
+  total_t: number;
+  products: { code: string; name: string; see_total: number }[];
+}

@@ -193,7 +193,7 @@ def dashboard(db: Session, period: ReportingPeriod) -> dict:
             "total_t": float(calc.total_t), "direct_t": float(calc.direct_t), "indirect_t": float(calc.indirect_t),
             "upstream_t": float(calc.upstream_t), "has_draft_factors": calc.has_draft_factors,
             "lines": calc.result.get("lines", []), "allocations": calc.result.get("allocations", []),
-            "excluded": calc.result.get("excluded", []), **calc_freshness(period, calc),
+            "excluded": calc.result.get("excluded", []), "cbam": calc.result.get("cbam"), **calc_freshness(period, calc),
         },
         # langkah awal untuk perusahaan baru (panduan di ringkasan)
         "setup": {

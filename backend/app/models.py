@@ -312,3 +312,27 @@ class AuditLog(TimestampMixin, Base):
     before: Mapped[dict | None] = mapped_column(JSON)
     after: Mapped[dict | None] = mapped_column(JSON)
     reason: Mapped[str | None] = mapped_column(String(255))
+
+
+class Statement(Base):
+    """Pernyataan hasil perhitungan emisi tertanam yang diterbitkan saat periode dikunci.
+
+    Kode verifikasi = 16 karakter pertama sidik SHA-256 dari isi kalkulasi; dipakai pihak luar
+    (importir, verifikator) untuk mencocokkan dokumen cetak dengan data di KarbonLens. Saat revisi
+    baru dibuka, pernyataan lama tetap tersimpan tetapi ditandai digantikan (superseded_at).
+    """
+    __tablename__ = "statements"
+    __table_args__ = (UniqueConstraint("period_id", "revision", name="uq_statement_revision"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), index=True)
+    period_id: Mapped[int] = mapped_column(ForeignKey("reporting_periods.id", ondelete="CASCADE"), index=True)
+    calculation_id: Mapped[int] = mapped_column(ForeignKey("calculations.id", ondelete="CASCADE"))
+    year: Mapped[int] = mapped_column(Integer)
+    revision: Mapped[int] = mapped_column(Integer)
+    number: Mapped[str] = mapped_column(String(40))
+    code: Mapped[str] = mapped_column(String(19), unique=True)  # XXXX-XXXX-XXXX-XXXX
+    sha256: Mapped[str] = mapped_column(String(64))
+    total_t: Mapped[Decimal] = mapped_column(NUM)
+    issued_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    issued_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime)

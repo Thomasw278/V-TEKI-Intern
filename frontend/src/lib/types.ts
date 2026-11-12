@@ -314,6 +314,7 @@ export interface Calculation {
   allocations: Allocation[];
   defaults_used: Record<string, string>;
   excluded?: ExcludedCategory[];
+  cbam?: CbamResult | null;
 }
 
 /** Kategori "Tidak berlaku": dikeluarkan dari perhitungan dan dicantumkan di laporan. */
@@ -347,6 +348,8 @@ export interface Dashboard {
   stale_since?: string | null;
     lines: CalcLine[];
     allocations: Allocation[];
+    /** Kalkulasi lama (sebelum fitur batas CBAM) tidak punya bagian ini. */
+    cbam?: CbamResult | null;
   };
   activity: { user: string; summary: string; at: string | null }[];
   /** Langkah awal perusahaan baru. */
@@ -587,4 +590,20 @@ export interface StatementCheck {
   issued_at: string | null;
   total_t: number;
   products: { code: string; name: string; see_total: number }[];
+}
+
+/** Emisi tertanam menurut batas CBAM (Annex IV Reg. 2023/956), dihitung berdampingan dengan jejak karbon produk. */
+export interface CbamResult {
+  basis: string;
+  attr_dir_t: number;
+  precursor_t: number;
+  embedded_dir_t: number;
+  embedded_indir_t: number;
+  embedded_total_t: number;
+  activity_level_t: number;
+  biomass_not_zero_rated_t: number;
+  allocation: "mass";
+  lines: { key: string; name: string; kind: "direct" | "indirect" | "precursor"; formula: string; calc: string; value_t: number }[];
+  outside: { key: string; name: string; value_t: number; reason: string }[];
+  allocations: { code: string; name: string; tonnes: number; share: number; see_dir: number; see_indir: number; see_total: number }[];
 }

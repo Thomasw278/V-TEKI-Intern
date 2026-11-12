@@ -137,6 +137,18 @@ def build_xlsx(db: Session, period: ReportingPeriod, calc: Calculation) -> bytes
     ] or [["-", "Tidak ada kategori yang dikecualikan", "", "", "", ""]],
         caption=("Kategori yang dikecualikan dari perhitungan", "Kategori ini tidak berlaku untuk perusahaan, bukan diisi nol."),
         widths={3: 50}, wrap={3})
+    cb = res.get("cbam")
+    if cb:
+        # pembanding menurut batas CBAM (Reg. (EU) 2023/956 Annex IV): hanya instalasi, hanya CO2, alokasi massa
+        rows_cb = [[ln["name"], {"direct": "Langsung", "indirect": "Tidak langsung", "precursor": "Prekursor"}.get(ln["kind"], ln["kind"]),
+                    ln["formula"], ln["calc"], ln["value_t"], "Masuk batas CBAM"] for ln in cb.get("lines", [])]
+        rows_cb += [[o["name"], "-", "-", "-", o["value_t"], f"Di luar batas: {o['reason']}"] for o in cb.get("outside", [])]
+        rows_cb += [["Total emisi tertanam (batas CBAM)", "-", "SEE = (AttrEm + Σ M·SEE) / AL", "-", cb.get("embedded_total_t"), "Dibulatkan ke ton utuh"]]
+        rows_cb += [[f"SEE {a['code']} (dir / indir / total)", "Alokasi massa", "-",
+                     f"{a['see_dir']:.5f} / {a['see_indir']:.5f}", a["see_total"], f"AL {a['tonnes']:.3f} t"] for a in cb.get("allocations", [])]
+        _sheet(wb, "Batas CBAM", ["Komponen", "Jenis", "Rumus", "Perhitungan", "t CO2e", "Keterangan"], rows_cb,
+               caption=("Emisi tertanam menurut batas CBAM", cb.get("basis", "Regulasi (EU) 2023/956 Annex IV")),
+               formats={5: T3}, widths={1: 40, 3: 46, 4: 40, 6: 60}, wrap={3, 4, 6})
     _sheet(wb, "Faktor emisi", ["Kode", "Nilai", "Satuan", "Status", "Versi", "Sumber"], [
         [k, float(v["value"]), v["unit"], "Disetujui" if v["status"] == "approved" else "Draf", v["version"], v["source"]]
         for k, v in (calc.factors_snapshot or {}).items()

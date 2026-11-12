@@ -218,6 +218,25 @@ EXACT: dict[str, str] = {
         "No fields were read for this category. Check that the category is right (change it above), or fill the fields in manually.",
     "Gambar kurang jelas: periksa setiap angka dengan teliti. Ambil ulang dengan cahaya merata tanpa bayangan, kamera sejajar kertas, dan seluruh halaman masuk bingkai. Untuk scan, pakai minimal 200 dpi.":
         "The image is unclear: check every figure carefully. Retake it in even light without shadows, with the camera parallel to the page and the whole page in frame. For scans, use at least 200 dpi.", "Permintaan ini sudah diputus": "This request has already been decided",
+    # pernyataan emisi tertanam
+    "Periode belum dikunci admin peninjau; angka masih bisa berubah.": "The reviewer has not locked the period yet; figures may still change.",
+    "Data berubah setelah kalkulasi terakhir; jalankan kalkulasi ulang.": "Data changed after the latest calculation; run the calculation again.",
+    "Ada faktor emisi yang masih berstatus draf.": "Some emission factors are still drafts.",
+    "Format kode verifikasi tidak dikenal": "Unrecognised verification code format",
+    "Kode verifikasi tidak terdaftar": "This verification code is not registered",
+    # batas CBAM
+    'Pembakaran bahan bakar stasioner (DirEm*)': 'Stationary fuel combustion (DirEm*)',
+    'Listrik yang dikonsumsi (Em_el,cons)': 'Electricity consumed (Em_el,cons)',
+    'Prekursor (EE_InpMat)': 'Precursors (EE_InpMat)',
+    'BBM alat bergerak & kendaraan': 'Mobile machinery & vehicle fuel',
+    'Alat bergerak tidak termasuk batas sistem instalasi CBAM': 'Mobile machinery is outside the CBAM installation boundary',
+    'CH₄ tidak termasuk gas rumah kaca CBAM (hanya CO₂, N₂O pupuk, PFC aluminium)': 'CH₄ is not a CBAM greenhouse gas (only CO₂, N₂O for fertilisers, PFCs for aluminium)',
+    'Emisi lapangan kebun, di luar batas instalasi; N₂O CBAM hanya untuk produksi pupuk': 'Plantation field emissions, outside the installation; CBAM N₂O only covers fertiliser production',
+    'Aplikasi urea di kebun, di luar batas instalasi': 'Urea applied in the plantation, outside the installation',
+    'Emisi lahan/gambut tidak termasuk cakupan CBAM': 'Land/peat emissions are not covered by CBAM',
+    'Pengolahan limbah di luar instalasi tidak termasuk batas CBAM': 'Off-site waste treatment is outside the CBAM boundary',
+    'Transportasi antarlokasi tidak termasuk batas CBAM': 'Transport between sites is outside the CBAM boundary',
+    'Em = AD × EF × OF; AD = FQ × NCV (Eq. 5–6), EF per liter = NCV × EF × ρ, OF = 1': 'Em = AD × EF × OF; AD = FQ × NCV (Eq. 5–6), EF per litre = NCV × EF × ρ, OF = 1',
 }
 
 STATUS_EN = {"Wajib": "Required", "Opsional": "Optional", "Tidak berlaku": "Not applicable"}
@@ -347,6 +366,7 @@ _P: list[tuple] = [
     (r"Mengembalikan (.+)", r"Returned \1", SUMMARY),
     (r"Menghapus (.+)", r"Deleted \1", SUMMARY),
     (r"Mengunci periode (\d+) \((v\d+)\)", r"Locked period \1 (\2)", SUMMARY),
+    (r"Menerbitkan pernyataan (.+)", r"Issued statement \1", SUMMARY),
     (r"Membuka revisi (v\d+) periode (\d+)", r"Opened revision \1 of period \2", SUMMARY),
     (r"Membuka periode (\d+)", r"Opened period \1", SUMMARY),
     (r"Kalkulasi (v\d+) \((AR\d), alokasi ekonomi\) total (.+)", r"Calculation \1 (\2, economic allocation) total \3", SUMMARY),
@@ -367,7 +387,7 @@ _P: list[tuple] = [
 PATTERNS = [(re.compile(rf"^{t[0]}$", re.S), t[1], t[2] if len(t) > 2 else None) for t in _P]
 
 # Kunci JSON yang nilainya boleh diterjemahkan (nilai milik pengguna tidak pernah cocok persis dengan kamus)
-KEYS = {"detail", "message", "title", "name", "note", "label", "hint", "description", "scope", "error", "summary",
+KEYS = {"detail", "message", "title", "name", "note", "label", "hint", "description", "scope", "error", "summary", "reason",
         "metric", "formula", "factor", "activity", "notes", "fields", "warnings", "defaults_used", "user"}
 
 

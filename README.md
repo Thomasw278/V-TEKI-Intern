@@ -222,6 +222,11 @@ INSERT INTO admin_companies (admin_id, company_id, assigned_at) VALUES (5, 2, NO
 5. Admin masuk → **Perusahaan saya** → pilih perusahaan → **Tinjau pengajuan** → setujui / kembalikan,
    setujui faktor emisi, jalankan kalkulasi → **Laporan & penguncian** → kunci periode.
 6. Unduh laporan XLSX (lengkap dengan jejak data) atau XML komunikasi emisi CBAM.
+7. Buka **Pernyataan emisi** untuk mencetak / menyimpan PDF *Pernyataan Hasil Perhitungan Emisi Tertanam*
+   (A4, watermark KarbonLens). Sebelum periode dikunci dokumennya berstatus DRAF; saat admin mengunci periode,
+   pernyataan final terbit otomatis dengan nomor dokumen, kode verifikasi, dan sidik data SHA-256. Pihak luar
+   (importir, verifikator) mengecek keasliannya tanpa login di <http://localhost:3000/verifikasi>. Saat revisi
+   dibuka, pernyataan lama tetap bisa dicek tetapi berstatus *digantikan*.
 
 ---
 
@@ -330,6 +335,8 @@ karbonlens/
 | POST | `/api/periods/{id}/calculate` | keduanya |
 | POST | `/api/periods/{id}/lock` · `/reopen` | admin |
 | GET | `/api/periods/{id}/export.xlsx` · `/export.xml` | keduanya |
+| GET | `/api/periods/{id}/statement` (isi pernyataan; final + kode verifikasi bila periode terkunci, selain itu draf) | keduanya |
+| GET | `/api/public/statements/{kode}` (cek keaslian: ringkasan, status berlaku/digantikan) | publik |
 | GET | `/api/company/requirements` | perusahaan; admin yang ditugaskan (baca) |
 | POST | `/api/company/exception-requests` (`{type_code, requested_status, reason}`) | perusahaan |
 | GET/POST/PATCH | `/api/superadmin/doc-types` · `/doc-types/{code}` | superadmin |

@@ -35,6 +35,8 @@ def fmt_id(x: Decimal, places: int = 0) -> str:
 class FuelEntry:
     fuel_type: str
     volume_l: Decimal
+    # alat bergerak (truk, kendaraan, alat berat) berada di luar batas instalasi CBAM
+    mobile: bool = False
 
 
 @dataclass
@@ -123,6 +125,7 @@ class Result:
     allocations: list[Allocation]
     biogenic_co2_t: Decimal
     excluded: dict[str, str] = field(default_factory=dict)
+    cbam: dict | None = None
 
     @property
     def total_t(self) -> Decimal:
@@ -156,6 +159,7 @@ class Result:
                 }
                 for a in self.allocations
             ],
+            "cbam": self.cbam,
         }
 
 
@@ -322,5 +326,108 @@ def calculate(
             indirect * share / p.tonnes,
         ))
 
-    return Result(gwp_set, allocation, lines, direct, indirect, upstream,
-                  act.electricity_sold_mwh, allocs, bio_t, dict(act.excluded))
+    res = Result(gwp_set, allocation, lines, direct, indirect, upstream,
+                 act.electricity_sold_mwh, allocs, bio_t, dict(act.excluded))
+    res.cbam = cbam_boundary(act, f, lines, products)
+    return res
+
+
+# ---------------------------------------------------------------------------------------------
+# Batas CBAM — Regulasi (EU) 2023/956 Annex IV, Methodology Act Annex II & III, Guidance Document 3
+# ---------------------------------------------------------------------------------------------
+# Perhitungan di atas adalah jejak karbon produk (kebun → pabrik). CBAM lebih sempit:
+#   SEE_g,dir   = (AttrEm_dir + Σ M_i · SEE_i,dir) / AL_g          (Annex IV; Eq. 57/59/60)
+#   SEE_g,indir = (AttrEm_indir + Σ M_i · SEE_i,indir) / AL_g      (Eq. 58)
+#   AttrEm_dir  = DirEm* + Em_H,imp − Em_H,exp + WG_corr,imp − WG_corr,exp − Em_el,prod   (Eq. 55)
+#   AttrEm_indir = Em_el,cons = E_el · EF_el                         (Eq. 56 & 35)
+#   Em (bahan bakar) = AD · EF · OF, AD = FQ · NCV                  (Eq. 5 & 6)
+# Aturan batas yang diterapkan:
+#   • hanya instalasi (pabrik); kebun, lahan, transportasi antarlokasi, dan alat bergerak tidak termasuk
+#   • gas: CO2 untuk semua sektor; N2O hanya produksi pupuk; PFC hanya aluminium → CH4 tidak dihitung
+#   • biomassa (fraksi FAME biosolar) dihitung seperti fosil kecuali memenuhi kriteria RED II
+#   • produk bersama dari satu proses dibagi menurut unit fungsional (ton), bukan nilai ekonomi
+#   • GWP AR5 (mengikuti EU ETS); total dibulatkan ke ton utuh, SEE maksimal 5 desimal
+
+CBAM_OUTSIDE = {
+    "pome": "CH₄ tidak termasuk gas rumah kaca CBAM (hanya CO₂, N₂O pupuk, PFC aluminium)",
+    "pupuk_n2o": "Emisi lapangan kebun, di luar batas instalasi; N₂O CBAM hanya untuk produksi pupuk",
+    "pupuk_urea": "Aplikasi urea di kebun, di luar batas instalasi",
+    "lahan": "Emisi lahan/gambut tidak termasuk cakupan CBAM",
+    "b3": "Pengolahan limbah di luar instalasi tidak termasuk batas CBAM",
+    "transport": "Transportasi antarlokasi tidak termasuk batas CBAM",
+}
+
+
+def _r5(x: Decimal) -> float:
+    return float(x.quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP))
+
+
+def cbam_boundary(act: ActivityData, f: dict[str, Decimal], lines: list[Line], products: list[ProductInput]) -> dict:
+    """Emisi tertanam menurut batas CBAM, dilaporkan berdampingan dengan jejak karbon produk."""
+    out: list[dict] = []
+    calc_lines: list[dict] = []
+
+    # DirEm*: pembakaran bahan bakar di sumber stasioner (genset, boiler) — Eq. 5: AD × EF × OF (OF = 1)
+    stat = [fe for fe in act.fuels if not fe.mobile]
+    mob = [fe for fe in act.fuels if fe.mobile]
+    dir_em = D0
+    parts = []
+    for fe in stat:
+        ef = f.get(fuel_factor_code(fe.fuel_type), D0)
+        dir_em += fe.volume_l * ef / THOUSAND  # seluruh volume: fraksi bio belum dibuktikan memenuhi RED II
+        parts.append(f"{fmt_id(fe.volume_l)} L × {fmt_id(ef, 2)}")
+    if stat or "bbm" not in act.excluded:
+        calc_lines.append({
+            "key": "dir_fuel", "name": "Pembakaran bahan bakar stasioner (DirEm*)", "kind": "direct",
+            "formula": "Em = AD × EF × OF; AD = FQ × NCV (Eq. 5–6), EF per liter = NCV × EF × ρ, OF = 1",
+            "calc": (" + ".join(parts) or "0") + " ÷ 1000", "value_t": float(dir_em),
+        })
+    mob_t = sum((fe.volume_l * fossil_fraction(fe.fuel_type) * f.get(fuel_factor_code(fe.fuel_type), D0) / THOUSAND for fe in mob), D0)
+    if mob:
+        out.append({"key": "bbm_mobile", "name": "BBM alat bergerak & kendaraan", "value_t": float(mob_t),
+                    "reason": "Alat bergerak tidak termasuk batas sistem instalasi CBAM"})
+    bio_stat = sum((fe.volume_l * (Decimal(1) - fossil_fraction(fe.fuel_type)) * f.get(fuel_factor_code(fe.fuel_type), D0) / THOUSAND for fe in stat), D0)
+
+    # AttrEm_indir = E_el × EF_el (Eq. 56 & 35)
+    indir = D0
+    if "listrik" not in act.excluded:
+        grid = f.get("grid_ef", D0)
+        indir = act.electricity_purchased_mwh * grid
+        calc_lines.append({
+            "key": "indir_el", "name": "Listrik yang dikonsumsi (Em_el,cons)", "kind": "indirect",
+            "formula": "AttrEm_indir = E_el × EF_el (Eq. 56 & 35)",
+            "calc": f"{fmt_id(act.electricity_purchased_mwh, 1)} MWh × {fmt_id(grid, 3)}", "value_t": float(indir),
+        })
+
+    # EE_InpMat = Σ M_i × SEE_i (Eq. 60) — hanya prekursor yang termasuk barang Annex I
+    prec = D0
+    if "material" not in act.excluded and act.materials:
+        prec = sum((m.quantity_t * m.see for m in act.materials), D0)
+        calc_lines.append({
+            "key": "prec", "name": "Prekursor (EE_InpMat)", "kind": "precursor",
+            "formula": "EE_InpMat = Σ M_i × SEE_i (Eq. 60)",
+            "calc": " + ".join(f"{fmt_id(m.quantity_t, 1)} × {fmt_id(m.see, 3)}" for m in act.materials),
+            "value_t": float(prec),
+        })
+
+    for ln in lines:
+        if ln.key in CBAM_OUTSIDE and ln.value_t > 0:
+            out.append({"key": ln.key, "name": ln.name, "value_t": float(ln.value_t), "reason": CBAM_OUTSIDE[ln.key]})
+
+    attr_dir = dir_em
+    ee_dir = attr_dir + prec
+    al = sum((p.tonnes for p in products), D0)
+    allocs = []
+    for p in products:
+        share = p.tonnes / al if al > 0 else D0  # unit fungsional = ton produk (Annex III A.2)
+        allocs.append({"code": p.code, "name": p.name, "tonnes": float(p.tonnes), "share": _r5(share),
+                       "see_dir": _r5(ee_dir * share / p.tonnes), "see_indir": _r5(indir * share / p.tonnes),
+                       "see_total": _r5((ee_dir + indir) * share / p.tonnes)})
+    rnd = lambda x: int(x.quantize(Decimal(1), rounding=ROUND_HALF_UP))  # noqa: E731
+    return {
+        "basis": "Regulasi (EU) 2023/956 Annex IV · Methodology Act Annex III · Guidance Document 3 (2026)",
+        "attr_dir_t": rnd(attr_dir), "precursor_t": rnd(prec), "embedded_dir_t": rnd(ee_dir), "embedded_indir_t": rnd(indir),
+        "embedded_total_t": rnd(ee_dir + indir), "activity_level_t": float(al),
+        "biomass_not_zero_rated_t": float(bio_stat), "lines": calc_lines, "outside": out, "allocations": allocs,
+        "allocation": "mass",
+    }

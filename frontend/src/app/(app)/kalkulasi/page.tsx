@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ContributionBars, EmissionFlow, GroupLegend, Waterfall } from "@/components/charts";
 import { Contours } from "@/components/Contours";
+import { CbamPanel } from "@/components/CbamPanel";
 import { ExcludedNote } from "@/components/requirements";
 import { IconArrow, IconChevron, IconWarn } from "@/components/Icons";
 import { Badge, Button, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
@@ -215,6 +216,8 @@ export default function KalkulasiPage() {
             </div>
             <p className="tiny muted" style={{ marginTop: 10 }}>{t("SEE = (E langsung + E hulu) × porsi ÷ tonase + E listrik × porsi ÷ tonase, dalam t CO₂e per ton produk.", "SEE = (E direct + E upstream) × share ÷ tonnes + E electricity × share ÷ tonnes, in t CO₂e per tonne of product.")}</p>
           </section>
+
+          {calc.cbam && <CbamPanel cbam={calc.cbam} footprint={calc.total_t} />}
 
           <div className="inline" style={{ justifyContent: "flex-end" }}>
             <Link href="/laporan" className="btn primary">{t("Lanjut ke laporan", "Continue to report")}<IconArrow size={16} /></Link>

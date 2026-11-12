@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ContributionBars, EmissionFlow, GroupLegend } from "@/components/charts";
-import { Contours } from "@/components/Contours";
 import { useState } from "react";
 import { IconArrow, IconCalc, IconCheck, IconInbox, IconRefresh, IconUpload, IconWarn } from "@/components/Icons";
 import { Badge, Button, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
 import { ExcludedNote } from "@/components/requirements";
 import { api } from "@/lib/api";
-import { initials, num, when } from "@/lib/format";
+import { num, when } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useSummary } from "@/lib/summary";
@@ -105,14 +103,22 @@ export default function DashboardPage() {
     { done: setup.calculated, title: t("Jalankan kalkulasi", "Run the calculation"), sub: t("Emisi per produk dihitung dari dokumen yang diajukan", "Emissions per product from submitted documents"), href: "/kalkulasi", cta: t("Hitung", "Calculate") },
   ] : [];
 
+  const lines = calc ? [...calc.lines].filter((l) => l.value_t > 0.0005).sort((a, b) => b.value_t - a.value_t) : [];
+  const maxLine = lines[0]?.value_t || 1;
+  const cbam = calc?.cbam ?? null;
+  const GROUP: Record<string, string> = { direct: t("Langsung", "Direct"), indirect: t("Listrik", "Electricity"), upstream: t("Hulu", "Upstream") };
+  const stepIndex = Math.max(0, steps.findIndex((s) => s.state === "active"));
+  const doneSteps = steps.filter((s) => s.state === "done").length;
+
   return (
     <>
       <PageHead
-        eyebrow={isAdmin ? <><Badge tone="info">{t("Mode peninjau", "Reviewer mode")}</Badge>{company?.name}</> : undefined}
+        eyebrow={isAdmin ? <><Badge tone="info">{t("Mode peninjau", "Reviewer mode")}</Badge>{company?.name}</> : <span className="db-meta">{company?.name}</span>}
         title={t(`Ringkasan periode ${data.period.year}`, `Period ${data.period.year} overview`)}
-        description={isAdmin
-          ? t("Anda melihat data perusahaan ini sebagai admin peninjau.", "You are viewing this company's data as its reviewer.")
-          : calc ? t(`Kalkulasi v${calc.version} · ${when(calc.created_at)}`, `Calculation v${calc.version} · ${when(calc.created_at)}`) : t("Belum ada kalkulasi untuk periode ini.", "No calculation for this period yet.")}>
+        description={<span className="db-meta">
+          {calc ? t(`Kalkulasi v${calc.version} · ${when(calc.created_at)}`, `Calculation v${calc.version} · ${when(calc.created_at)}`) : t("Belum ada kalkulasi", "No calculation yet")}
+          {" · "}{locked ? t("periode dikunci", "period locked") : t("data masih bisa diubah", "data can still change")}
+        </span>}>
         {isAdmin ? (
           <Link href="/validasi" className="btn primary"><IconInbox size={16} />{t("Tinjau pengajuan", "Review submissions")}</Link>
         ) : (
@@ -148,140 +154,192 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <div className="bento">
-      <section className="overview page-enter surface-band span-8" data-ui="true" aria-label={t("Hasil periode", "Period results")}>
-        <Contours className="contours" rings={7} />
-        <div>
-          {calc?.stale && (
-            <div className="ov-stale" role="alert">
-              <IconWarn size={16} aria-hidden="true" />
-              <span className="grow">{t(`Data berubah ${when(calc.stale_since ?? null)}. Angka ini dari kalkulasi sebelumnya; hitung ulang sebelum dipakai.`,
-                `Data changed ${when(calc.stale_since ?? null)}. These figures come from the previous calculation; recalculate before using them.`)}</span>
-              {canCalc && <Button size="sm" variant="on-dark" loading={recalc} onClick={recalculate}><IconRefresh size={14} />{t("Hitung ulang", "Recalculate")}</Button>}
-            </div>
-          )}
-          <div className="ov-label">{t("Total emisi tertanam", "Total embedded emissions")} · {company?.name}</div>
+      {calc?.stale && (
+        <div className="db-alert" role="alert">
+          <IconWarn size={16} aria-hidden="true" />
+          <span className="grow">{t(`Data berubah ${when(calc.stale_since ?? null)}. Angka di bawah dari kalkulasi sebelumnya; hitung ulang sebelum dipakai.`,
+            `Data changed ${when(calc.stale_since ?? null)}. The figures below come from the previous calculation; recalculate before using them.`)}</span>
+          {canCalc && <Button size="sm" loading={recalc} onClick={recalculate}><IconRefresh size={14} />{t("Hitung ulang", "Recalculate")}</Button>}
+        </div>
+      )}
+
+      {/* ---------- metrik utama ---------- */}
+      <section className="db-strip" aria-label={t("Hasil periode", "Period results")}>
+        <div className="db-cell db-total">
+          <span className="db-k">{t("Total emisi tertanam", "Total embedded emissions")}</span>
           {calc ? (
             <>
-              <div className={`ov-big ${calc.stale ? "is-stale" : ""}`}><CountUp value={calc.total_t} /></div>
-              <div className="ov-unit">{t(`t CO₂e selama ${data.period.year}`, `t CO₂e during ${data.period.year}`)}</div>
-              <div className="split-bar" aria-hidden="true">
-                <span style={{ width: `${share(calc.direct_t)}%`, background: "var(--c-direct)" }} />
-                <span style={{ width: `${share(calc.indirect_t)}%`, background: "var(--c-indirect)" }} />
-                <span style={{ width: `${share(calc.upstream_t)}%`, background: "var(--c-upstream)" }} />
+              <b className={`db-v xl ${calc.stale ? "is-stale" : ""}`}><CountUp value={calc.total_t} /></b>
+              <span className="db-u">{t(`t CO₂e · jejak karbon produk ${data.period.year}`, `t CO₂e · product carbon footprint ${data.period.year}`)}</span>
+              <div className="db-stack" aria-hidden="true">
+                <i className="direct" style={{ width: `${share(calc.direct_t)}%` }} />
+                <i className="indirect" style={{ width: `${share(calc.indirect_t)}%` }} />
+                <i className="upstream" style={{ width: `${share(calc.upstream_t)}%` }} />
               </div>
-              <div className="split-legend">
-                <span><i style={{ background: "var(--c-direct)" }} />{t("Langsung", "Direct")} {num(share(calc.direct_t), 1)}%</span>
-                <span><i style={{ background: "var(--c-indirect)" }} />{t("Listrik dibeli", "Purchased electricity")} {num(share(calc.indirect_t), 1)}%</span>
-                <span><i style={{ background: "var(--c-upstream)" }} />{t("Hulu", "Upstream")} {num(share(calc.upstream_t), 1)}%</span>
+              <div className="db-legend">
+                <span><i className="direct" />{t("Langsung", "Direct")} <em>{num(share(calc.direct_t), 1)}%</em></span>
+                <span><i className="indirect" />{t("Listrik", "Electricity")} <em>{num(share(calc.indirect_t), 1)}%</em></span>
+                <span><i className="upstream" />{t("Hulu", "Upstream")} <em>{num(share(calc.upstream_t), 1)}%</em></span>
               </div>
             </>
           ) : (
             <>
-              <div className="ov-big" style={{ color: "var(--band-muted)" }}>—</div>
-              <div className="ov-unit">{t("Ajukan dokumen lalu jalankan kalkulasi untuk melihat total.", "Submit documents, then run a calculation to see the total.")}</div>
+              <b className="db-v xl muted">—</b>
+              <span className="db-u">{t("Ajukan dokumen lalu jalankan kalkulasi.", "Submit documents, then run a calculation.")}</span>
             </>
           )}
         </div>
-        <div>
-          <div className="ov-label" style={{ marginBottom: 10 }}>{t("Emisi tertanam spesifik (SEE) per produk", "Specific embedded emissions (SEE) per product")}</div>
-          {calc?.allocations.length ? calc.allocations.map((a) => (
-            <div key={a.code} className="prod-row">
-              <span className="code">{a.code}<span>{a.name}</span></span>
-              <span className="see"><CountUp value={a.see_total} digits={3} /></span>
-              <span className="meta">{t(`${num(a.tonnes)} t diproduksi · porsi ${num(a.share * 100, 1)}% · t CO₂e per ton`, `${num(a.tonnes)} t produced · share ${num(a.share * 100, 1)}% · t CO₂e per tonne`)}</span>
-            </div>
-          )) : <div className="ov-unit">{t("Muncul setelah kalkulasi.", "Shown after a calculation.")}</div>}
+        {(calc?.allocations ?? []).slice(0, 2).map((a) => (
+          <div key={a.code} className="db-cell">
+            <span className="db-k">SEE {a.code}</span>
+            <b className="db-v"><CountUp value={a.see_total} digits={3} /></b>
+            <span className="db-u">{t("t CO₂e per ton", "t CO₂e per tonne")}</span>
+            <span className="db-foot">{num(a.tonnes)} t · {t("porsi", "share")} {num(a.share * 100, 1)}%</span>
+          </div>
+        ))}
+        <div className="db-cell">
+          <span className="db-k">{t("Batas CBAM", "CBAM boundary")}</span>
+          {cbam ? (
+            <>
+              <b className="db-v">{num(cbam.embedded_total_t)}</b>
+              <span className="db-u">t CO₂e · Annex IV</span>
+              <span className="db-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, share(cbam.embedded_total_t))}%` }} /></span>
+              <span className="db-foot">{t(`${num(share(cbam.embedded_total_t), 1)}% dari jejak karbon`, `${num(share(cbam.embedded_total_t), 1)}% of the footprint`)}</span>
+            </>
+          ) : (
+            <>
+              <b className="db-v muted">—</b>
+              <span className="db-foot">{calc ? t("Hitung ulang untuk melihat", "Recalculate to see it") : t("Setelah kalkulasi", "After a calculation")}</span>
+            </>
+          )}
         </div>
-        {calc?.has_draft_factors && (
-          <div className="ov-note"><span>{t("Hasil masih draf: ada faktor emisi yang belum disetujui admin.", "Draft result: some emission factors are not yet approved by the reviewer.")}</span><Link href="/faktor">{t("Lihat faktor", "View factors")}</Link></div>
-        )}
+        <div className="db-stats">
+          <Link href="/dokumen"><span className="db-k">{t("Dokumen", "Documents")}</span><b>{data.documents_total}</b><em>{reading ? t(`${reading} dibaca`, `${reading} reading`) : t("terunggah", "uploaded")}</em></Link>
+          <Link href="/validasi"><span className="db-k">{isAdmin ? t("Menunggu Anda", "Awaiting you") : t("Perlu diperiksa", "To check")}</span><b className={(isAdmin ? submitted : toCheck + returned) ? "warn" : ""}>{isAdmin ? submitted : toCheck + returned}</b><em>{returned && !isAdmin ? t(`${returned} dikembalikan`, `${returned} returned`) : t("dokumen", "documents")}</em></Link>
+          <Link href="/dokumen"><span className="db-k">{t("Kategori wajib", "Required")}</span><b>{reqDone}<small>/{reqRequired.length}</small></b><em>{t("terpenuhi", "covered")}</em></Link>
+          <Link href="/validasi"><span className="db-k">{t("Isu kritis", "Critical")}</span><b className={critical.length ? "bad" : ""}>{critical.length}</b><em>{critical.length ? t("perlu ditangani", "need attention") : t("tidak ada", "none")}</em></Link>
+          {calc?.has_draft_factors && <Link href="/faktor" className="draft"><span className="db-k">{t("Status hasil", "Result status")}</span><b className="warn">{t("Draf", "Draft")}</b><em>{t("ada faktor belum disetujui", "unapproved factors")}</em></Link>}
+        </div>
       </section>
 
-      <div className="kpis grid2 span-4" data-ui="true">
-        <div className="kpi"><div className="k">{t("Dokumen", "Documents")}</div><div className="v">{data.documents_total}</div><div className="d">{t(`${reading} sedang dibaca`, `${reading} being read`)}</div></div>
-        <div className="kpi"><div className="k">{isAdmin ? t("Menunggu persetujuan", "Awaiting approval") : t("Perlu diperiksa", "To check")}</div><div className="v">{isAdmin ? submitted : toCheck + returned}</div><div className="d">{isAdmin ? t("dari perusahaan ini", "from this company") : returned ? t(`${returned} dikembalikan admin`, `${returned} returned by reviewer`) : t("sebelum diajukan", "before submitting")}</div></div>
-        <div className="kpi"><div className="k">{t("Kategori wajib", "Required categories")}</div><div className="v">{reqDone}<small>/ {reqRequired.length}</small></div><div className="d">{t("punya dokumen tervalidasi", "have validated documents")}</div></div>
-        <div className="kpi"><div className="k">{t("Isu kritis", "Critical issues")}</div><div className="v" style={{ color: critical.length ? "var(--bad)" : undefined }}>{critical.length}</div><div className="d">{critical.length ? t("perlu ditangani", "need attention") : t("tidak ada", "none")}</div></div>
-      </div>
-
-      <section className="panel span-12" aria-label={t("Tahapan periode", "Period stages")}>
-        <div className="panel-head">
-          <div><h2>{t(`Tahapan periode ${data.period.year}`, `Period ${data.period.year} stages`)}</h2><div className="sub">{locked ? t("Data dikunci", "Data locked") : t("Data masih bisa diubah", "Data can still change")}</div></div>
+      {/* ---------- jalur periode ---------- */}
+      <section className="db-rail" aria-label={t("Tahapan periode", "Period stages")}>
+        <div className="db-rail-head">
+          <span className="db-k">{t(`Tahapan periode ${data.period.year}`, `Period ${data.period.year} stages`)}</span>
+          <span className="db-mono">{doneSteps}/{steps.length} {t("selesai", "done")}</span>
         </div>
-        <ol className="journey">
+        <ol>
+          <span className="db-rail-track" aria-hidden="true"><i style={{ width: `${(Math.max(doneSteps - 0.5, 0) / (steps.length - 1)) * 100}%` }} /></span>
           {steps.map((s, i) => (
-            <li key={s.name} className={`jstep ${s.state}`}>
-              <div className="track"><span className="dot">{s.state === "done" ? "✓" : i + 1}</span><span className="line" /></div>
+            <li key={s.name} className={s.state} aria-current={i === stepIndex && s.state === "active" ? "step" : undefined}>
+              <span className="db-node" aria-hidden="true">{s.state === "done" ? <IconCheck size={12} /> : String(i + 1).padStart(2, "0")}</span>
               <b>{s.name}</b>
-              <span className="s">{s.sub}</span>
+              <span>{s.sub}</span>
             </li>
           ))}
         </ol>
       </section>
 
-        <section className="panel span-7" aria-label={t("Asal emisi", "Emission sources")}>
-          <div className="panel-head">
-            <div><h2>{t("Dari sumber ke produk", "From source to product")}</h2><div className="sub">{t("Lebar pita sebanding dengan t CO₂e", "Ribbon width is proportional to t CO₂e")}</div></div>
-            <Link href="/kalkulasi" className="small strong">{t("Rincian rumus", "Formula details")}</Link>
+      <div className="db-grid">
+        {/* ---------- komposisi ---------- */}
+        <section className="panel db-panel db-main" aria-label={t("Komposisi emisi", "Emission composition")}>
+          <div className="db-phead">
+            <div><span className="db-k">{t("Komposisi emisi", "Emission composition")}</span><h2>{t("Kontribusi per sumber", "Contribution by source")}</h2></div>
+            <Link href="/kalkulasi" className="db-link">{t("Rincian rumus", "Formula details")}<IconArrow size={14} /></Link>
           </div>
           {calc ? (
-            <>
-              <div className="only-wide"><EmissionFlow lines={calc.lines} allocations={calc.allocations} height={340} compact /></div>
-              <div className="only-narrow"><ContributionBars lines={calc.lines} total={calc.total_t} /></div>
-              <div style={{ marginTop: 10 }}><GroupLegend /></div>
-            </>
-          ) : <Empty title={t("Belum ada kalkulasi", "No calculation yet")}>{t("Diagram aliran muncul setelah kalkulasi pertama.", "The flow diagram appears after the first calculation.")}</Empty>}
-        </section>
+            <div className="db-rows">
+              <div className="db-row head"><span>{t("Sumber", "Source")}</span><span>{t("Kelompok", "Group")}</span><span /><span className="r">t CO₂e</span><span className="r">%</span></div>
+              {lines.map((l) => (
+                <div key={l.key} className="db-row">
+                  <span className="n">{l.name}{l.source === "default" && <sup title={t("Nilai bawaan literatur", "Literature default")}>†</sup>}</span>
+                  <span className="g">{GROUP[l.group] ?? l.group}</span>
+                  <span className="bar"><i className={l.group} style={{ width: `${(l.value_t / maxLine) * 100}%` }} /></span>
+                  <span className="r v">{num(l.value_t, 0)}</span>
+                  <span className="r p">{num(share(l.value_t), 1)}</span>
+                </div>
+              ))}
+            </div>
+          ) : <Empty title={t("Belum ada kalkulasi", "No calculation yet")}>{t("Komposisi muncul setelah kalkulasi pertama.", "The composition appears after the first calculation.")}</Empty>}
 
-        <section className="panel span-5" aria-label={t("Perlu ditangani", "Needs attention")}>
-          <div className="panel-head">
-            <h2>{t("Perlu ditangani", "Needs attention")}</h2>
-            {critical.length ? <Badge tone="bad" pip>{t(`${critical.length} kritis`, `${critical.length} critical`)}</Badge> : <Badge tone="ok" pip>{t("Tidak ada yang kritis", "Nothing critical")}</Badge>}
-          </div>
-          <div className="next-step" style={{ marginBottom: 6 }}>
-            <span><b className="tiny" style={{ display: "block", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--primary)" }}>{t("Langkah berikutnya", "Next step")}</b>{next.text}</span>
-            <Link href={next.href} className="btn primary sm">{next.cta}<IconArrow size={15} /></Link>
-          </div>
-          {data.issues.length === 0 && <Empty title={t("Semua aturan lolos", "All checks pass")}>{t("Tidak ada isu validasi untuk periode ini.", "There are no validation issues for this period.")}</Empty>}
-          <div className="list">
-            {data.issues.slice(0, 6).map((i, k) => (
-              <Link key={k} href={issueHref(i)} className="list-row">
-                <span className={`sev ${i.severity}`} />
-                <span className="body"><b>{i.title}</b><span className="clamp-2">{i.message}</span></span>
-                <IconArrow size={15} className="faint" />
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel span-7" aria-label={t("Kelengkapan dokumen", "Document coverage")}>
-          <div className="panel-head">
-            <div><h2>{t("Kelengkapan dokumen", "Document coverage")}</h2><div className="sub">{t(`${reqDone} dari ${reqRequired.length} kategori wajib terpenuhi`, `${reqDone} of ${reqRequired.length} required categories covered`)}</div></div>
-            <Link href="/dokumen" className="small strong">{t("Kelola dokumen", "Manage documents")}</Link>
-          </div>
-          <div className="grid-2" style={{ gap: "0 24px" }}>
-            {data.requirements.map((r) => (
-              <Link key={r.code} href="/dokumen" className="list-row" style={{ borderTop: "1px solid var(--line-2)" }}>
-                <span className={`state-icon ${r.state}`}>{r.state === "complete" ? "✓" : r.state === "default" ? "!" : ""}</span>
-                <span className="body"><b style={{ fontSize: 14 }}>{r.name}</b><span>{STATE[r.state]}{!r.required && !r.excluded ? ` · ${t("opsional", "optional")}` : ""}</span></span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel span-5" aria-label={t("Aktivitas terbaru", "Recent activity")}>
-          <div className="panel-head"><h2>{t("Aktivitas terbaru", "Recent activity")}</h2></div>
-          {data.activity.length === 0 && <Empty title={t("Belum ada aktivitas", "No activity yet")} />}
-          <div className="list">
-            {data.activity.map((a, i) => (
-              <div key={i} className="list-row">
-                <span className="avatar round" style={{ width: 30, height: 30, fontSize: 11 }}>{initials(a.user)}</span>
-                <span className="body"><b style={{ fontSize: 13.5 }}>{a.user}</b><span>{a.summary}</span></span>
-                <span className="tiny faint" style={{ whiteSpace: "nowrap" }}>{when(a.at)}</span>
+          {cbam && calc && (
+            <div className="db-cbam">
+              <div className="db-cbam-head">
+                <div>
+                  <span className="db-k">{t("Pembanding regulasi", "Regulatory comparison")}</span>
+                  <h3>{t("Jejak karbon produk vs batas CBAM", "Product footprint vs CBAM boundary")}</h3>
+                </div>
+                <span className="db-mono">Reg. (EU) 2023/956 · Annex IV</span>
               </div>
+              <div className="db-compare">
+                <div><span>{t("Jejak karbon produk", "Product footprint")}</span><span className="db-cbar"><i style={{ width: "100%" }} /></span><b>{num(calc.total_t)} t</b></div>
+                <div><span>{t("Batas CBAM", "CBAM boundary")}</span><span className="db-cbar cbam"><i style={{ width: `${Math.max(1, share(cbam.embedded_total_t))}%` }} /></span><b>{num(cbam.embedded_total_t)} t</b></div>
+              </div>
+              <p className="db-note">{t("CBAM hanya menghitung instalasi (pabrik): CO₂ pembakaran stasioner, listrik yang dikonsumsi, dan prekursor. Di luar batas:",
+                "CBAM covers the installation only: stationary combustion CO₂, electricity consumed and precursors. Outside the boundary:")}</p>
+              <div className="db-chips">
+                {cbam.outside.filter((o) => o.value_t >= 0.5).map((o) => <span key={o.key} title={o.reason}>{o.name}<em>{num(o.value_t)} t</em></span>)}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ---------- perlu ditangani ---------- */}
+        <section className="panel db-panel db-side" aria-label={t("Perlu ditangani", "Needs attention")}>
+          <div className="db-phead">
+            <div><span className="db-k">{t("Antrean", "Queue")}</span><h2>{t("Perlu ditangani", "Needs attention")}</h2></div>
+            {critical.length ? <Badge tone="bad" pip>{t(`${critical.length} kritis`, `${critical.length} critical`)}</Badge> : <Badge tone="ok" pip>{t("Aman", "Clear")}</Badge>}
+          </div>
+          <div className="db-next">
+            <span className="db-k accent">{t("Langkah berikutnya", "Next step")}</span>
+            <p>{next.text}</p>
+            <Link href={next.href} className="btn primary sm">{next.cta}<IconArrow size={14} /></Link>
+          </div>
+          {data.issues.length === 0 && <p className="db-empty">{t("Tidak ada isu validasi untuk periode ini.", "There are no validation issues for this period.")}</p>}
+          <ol className="db-issues">
+            {data.issues.slice(0, 6).map((i, k) => (
+              <li key={k}>
+                <Link href={issueHref(i)}>
+                  <span className={`db-sev ${i.severity}`} aria-label={i.severity} />
+                  <span className="b"><b>{i.title}</b><span>{i.message}</span></span>
+                  <IconArrow size={14} className="faint" />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* ---------- kelengkapan ---------- */}
+        <section className="panel db-panel db-main" aria-label={t("Kelengkapan dokumen", "Document coverage")}>
+          <div className="db-phead">
+            <div><span className="db-k">{t("Kelengkapan", "Coverage")} · {reqDone}/{reqRequired.length} {t("wajib", "required")}</span><h2>{t("Dokumen per kategori", "Documents by category")}</h2></div>
+            <Link href="/dokumen" className="db-link">{t("Kelola dokumen", "Manage documents")}<IconArrow size={14} /></Link>
+          </div>
+          <div className="db-reqs">
+            {data.requirements.map((r, i) => (
+              <Link key={r.code} href="/dokumen" className="db-req">
+                <span className="i">{String(i + 1).padStart(2, "0")}</span>
+                <b>{r.name}</b>
+                <span className={`db-chip ${r.state}`}>{STATE[r.state]}</span>
+                <span className="o">{r.excluded ? "—" : r.required ? t("wajib", "required") : t("opsional", "optional")}</span>
+              </Link>
             ))}
           </div>
+        </section>
+
+        {/* ---------- aktivitas ---------- */}
+        <section className="panel db-panel db-side" aria-label={t("Aktivitas terbaru", "Recent activity")}>
+          <div className="db-phead"><div><span className="db-k">{t("Jejak audit", "Audit trail")}</span><h2>{t("Aktivitas terbaru", "Recent activity")}</h2></div></div>
+          {data.activity.length === 0 && <p className="db-empty">{t("Belum ada aktivitas.", "No activity yet.")}</p>}
+          <ol className="db-feed">
+            {data.activity.map((a, i) => (
+              <li key={i}>
+                <span className="dot" aria-hidden="true" />
+                <span className="b"><b>{a.summary}</b><span>{a.user}</span></span>
+                <time className="db-mono">{when(a.at)}</time>
+              </li>
+            ))}
+          </ol>
         </section>
       </div>
     </>

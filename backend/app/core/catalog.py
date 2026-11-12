@@ -180,19 +180,34 @@ class FactorSpec:
 # PENTING: nilai bertanda [VERIFIKASI] adalah placeholder yang harus
 # diganti/disetujui reviewer dengan sumber resmi terbaru sebelum laporan final.
 DEFAULT_FACTORS: tuple[FactorSpec, ...] = (
-    FactorSpec("diesel_co2", "Solar / diesel — CO2", Decimal("2.68"), "kg CO2/L", "IPCC 2006 (turunan)", True),
-    FactorSpec("gasoline_co2", "Bensin — CO2", Decimal("2.31"), "kg CO2/L", "IPCC 2006 (turunan) [VERIFIKASI]", False),
-    FactorSpec("grid_ef", "Faktor emisi jaringan listrik", Decimal("0.87"), "t CO2/MWh", "KESDM [VERIFIKASI tahun & sistem]", False),
-    FactorSpec("ef1_n2o", "N2O langsung EF1", Decimal("0.01"), "kg N2O-N/kg N", "IPCC 2019 Refinement", True),
-    FactorSpec("urea_c", "Urea — fraksi C", Decimal("0.20"), "t C/t urea", "IPCC 2006", True),
-    FactorSpec("pome_bo", "Bo POME", Decimal("0.25"), "kg CH4/kg COD", "IPCC 2006", True),
-    FactorSpec("pome_mcf", "MCF kolam anaerob", Decimal("0.8"), "-", "IPCC 2019 default", False),
-    FactorSpec("pome_m3_per_t_ffb", "Nilai bawaan volume POME", Decimal("0.6"), "m3/t TBS", "Literatur [VERIFIKASI]", False),
-    FactorSpec("pome_dcod_default", "Nilai bawaan ΔCOD POME", Decimal("45"), "kg COD/m3", "Literatur [VERIFIKASI]", False),
-    FactorSpec("biogas_ch4_fraction", "Fraksi CH4 biogas bawaan", Decimal("0.6"), "-", "Literatur [VERIFIKASI]", False),
-    FactorSpec("peat_co2", "Emisi gambut terdrainase (sawit)", Decimal("40.3"), "t CO2/ha/thn", "IPCC Wetlands Supplement 2013 [VERIFIKASI]", False),
-    FactorSpec("truck_tkm", "Truk diesel", Decimal("0.10"), "kg CO2e/t-km", "[SUMBER]", False),
-    FactorSpec("waste_default", "Pengolahan limbah padat/B3", Decimal("0.65"), "t CO2e/t", "[SUMBER]", False),
+    # Faktor bahan bakar diturunkan dari IPCC 2006 Vol. 2: EF per liter = EF (kg CO2/TJ) × NCV (TJ/Gg) × densitas
+    FactorSpec("diesel_co2", "Solar / diesel — CO2", Decimal("2.68"), "kg CO2/L",
+               "IPCC 2006 Vol. 2 Bab 1 Tabel 1.2 & Bab 2 Tabel 2.2: 74.100 kg CO2/TJ × NCV 43,0 TJ/Gg × densitas 0,84 kg/L", True),
+    FactorSpec("gasoline_co2", "Bensin — CO2", Decimal("2.30"), "kg CO2/L",
+               "IPCC 2006 Vol. 2 Bab 1 Tabel 1.2 & Bab 2 Tabel 2.2: 69.300 kg CO2/TJ × NCV 44,3 TJ/Gg × densitas 0,75 kg/L", False),
+    FactorSpec("grid_ef", "Faktor emisi jaringan listrik", Decimal("0.87"), "t CO2/MWh",
+               "Nilai awal. Ganti dengan faktor emisi sistem interkoneksi terbaru dari Ditjen Ketenagalistrikan KESDM; "
+               "untuk pelaporan CBAM pakai nilai bawaan Indonesia di Default Values Act CBAM", False),
+    FactorSpec("ef1_n2o", "N2O langsung EF1", Decimal("0.01"), "kg N2O-N/kg N",
+               "IPCC 2019 Refinement Vol. 4 Bab 11 Tabel 11.1 (EF1 agregat untuk input N)", True),
+    FactorSpec("urea_c", "Urea — fraksi C", Decimal("0.20"), "t C/t urea",
+               "IPCC 2006 Vol. 4 Bab 11 Persamaan 11.13 (faktor emisi urea 0,20 t C/t)", True),
+    FactorSpec("pome_bo", "Bo POME", Decimal("0.25"), "kg CH4/kg COD",
+               "IPCC 2006 Vol. 5 Bab 6 Tabel 6.2 (kapasitas produksi CH4 maksimum air limbah industri)", True),
+    FactorSpec("pome_mcf", "MCF kolam anaerob", Decimal("0.8"), "-",
+               "IPCC 2006 Vol. 5 Bab 6 Tabel 6.8 (laguna anaerob dalam, kedalaman > 2 m)", False),
+    FactorSpec("pome_m3_per_t_ffb", "Nilai bawaan volume POME", Decimal("0.6"), "m3/t TBS",
+               "Nilai tengah rasio POME industri sawit (kisaran umum 0,5–0,75 m3/t TBS). Ganti dengan data flowmeter pabrik", False),
+    FactorSpec("pome_dcod_default", "Nilai bawaan ΔCOD POME", Decimal("45"), "kg COD/m3",
+               "Asumsi COD masuk ±50.000 mg/L dengan penyisihan ±90% di kolam. Ganti dengan hasil uji laboratorium inlet/outlet", False),
+    FactorSpec("biogas_ch4_fraction", "Fraksi CH4 biogas bawaan", Decimal("0.6"), "-",
+               "Kandungan CH4 tipikal biogas POME (55–65%). Ganti dengan hasil analisis gas", False),
+    FactorSpec("peat_co2", "Emisi gambut terdrainase (sawit)", Decimal("40.3"), "t CO2/ha/thn",
+               "IPCC 2013 Wetlands Supplement Bab 2 Tabel 2.1: 11 t CO2-C/ha/thn (sawit, gambut tropis terdrainase) × 44/12", False),
+    FactorSpec("truck_tkm", "Truk diesel", Decimal("0.10"), "kg CO2e/t-km",
+               "Nilai tipikal truk diesel muatan rata-rata (±0,1 kg CO2e/t-km). Ganti dengan faktor armada sendiri atau GLEC Framework", False),
+    FactorSpec("waste_default", "Pengolahan limbah padat/B3", Decimal("0.65"), "t CO2e/t",
+               "Asumsi awal insinerasi limbah B3. Ganti dengan faktor dari pengolah limbah berizin yang dipakai", False),
 )
 
 FACTOR_BY_CODE = {f.code: f for f in DEFAULT_FACTORS}

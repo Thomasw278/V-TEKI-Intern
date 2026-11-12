@@ -1,4 +1,6 @@
 """Katalog jenis dokumen, faktor emisi bawaan, dan pendaftaran perusahaan baru."""
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,11 +45,30 @@ def create_company_factors(db: Session, company: Company) -> None:
     for f in DEFAULT_FACTORS:
         if f.code in have:
             continue
-        source = f.source
-        if f.code == "grid_ef":
-            source = f"{f.source} · sistem {company.grid_system}"
         db.add(EmissionFactor(company_id=company.id, code=f.code, name=f.name, value=f.value, unit=f.unit,
-                              source=source, status="approved" if f.approved else "draft"))
+                              source=f.source, status="approved" if f.approved else "draft"))
+
+
+# sumber lama bertanda placeholder → diganti dengan rujukan lengkap (hanya bila nilai belum diubah perusahaan)
+_PLACEHOLDER = ("[VERIFIKASI", "[SUMBER]", "IPCC 2006 (turunan)")
+
+
+def refresh_factor_sources(db: Session) -> int:
+    """Perbarui teks sumber faktor bawaan yang masih placeholder. Nilai yang sudah diubah perusahaan tidak disentuh."""
+    by_code = {f.code: f for f in DEFAULT_FACTORS}
+    n = 0
+    for row in db.scalars(select(EmissionFactor).where(EmissionFactor.code.in_(by_code))):
+        spec = by_code[row.code]
+        if not any(p in (row.source or "") for p in _PLACEHOLDER):
+            continue
+        if row.code == "gasoline_co2" and row.status == "draft" and row.value == Decimal("2.31"):
+            row.value = spec.value  # dihitung ulang dari IPCC 2006: 2,30 kg CO2/L
+        if row.value != spec.value:
+            continue  # perusahaan memakai angkanya sendiri → sumbernya dibiarkan
+        row.source = spec.source
+        n += 1
+    db.commit()
+    return n
 
 
 def register_company(db: Session, data: RegisterIn) -> tuple[User, Company]:

@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ContributionBars, EmissionFlow, GroupLegend } from "@/components/charts";
-import { Contours } from "@/components/Contours";
-import { DocDemo } from "@/components/DocDemo";
-import { IconArrow, IconCheck, IconHistory, IconLock, IconMenu, IconShield, IconX, LogoMark } from "@/components/Icons";
+import { IconArrow, IconCheck, IconMenu, IconX, LogoMark } from "@/components/Icons";
 import { Intro, replayIntro } from "@/components/Intro";
+import { AuditPanels, DotField, Pipeline, ProductWindow, SecHead, Ticker } from "@/components/LandingParts";
 import { Toggles } from "@/components/ui";
 import { Ways } from "@/components/Ways";
 import { useLang } from "@/lib/i18n";
@@ -88,7 +87,7 @@ export default function Landing() {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      document.querySelectorAll(".lp-sec, .lp-standards, .lp-cta").forEach((el) => el.classList.add("in-view"));
+      document.querySelectorAll(".lp-sec").forEach((el) => el.classList.add("in-view"));
       return () => window.removeEventListener("scroll", onScroll);
     }
 
@@ -103,7 +102,7 @@ export default function Landing() {
       { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
     );
 
-    document.querySelectorAll(".lp-sec, .lp-standards, .lp-cta").forEach((el) => observer.observe(el));
+    document.querySelectorAll(".lp-sec").forEach((el) => observer.observe(el));
 
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -164,101 +163,50 @@ export default function Landing() {
       )}
 
       <main>
-        <section className="lp-hero">
-          <Contours className="contours" rings={10} />
-          <div className="lp-wrap">
-            <div className="grid">
-              <div>
-                <span className="kicker hero-title"><b>CBAM</b>{t("Untuk eksportir ke Uni Eropa", "For exporters to the European Union")}</span>
-                <h1 className="hero-title">{t("Emisi tertanam produk, dihitung dari dokumen yang sudah ada di meja Anda.", "Embedded product emissions, calculated from the documents already on your desk.")}</h1>
-                <p className="lead hero-text">{t(
-                  "Unggah tagihan PLN, faktur solar, rekap pupuk, dan manifest limbah. KarbonLens membaca angkanya di posisi mana pun, admin peninjau menyetujuinya, lalu emisi per ton CPO dan PKO dihitung dengan metodologi CBAM.",
-                  "Upload PLN bills, diesel invoices, fertiliser summaries and waste manifests. KarbonLens reads the figures wherever they sit, a reviewer approves them, and emissions per tonne of CPO and PKO are calculated with the CBAM methodology.",
-                )}</p>
-                <div className="cta hero-ui">
-                  <Link href={home ?? "/register"} className="btn accent lg">{home ? t("Buka aplikasi", "Open app") : t("Daftarkan perusahaan", "Register your company")}<IconArrow size={17} /></Link>
-                  <a href="#cara-kerja" className="btn on-dark lg">{t("Lihat cara kerja", "See how it works")}</a>
-                </div>
-              </div>
-              <div className="hero-ui">
-                <DocDemo />
-              </div>
+        <section className="w3-hero">
+          <DotField />
+          <div className="lp-wrap w3-hero-inner">
+            <Link href="/verifikasi" className="w3-announce hero-title">
+              <span className="tag">{t("Baru", "New")}</span>
+              {t("Pernyataan emisi kini bisa dicek keasliannya", "Emission statements can now be verified")}
+              <IconArrow size={14} />
+            </Link>
+            <h1 className="hero-title">
+              {t("Emisi tertanam produk,", "Embedded product emissions,")}<br />
+              <span className="dim">{t("dihitung dari dokumen Anda.", "calculated from your documents.")}</span>
+            </h1>
+            <p className="lead hero-text">{t(
+              "Unggah tagihan PLN, faktur solar, rekap pupuk, dan manifest limbah. KarbonLens membaca angkanya, admin peninjau menyetujuinya, lalu emisi per ton CPO dan PKO dihitung dengan metodologi CBAM.",
+              "Upload PLN bills, diesel invoices, fertiliser summaries and waste manifests. KarbonLens reads the figures, a reviewer approves them, and emissions per tonne of CPO and PKO are calculated with the CBAM methodology.",
+            )}</p>
+            <div className="w3-cta hero-ui">
+              <Link href={home ?? "/register"} className="w3-btn primary">{home ? t("Buka aplikasi", "Open app") : t("Daftarkan perusahaan", "Register your company")}<IconArrow size={16} /></Link>
+              <a href="#cara-kerja" className="w3-btn ghost"><span className="play" aria-hidden="true" />{t("Lihat cara kerja", "See how it works")}</a>
             </div>
-            <div className="stats hero-ui">
-              <div><b>10</b><span>{t("kategori dokumen operasional yang dibaca", "operational document categories read")}</span></div>
-              <div><b>6</b><span>{t("strategi mencari angka: kanan, bawah, atas, tabel, matriks, satuan", "ways to locate a figure: right, below, above, table, matrix, unit")}</span></div>
-              <div><b>2</b><span>{t("peran terpisah: perusahaan mengajukan, admin menyetujui", "separate roles: the company submits, the reviewer approves")}</span></div>
-              <div><b>t CO₂e/t</b><span>{t("emisi tertanam spesifik untuk setiap produk", "specific embedded emissions for every product")}</span></div>
-            </div>
+          </div>
+          <div className="lp-wrap w3-hero-shot hero-ui">
+            <ProductWindow t={t} lang={lang} />
           </div>
         </section>
 
-        <section className="lp-standards" aria-label={t("Rujukan metodologi", "Methodology references")}>
-          <div className="lp-wrap">
-            <span className="t">{t("Mengikuti rujukan", "Built on")}</span>
-            <ul>
-              <li>CBAM<small>(EU) 2023/956</small></li>
-              <li>{t("Regulasi pelaksana", "Implementing Reg.")}<small>(EU) 2023/1773</small></li>
-              <li>IPCC<small>2006 · 2019 Refinement</small></li>
-              <li>GWP<small>AR5 · AR6</small></li>
-              <li>GHG Protocol<small>Scope 1 · 2 · 3</small></li>
-            </ul>
-          </div>
-        </section>
+        <Ticker t={t} />
 
         <section className="lp-sec" id="cara-kerja">
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Cara kerja", "How it works")}</div>
-                <h2>{t("Dari tumpukan dokumen ke laporan yang bisa diaudit.", "From a pile of documents to an auditable report.")}</h2>
-              </div>
-              <p className="sec-text">{t(
-                "Empat tahap yang selalu berurutan. Setiap angka menyimpan jejak ke dokumen, halaman, dan posisi asalnya, jadi peninjau dan auditor bisa memeriksa ulang kapan saja.",
-                "Four stages, always in this order. Every figure keeps a trail to its document, page and position, so reviewers and auditors can check it again at any time.",
-              )}</p>
-            </div>
-            <ol className="steps4 sec-ui" data-ui="true">
-              <li>
-                <span className="n">01</span>
-                <b>{t("Unggah dokumen", "Upload documents")}</b>
-                <p>{t("PDF, hasil scan, foto, Excel, CSV, atau Word. Kategori dikenali otomatis dari isi dan nama berkas.", "PDF, scans, photos, Excel, CSV or Word. The category is detected from the content and file name.")}</p>
-                <span className="who"><IconCheck size={14} />{t("Perusahaan", "Company")}</span>
-              </li>
-              <li>
-                <span className="n">02</span>
-                <b>{t("Dibaca otomatis", "Read automatically")}</b>
-                <p>{t("Watermark dibuang, scan diluruskan, angka dicari di kanan, bawah, atas label, maupun di tabel.", "Watermarks are removed, scans straightened, and figures found right of, below or above labels, or in tables.")}</p>
-                <span className="who"><IconCheck size={14} />{t("Sistem", "System")}</span>
-              </li>
-              <li>
-                <span className="n">03</span>
-                <b>{t("Diperiksa & disetujui", "Checked & approved")}</b>
-                <p>{t("Perusahaan memastikan angka lalu mengajukan. Admin peninjau menyetujui atau mengembalikan dengan catatan.", "The company confirms the figures and submits. The reviewer approves or returns them with a note.")}</p>
-                <span className="who"><IconCheck size={14} />{t("Perusahaan → admin", "Company → reviewer")}</span>
-              </li>
-              <li>
-                <span className="n">04</span>
-                <b>{t("Dihitung & dikunci", "Calculated & locked")}</b>
-                <p>{t("Emisi per sumber dibagi ke setiap ton produk. Admin mengunci periode, laporan XLSX dan XML siap diunduh.", "Emissions per source are allocated to each tonne of product. The reviewer locks the period; XLSX and XML reports are ready.")}</p>
-                <span className="who"><IconCheck size={14} />{t("Admin peninjau", "Reviewer")}</span>
-              </li>
-            </ol>
+            <SecHead idx="01" label={t("Cara kerja", "How it works")}
+              strong={t("Dokumen masuk satu per satu.", "Documents arrive one by one.")} dim={t("Emisinya dihitung sekaligus.", "Emissions are calculated at once.")}
+              text={t("Empat tahap yang selalu berurutan. Setiap angka menyimpan jejak ke dokumen, halaman, dan posisi asalnya.",
+                "Four stages, always in this order. Every figure keeps a trail to its document, page and position.")} />
+            <Pipeline t={t} />
           </div>
         </section>
 
         <section className="lp-sec alt" id="pembacaan">
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Pembacaan dokumen", "Document reading")}</div>
-                <h2>{t("Angka tidak selalu berada di tempat yang sama.", "Figures are never in the same place twice.")}</h2>
-              </div>
-              <p className="sec-text">{t(
-                "Setiap pemasok punya format sendiri. Mesin baca memetakan posisi setiap kata, mencari label yang dikenalnya, lalu menilai kandidat angka di sekitarnya. Kandidat lain tetap disimpan agar Anda bisa menggantinya dengan satu klik.",
-                "Every supplier has its own format. The reader maps where every word sits, finds labels it knows, then scores the candidate figures around them. Other candidates are kept so you can switch with one click.",
-              )}</p>
-            </div>
+            <SecHead idx="02" label={t("Pembacaan dokumen", "Document reading")}
+              strong={t("Angka tidak pernah di tempat yang sama.", "Figures are never in the same place twice.")} dim={t("Mesin baca tetap menemukannya.", "The reader still finds them.")}
+              text={t("Mesin baca memetakan posisi setiap kata, mencari label yang dikenalnya, lalu menilai kandidat angka di sekitarnya. Kandidat lain tetap disimpan agar bisa diganti dengan satu klik.",
+                "The reader maps where every word sits, finds labels it knows, then scores the candidate figures around them. Other candidates are kept so you can switch with one click.")} />
             <div className="sec-ui">
               <Ways />
             </div>
@@ -267,19 +215,13 @@ export default function Landing() {
 
         <section className="lp-sec" id="peran">
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Peran", "Roles")}</div>
-                <h2>{t("Dua peran, satu alur yang tidak bisa dilompati.", "Two roles, one flow that can't be skipped.")}</h2>
-              </div>
-              <p className="sec-text">{t(
-                "Perusahaan yang menyiapkan data tidak bisa menyetujui datanya sendiri. Admin peninjau ditugaskan oleh pengelola sistem dan dapat menangani beberapa perusahaan sekaligus.",
-                "The company that prepares the data cannot approve its own data. Reviewers are assigned by the system administrator and can handle several companies at once.",
-              )}</p>
-            </div>
+            <SecHead idx="03" label={t("Peran", "Roles")}
+              strong={t("Yang menyiapkan data", "Whoever prepares the data")} dim={t("tidak bisa menyetujuinya sendiri.", "cannot approve it themselves.")}
+              text={t("Admin peninjau ditugaskan oleh pengelola sistem dan dapat menangani beberapa perusahaan sekaligus.",
+                "Reviewers are assigned by the system administrator and can handle several companies at once.")} />
             <div className="roles sec-ui" data-ui="true">
               <article className="role">
-                <span className="tag">{t("Akun perusahaan", "Company account")}</span>
+                <span className="tag"><i>A</i>{t("Akun perusahaan", "Company account")}</span>
                 <h3>{t("Menyiapkan dan mengajukan data", "Prepares and submits the data")}</h3>
                 <p>{t("Didaftarkan sendiri oleh perusahaan dengan email perusahaan.", "Registered by the company itself with a company email.")}</p>
                 <ul>
@@ -291,17 +233,17 @@ export default function Landing() {
                 <div className="foot">{t("Satu akun untuk setiap perusahaan. Data tidak terlihat oleh perusahaan lain.", "One account per company. Data is never visible to other companies.")}</div>
               </article>
               <article className="role dark">
-                <Contours className="contours" rings={6} />
-                <span className="tag">{t("Admin peninjau", "Reviewer")}</span>
+                <DotField orbits={false} />
+                <span className="tag"><i>B</i>{t("Admin peninjau", "Reviewer")}</span>
                 <h3>{t("Menyetujui dan mengunci", "Approves and locks")}</h3>
                 <p>{t("Dibuat oleh pengelola sistem, lalu ditugaskan ke perusahaan tertentu.", "Created by the system administrator, then assigned to specific companies.")}</p>
                 <ul>
                   {[t("Melihat portofolio semua perusahaan yang ditinjau", "Sees a portfolio of every assigned company"),
                     t("Menyetujui atau mengembalikan dokumen dengan catatan", "Approves or returns documents with a note"),
                     t("Menyetujui faktor emisi yang dipakai", "Approves the emission factors used"),
-                    t("Mengunci periode dan menerbitkan laporan final", "Locks the period and issues the final report")].map((x) => <li key={x}><IconCheck size={16} /><span>{x}</span></li>)}
+                    t("Mengunci periode dan menerbitkan pernyataan final", "Locks the period and issues the final statement")].map((x) => <li key={x}><IconCheck size={16} /><span>{x}</span></li>)}
                 </ul>
-                <div className="foot">{t("Tidak bisa didaftarkan dari aplikasi — hanya lewat pengelola sistem.", "Cannot be registered from the app — only by the system administrator.")}</div>
+                <div className="foot">{t("Tidak bisa didaftarkan dari aplikasi, hanya lewat pengelola sistem.", "Cannot be registered from the app, only by the system administrator.")}</div>
               </article>
             </div>
           </div>
@@ -309,23 +251,17 @@ export default function Landing() {
 
         <section className="lp-sec alt" id="dokumen">
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Dokumen", "Documents")}</div>
-                <h2>{t("Sepuluh dokumen yang sudah dibuat perusahaan setiap bulan.", "Ten documents your company already produces every month.")}</h2>
-              </div>
-              <p className="sec-text">{t(
-                "Tidak perlu formulir baru. Sistem mengenali jenis dokumen dari isinya, mengambil hanya angka yang dipakai rumus, dan memberi tahu bila ada bulan yang belum terunggah.",
-                "No new forms. The system recognises each document from its content, takes only the figures the formulas need, and tells you when a month is missing.",
-              )}</p>
-            </div>
+            <SecHead idx="04" label={t("Dokumen", "Documents")}
+              strong={t("Sepuluh dokumen", "Ten documents")} dim={t("yang sudah dibuat perusahaan setiap bulan.", "your company already produces every month.")}
+              text={t("Tidak perlu formulir baru. Sistem mengenali jenis dokumen dari isinya dan memberi tahu bila ada bulan yang belum terunggah.",
+                "No new forms. The system recognises each document from its content and tells you when a month is missing.")} />
             <div className="doc-list sec-ui" data-ui="true">
               {DOCS(t).map(([name, reads, scope], i) => (
                 <div key={name} className="doc-item">
                   <span className="no">{String(i + 1).padStart(2, "0")}</span>
                   <b>{name}</b>
                   <span className="reads">{reads}</span>
-                  <span className="sc badge">{scope}</span>
+                  <span className="sc">{scope}</span>
                 </div>
               ))}
             </div>
@@ -334,16 +270,10 @@ export default function Landing() {
 
         <section className="lp-sec">
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Perhitungan", "Calculation")}</div>
-                <h2>{t("Dari setiap liter dan kilowatt-jam sampai ke setiap ton produk.", "From every litre and kilowatt-hour to every tonne of product.")}</h2>
-              </div>
-              <p className="sec-text">{t(
-                "Emisi dikelompokkan menjadi langsung, listrik, dan hulu, lalu dibagi ke produk menurut nilai jual atau massa. Arahkan kursor ke pita untuk melihat angkanya.",
-                "Emissions are grouped into direct, electricity and upstream, then allocated to products by economic value or mass. Hover a ribbon to see its figures.",
-              )}</p>
-            </div>
+            <SecHead idx="05" label={t("Perhitungan", "Calculation")}
+              strong={t("Dari setiap liter dan kWh", "From every litre and kWh")} dim={t("sampai ke setiap ton produk.", "to every tonne of product.")}
+              text={t("Emisi dikelompokkan menjadi langsung, listrik, dan hulu, lalu dibagi ke produk menurut nilai jual atau massa. Arahkan kursor ke pita untuk melihat angkanya.",
+                "Emissions are grouped into direct, electricity and upstream, then allocated to products by economic value or mass. Hover a ribbon to see its figures.")} />
             <div className="flow-card sec-ui" data-ui="true">
               <div className="inline" style={{ justifyContent: "space-between", marginBottom: 14 }}>
                 <b>{t("Contoh pabrik kelapa sawit, periode 2025", "Example palm oil mill, period 2025")}</b>
@@ -359,46 +289,26 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="lp-sec alt" id="keamanan">
+        <section className="lp-sec w3-dark" id="keamanan">
+          <DotField orbits={false} />
           <div className="lp-wrap">
-            <div className="head">
-              <div className="sec-title">
-                <div className="label">{t("Keamanan & jejak audit", "Security & audit trail")}</div>
-                <h2>{t("Angka yang bisa dipertanggungjawabkan di depan auditor.", "Figures you can defend in front of an auditor.")}</h2>
-              </div>
-            </div>
-            <div className="trust sec-ui" data-ui="true">
-              <div>
-                <IconHistory size={22} />
-                <b>{t("Setiap angka punya asal", "Every figure has an origin")}</b>
-                <p>{t("Klik angka mana pun untuk melihat kotak sumbernya di halaman dokumen. Koreksi tercatat beserta alasan dan pelakunya.", "Click any figure to see its source box on the document page. Corrections are logged with the reason and who made them.")}</p>
-              </div>
-              <div>
-                <IconShield size={22} />
-                <b>{t("Data tiap perusahaan terpisah", "Each company's data is isolated")}</b>
-                <p>{t("Setiap permintaan diperiksa terhadap perusahaan pemilik data. Admin hanya melihat perusahaan yang ditugaskan kepadanya.", "Every request is checked against the company that owns the data. Reviewers only see the companies assigned to them.")}</p>
-              </div>
-              <div>
-                <IconLock size={22} />
-                <b>{t("Dikunci setelah ditinjau", "Locked after review")}</b>
-                <p>{t("Periode yang dikunci tidak bisa diubah. Perubahan setelahnya menjadi revisi baru dengan nomor versi.", "A locked period cannot change. Later changes become a new, numbered revision.")}</p>
-              </div>
-            </div>
+            <SecHead idx="06" label={t("Keamanan & jejak audit", "Security & audit trail")}
+              strong={t("26 dokumen masuk.", "26 documents in.")} dim={t("Satu pernyataan keluar.", "One statement out.")}
+              text={t("Angka yang bisa dipertanggungjawabkan di depan auditor, karena setiap langkahnya tercatat.",
+                "Figures you can defend in front of an auditor, because every step is on record.")} />
+            <AuditPanels t={t} />
           </div>
         </section>
 
         <section className="lp-sec">
           <div className="lp-wrap">
-            <div className="lp-cta" data-ui="true">
-              <Contours className="contours" rings={7} />
-              <div>
-                <h2 className="sec-title">{t("Mulai dari dokumen periode lalu.", "Start with last period's documents.")}</h2>
-                <p className="sec-text">{t("Daftarkan perusahaan, tambahkan fasilitas dan produk, lalu unggah dokumen. Hasil pertama biasanya terlihat di hari yang sama.",
-                  "Register your company, add facilities and products, then upload documents. The first result usually shows up the same day.")}</p>
-              </div>
-              <div className="cta sec-ui">
-                <Link href={home ?? "/register"} className="btn accent lg">{home ? t("Buka aplikasi", "Open app") : t("Daftarkan perusahaan", "Register your company")}</Link>
-                {!home && <Link href="/login" className="btn on-dark lg">{t("Masuk", "Sign in")}</Link>}
+            <div className="w3-final" data-ui="true">
+              <DotField />
+              <h2 className="sec-title">{t("Mulai dari dokumen periode lalu.", "Start with last period's documents.")} <span className="dim">{t("Hasil pertama di hari yang sama.", "First results the same day.")}</span></h2>
+              <p className="sec-text">{t("Daftarkan perusahaan, tambahkan fasilitas dan produk, lalu unggah dokumen.", "Register your company, add facilities and products, then upload documents.")}</p>
+              <div className="w3-cta sec-ui">
+                <Link href={home ?? "/register"} className="w3-btn primary">{home ? t("Buka aplikasi", "Open app") : t("Daftarkan perusahaan", "Register your company")}<IconArrow size={16} /></Link>
+                {!home && <Link href="/login" className="w3-btn ghost">{t("Masuk", "Sign in")}</Link>}
               </div>
             </div>
           </div>

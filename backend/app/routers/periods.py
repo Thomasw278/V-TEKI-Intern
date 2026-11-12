@@ -9,6 +9,7 @@ from ..models import AuditLog, ReportingPeriod, User, utcnow
 from ..schemas import CalculateIn, PeriodCreate, PeriodOut
 from ..services import audit
 from ..services import requirements as req
+from ..services import statement as stmt
 from ..services.period import (
     activity_table, analyse, calc_freshness, dashboard, gates, latest_calculation, mark_changed, run_calculation,
 )
@@ -103,6 +104,9 @@ def lock_period(period_id: int, ctx: Ctx = Depends(ctx_roles("admin")), db: Sess
     period.requirements_snapshot = req.snapshot(req.effective_specs(db, period.company_id))
     period.status, period.locked_at, period.locked_by = "locked", utcnow(), ctx.user.id
     audit.log(db, ctx.user, ctx.company_id, "period", period.id, "lock", f"Mengunci periode {period.year} (v{period.version})")
+    st = stmt.issue(db, period, ctx.user)  # pernyataan final + kode verifikasi
+    if st:
+        audit.log(db, ctx.user, ctx.company_id, "statement", st.id, "issue", f"Menerbitkan pernyataan {st.number}")
     db.commit()
     return {"status": "locked", "gates": g}
 
@@ -114,6 +118,7 @@ def reopen_period(period_id: int, ctx: Ctx = Depends(ctx_roles("admin")), db: Se
     if period.status != "locked":
         raise HTTPException(status.HTTP_409_CONFLICT, "Periode belum terkunci")
     old_snap = period.requirements_snapshot or {}
+    stmt.supersede(db, period)  # pernyataan revisi lama tetap bisa dicek, berstatus digantikan
     period.status, period.version, period.locked_at, period.locked_by = "open", period.version + 1, None, None
     period.requirements_snapshot = None  # revisi memakai status kebutuhan yang berlaku sekarang
     now = req.effective_specs(db, period.company_id)
@@ -122,6 +127,15 @@ def reopen_period(period_id: int, ctx: Ctx = Depends(ctx_roles("admin")), db: Se
     audit.log(db, ctx.user, ctx.company_id, "period", period.id, "reopen", f"Membuka revisi v{period.version} periode {period.year}")
     db.commit()
     return {"status": period.status, "version": period.version}
+
+
+@router.get("/{period_id}/statement")
+def get_statement(period_id: int, ctx: Ctx = Depends(company_ctx), db: Session = Depends(get_db)):
+    """Isi Pernyataan Hasil Perhitungan Emisi Tertanam (final bila periode terkunci, selain itu draf)."""
+    data = stmt.build(db, get_period(period_id, ctx, db), ctx.user)
+    if not data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Jalankan kalkulasi terlebih dulu")
+    return data
 
 
 @router.get("/{period_id}/audit")

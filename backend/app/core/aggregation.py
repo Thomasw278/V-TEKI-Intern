@@ -58,6 +58,10 @@ def _txt(fields: dict, key: str) -> str:
     return "" if v is None else str(v)
 
 
+# kata pada kolom "penggunaan" BBM yang menandai alat bergerak (di luar batas instalasi CBAM)
+MOBILE_WORDS = ("kendaraan", "truk", "truck", "mobil", "motor", "alat berat", "excavator", "loader", "traktor", "angkut", "dump")
+
+
 def build_activity(
     docs: list[DocInput],
     products: list[ProductSpec],
@@ -89,8 +93,10 @@ def build_activity(
         vol = _num(it, "volume_l")
         if vol > 0:
             ft = _txt(it, "fuel_type") or "solar"
-            act.fuels.append(FuelEntry(ft, vol))
-            trace("bbm", f"Volume {ft}", vol, "L", x, i)
+            use = (_txt(it, "usage") or "").lower()
+            mobile = any(k in use for k in MOBILE_WORDS)
+            act.fuels.append(FuelEntry(ft, vol, mobile))
+            trace("bbm", f"Volume {ft}", vol, "L", x, i, "alat bergerak" if mobile else "")
 
     # Listrik
     for x, i, it in rows("listrik"):
@@ -191,7 +197,7 @@ def build_activity(
         vol = _num(it, "volume_l")
         if vol > 0:
             ft = _txt(it, "fuel_type") or "solar"
-            act.fuels.append(FuelEntry(ft, vol))
+            act.fuels.append(FuelEntry(ft, vol, True))  # BBM angkutan selalu alat bergerak
             mode_desc = _txt(it, "mode")
             trace("transport", f"Volume {ft}" if not mode_desc else f"Volume {ft} ({mode_desc})", vol, "L", x, i)
         else:

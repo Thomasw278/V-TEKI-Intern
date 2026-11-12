@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useT } from "@/lib/i18n";
-import { Contours } from "./Contours";
+import { DotField } from "./LandingParts";
 import { Brand, Toggles } from "./ui";
 
 /** Kerangka halaman masuk & daftar: panel merek di kiri (desktop), formulir di kanan. */
@@ -12,10 +12,11 @@ export function AuthLayout({ children, wide }: { children: ReactNode; wide?: boo
   return (
     <div className="auth">
       <aside className="auth-side">
-        <Contours className="contours" rings={9} />
+        <DotField />
         <Link href="/" className="brand" style={{ color: "var(--band-ink)" }}><Brand size={28} /></Link>
         <div className="quote">
-          <h2>{t("Setiap angka emisi bisa ditunjukkan asalnya.", "Every emission figure can show where it came from.")}</h2>
+          <span className="w3-label"><i>CBAM</i>{t("Emisi tertanam produk", "Embedded product emissions")}</span>
+          <h2>{t("Setiap angka emisi", "Every emission figure")} <span className="dim">{t("bisa ditunjukkan asalnya.", "can show where it came from.")}</span></h2>
           <p>{t(
             "Perusahaan mengunggah dokumen operasional, sistem membaca angkanya, dan admin peninjau menyetujui sebelum laporan CBAM dikunci.",
             "Companies upload operational documents, the system reads the figures, and an assigned reviewer approves them before the CBAM report is locked.",

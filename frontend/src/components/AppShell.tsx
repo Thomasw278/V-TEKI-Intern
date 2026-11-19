@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { api, superApi } from "@/lib/api";
 import { initials, periodLabel, roleLabel } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -93,6 +93,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [palette, setPalette] = useState(false);
   const [compact, setCompact] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  // pil penanda menu aktif: mengikuti posisi tautan aktif dan bergeser halus saat pindah halaman
+  const [pill, setPill] = useState<{ top: number; height: number; ready: boolean } | null>(null);
 
   // sidebar yang diciutkan diingat per peramban (pilihan tampilan, bukan data)
   useEffect(() => {
@@ -117,6 +120,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     // konten menggulir di dalam kanvas, bukan jendela → kembalikan ke atas setiap pindah halaman
     mainRef.current?.scrollTo({ top: 0 });
   }, [pathname, refreshSummary]);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const place = () => {
+      const a = nav.querySelector<HTMLElement>('a[aria-current="page"]');
+      setPill((p) => (a ? { top: a.offsetTop, height: a.offsetHeight, ready: !!p } : null));
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [pathname, compact, nav.length]);
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
@@ -159,7 +175,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <LogoMark size={26} />
             <span className="brand-text">
               <span className="brand-wordmark">KarbonLens</span>
-              <span className="brand-badge">AUDIT OS</span>
             </span>
           </Link>
           <button className="btn ghost icon sm menu-btn" onClick={() => setOpen(false)} aria-label={t("Tutup menu", "Close menu")}><IconX size={18} /></button>
@@ -168,7 +183,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             title={compact ? t("Lebarkan sidebar", "Expand sidebar") : t("Ciutkan sidebar", "Collapse sidebar")}><IconSidebar size={17} /></button>
         </div>
         <ContextCard />
-        <nav className="nav">
+        <nav className="nav" ref={navRef}>
+          {pill && <span className="nav-pill" data-ready={pill.ready} style={{ transform: `translateY(${pill.top}px)`, height: pill.height }} aria-hidden="true" />}
           {groups.map((g) => (
             <div key={g.name} style={{ display: "contents" }}>
               <div className="nav-group">{g.name}</div>
@@ -208,7 +224,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="hide-m"><Toggles /></span>
           <UserMenu onSignOut={signOut} />
         </header>
-        <main className="content" id="main">{children}</main>
+        <main className="content" id="main" data-area={isSuperadmin ? "superadmin" : undefined}>{children}</main>
       </div>
 
       <nav className="tabbar" aria-label={t("Navigasi cepat", "Quick navigation")}>

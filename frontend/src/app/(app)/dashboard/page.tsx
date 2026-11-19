@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { IconArrow, IconCalc, IconCheck, IconInbox, IconRefresh, IconUpload, IconWarn } from "@/components/Icons";
-import { Badge, Button, CountUp, Empty, ErrorBox, Loading, PageHead, useLoad, useToast } from "@/components/ui";
+import { IconArrow, IconCalc, IconCheck, IconChevronRight, IconInbox, IconRefresh, IconUpload, IconWarn } from "@/components/Icons";
+import { Button, CountUp, Empty, ErrorBox, Loading, useLoad, useToast } from "@/components/ui";
 import { ExcludedNote } from "@/components/requirements";
 import { api } from "@/lib/api";
-import { num, when } from "@/lib/format";
+import { initials, num, when } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useSummary } from "@/lib/summary";
-import type { Dashboard, Issue, ReqState } from "@/lib/types";
+import type { Dashboard, Issue } from "@/lib/types";
 
 function issueHref(i: Issue): string {
   if (i.ref_type === "document" && i.ref_id) return `/dokumen/${i.ref_id}`;
@@ -25,16 +25,11 @@ export default function DashboardPage() {
   const { refreshSummary } = useSummary();
   const toast = useToast();
   const [recalc, setRecalc] = useState(false);
+  const [tab, setTab] = useState<"src" | "cbam">("src");
   const { data, error, loading, reload } = useLoad(
     () => (period ? api<Dashboard>(`/api/periods/${period.id}/dashboard`) : Promise.resolve(null)),
     [period?.id, epoch],
   );
-
-  const STATE: Record<ReqState, string> = {
-    complete: t("Lengkap", "Complete"), partial: t("Sebagian", "Partial"), in_review: t("Dalam proses", "In progress"),
-    default: t("Nilai bawaan", "Default value"), missing: t("Belum ada", "Missing"),
-    excluded: t("Tidak berlaku", "Not applicable"),
-  };
 
   if (!period) return <Empty title={t("Belum ada periode pelaporan", "No reporting period yet")}>{t("Buka periode baru di menu Perusahaan & akun.", "Open a new period under Company & account.")}</Empty>;
   if (loading && !data) return <Loading />;
@@ -106,28 +101,42 @@ export default function DashboardPage() {
   const lines = calc ? [...calc.lines].filter((l) => l.value_t > 0.0005).sort((a, b) => b.value_t - a.value_t) : [];
   const maxLine = lines[0]?.value_t || 1;
   const cbam = calc?.cbam ?? null;
-  const GROUP: Record<string, string> = { direct: t("Langsung", "Direct"), indirect: t("Listrik", "Electricity"), upstream: t("Hulu", "Upstream") };
-  const stepIndex = Math.max(0, steps.findIndex((s) => s.state === "active"));
   const doneSteps = steps.filter((s) => s.state === "done").length;
+  const outside = (cbam?.outside ?? []).filter((o) => o.value_t >= 0.5).sort((a, b) => b.value_t - a.value_t);
+  const products = (calc?.allocations ?? []).slice(0, 2);
+  const docsLine = [
+    t(`${data.documents_total} dokumen`, `${data.documents_total} documents`),
+    isAdmin ? t(`${submitted} menunggu Anda`, `${submitted} awaiting you`) : t(`${toCheck + returned} perlu diperiksa`, `${toCheck + returned} to check`),
+    t(`${reqDone} dari ${reqRequired.length} kategori wajib terpenuhi`, `${reqDone} of ${reqRequired.length} required categories covered`),
+  ].join(" · ");
 
   return (
     <>
-      <PageHead
-        eyebrow={isAdmin ? <><Badge tone="info">{t("Mode peninjau", "Reviewer mode")}</Badge>{company?.name}</> : <span className="db-meta">{company?.name}</span>}
-        title={t(`Ringkasan periode ${data.period.year}`, `Period ${data.period.year} overview`)}
-        description={<span className="db-meta">
-          {calc ? t(`Kalkulasi v${calc.version} · ${when(calc.created_at)}`, `Calculation v${calc.version} · ${when(calc.created_at)}`) : t("Belum ada kalkulasi", "No calculation yet")}
-          {" · "}{locked ? t("periode dikunci", "period locked") : t("data masih bisa diubah", "data can still change")}
-        </span>}>
-        {isAdmin ? (
-          <Link href="/validasi" className="btn primary"><IconInbox size={16} />{t("Tinjau pengajuan", "Review submissions")}</Link>
-        ) : (
-          <>
-            <Link href="/dokumen#unggah" className="btn secondary"><IconUpload size={16} />{t("Unggah dokumen", "Upload documents")}</Link>
-            <Link href="/kalkulasi" className="btn primary"><IconCalc size={16} />{t("Kalkulasi", "Calculate")}</Link>
-          </>
-        )}
-      </PageHead>
+      <header className="dx-head">
+        <div className="dx-titles">
+          <h1>{t("Ringkasan", "Overview")}</h1>
+          <p>
+            <span>{company?.name}</span>
+            <span aria-hidden="true">·</span>
+            <span>{t(`Periode ${data.period.year}`, `Period ${data.period.year}`)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{calc ? t(`Kalkulasi v${calc.version}, ${when(calc.created_at)}`, `Calculation v${calc.version}, ${when(calc.created_at)}`) : t("Belum ada kalkulasi", "No calculation yet")}</span>
+            {isAdmin && <span className="dx-pill info">{t("Mode peninjau", "Reviewer mode")}</span>}
+            {locked ? <span className="dx-pill ok">{t("Dikunci", "Locked")}</span>
+              : calc?.has_draft_factors && <Link href="/faktor" className="dx-pill warn">{t("Hasil draf", "Draft result")}</Link>}
+          </p>
+        </div>
+        <div className="dx-actions">
+          {isAdmin ? (
+            <Link href="/validasi" className="btn primary"><IconInbox size={16} />{t("Tinjau pengajuan", "Review submissions")}</Link>
+          ) : (
+            <>
+              <Link href="/dokumen#unggah" className="btn secondary"><IconUpload size={16} />{t("Unggah dokumen", "Upload documents")}</Link>
+              <Link href="/kalkulasi" className="btn primary"><IconCalc size={16} />{t("Kalkulasi", "Calculate")}</Link>
+            </>
+          )}
+        </div>
+      </header>
 
       <ExcludedNote items={data.requirements.filter((r) => r.excluded).map((r) => ({
         code: r.code, name: r.name, reason: r.status_reason, set_by: r.status_set_by, set_at: r.status_set_at, source: r.status_source,
@@ -155,191 +164,194 @@ export default function DashboardPage() {
       )}
 
       {calc?.stale && (
-        <div className="db-alert" role="alert">
+        <div className="dx-alert" role="alert">
           <IconWarn size={16} aria-hidden="true" />
-          <span className="grow">{t(`Data berubah ${when(calc.stale_since ?? null)}. Angka di bawah dari kalkulasi sebelumnya; hitung ulang sebelum dipakai.`,
-            `Data changed ${when(calc.stale_since ?? null)}. The figures below come from the previous calculation; recalculate before using them.`)}</span>
+          <span className="grow">{t(`Data berubah ${when(calc.stale_since ?? null)}. Angka di bawah berasal dari kalkulasi sebelumnya.`,
+            `Data changed ${when(calc.stale_since ?? null)}. The figures below come from the previous calculation.`)}</span>
           {canCalc && <Button size="sm" loading={recalc} onClick={recalculate}><IconRefresh size={14} />{t("Hitung ulang", "Recalculate")}</Button>}
         </div>
       )}
 
-      {/* ---------- metrik utama ---------- */}
-      <section className="db-strip" aria-label={t("Hasil periode", "Period results")}>
-        <div className="db-cell db-total">
-          <span className="db-k">{t("Total emisi tertanam", "Total embedded emissions")}</span>
-          {calc ? (
-            <>
-              <b className={`db-v xl ${calc.stale ? "is-stale" : ""}`}><CountUp value={calc.total_t} /></b>
-              <span className="db-u">{t(`t CO₂e · jejak karbon produk ${data.period.year}`, `t CO₂e · product carbon footprint ${data.period.year}`)}</span>
-              <div className="db-stack" aria-hidden="true">
-                <i className="direct" style={{ width: `${share(calc.direct_t)}%` }} />
-                <i className="indirect" style={{ width: `${share(calc.indirect_t)}%` }} />
-                <i className="upstream" style={{ width: `${share(calc.upstream_t)}%` }} />
-              </div>
-              <div className="db-legend">
-                <span><i className="direct" />{t("Langsung", "Direct")} <em>{num(share(calc.direct_t), 1)}%</em></span>
-                <span><i className="indirect" />{t("Listrik", "Electricity")} <em>{num(share(calc.indirect_t), 1)}%</em></span>
-                <span><i className="upstream" />{t("Hulu", "Upstream")} <em>{num(share(calc.upstream_t), 1)}%</em></span>
-              </div>
-            </>
-          ) : (
-            <>
-              <b className="db-v xl muted">—</b>
-              <span className="db-u">{t("Ajukan dokumen lalu jalankan kalkulasi.", "Submit documents, then run a calculation.")}</span>
-            </>
-          )}
-        </div>
-        {(calc?.allocations ?? []).slice(0, 2).map((a) => (
-          <div key={a.code} className="db-cell">
-            <span className="db-k">SEE {a.code}</span>
-            <b className="db-v"><CountUp value={a.see_total} digits={3} /></b>
-            <span className="db-u">{t("t CO₂e per ton", "t CO₂e per tonne")}</span>
-            <span className="db-foot">{num(a.tonnes)} t · {t("porsi", "share")} {num(a.share * 100, 1)}%</span>
+      {/* ---------- metrik utama: empat kartu setara ---------- */}
+      <section className="dx-kpis" aria-label={t("Hasil periode", "Period results")}>
+        <article className="dx-card dx-kpi">
+          <p className="l">{t("Total emisi tertanam", "Total embedded emissions")}</p>
+          <p className={`v ${calc?.stale ? "stale" : ""}`}>{calc ? <CountUp value={calc.total_t} /> : "—"}<span className="u">t CO₂e</span></p>
+          <div className="f">
+            {calc ? (
+              <>
+                <span className="dx-seg" aria-hidden="true">
+                  <i className="direct" style={{ width: `${share(calc.direct_t)}%` }} />
+                  <i className="indirect" style={{ width: `${share(calc.indirect_t)}%` }} />
+                  <i className="upstream" style={{ width: `${share(calc.upstream_t)}%` }} />
+                </span>
+                {t(`${num(share(calc.direct_t), 1)}% emisi langsung`, `${num(share(calc.direct_t), 1)}% direct emissions`)}
+              </>
+            ) : t("Muncul setelah kalkulasi", "Shown after a calculation")}
           </div>
+        </article>
+        {(products.length ? products : [null, null]).map((a, i) => (
+          <article key={a?.code ?? i} className="dx-card dx-kpi">
+            <p className="l">{a ? t(`SEE ${a.code}`, `SEE ${a.code}`) : t("SEE produk", "Product SEE")}</p>
+            <p className="v">{a ? <CountUp value={a.see_total} digits={3} /> : "—"}<span className="u">{t("t CO₂e/t", "t CO₂e/t")}</span></p>
+            <div className="f">{a ? t(`${num(a.tonnes)} t diproduksi · porsi ${num(a.share * 100, 1)}%`, `${num(a.tonnes)} t produced · ${num(a.share * 100, 1)}% share`) : t("Per ton produk", "Per tonne of product")}</div>
+          </article>
         ))}
-        <div className="db-cell">
-          <span className="db-k">{t("Batas CBAM", "CBAM boundary")}</span>
-          {cbam ? (
-            <>
-              <b className="db-v">{num(cbam.embedded_total_t)}</b>
-              <span className="db-u">t CO₂e · Annex IV</span>
-              <span className="db-meter" aria-hidden="true"><i style={{ width: `${Math.min(100, share(cbam.embedded_total_t))}%` }} /></span>
-              <span className="db-foot">{t(`${num(share(cbam.embedded_total_t), 1)}% dari jejak karbon`, `${num(share(cbam.embedded_total_t), 1)}% of the footprint`)}</span>
-            </>
-          ) : (
-            <>
-              <b className="db-v muted">—</b>
-              <span className="db-foot">{calc ? t("Hitung ulang untuk melihat", "Recalculate to see it") : t("Setelah kalkulasi", "After a calculation")}</span>
-            </>
-          )}
-        </div>
-        <div className="db-stats">
-          <Link href="/dokumen"><span className="db-k">{t("Dokumen", "Documents")}</span><b>{data.documents_total}</b><em>{reading ? t(`${reading} dibaca`, `${reading} reading`) : t("terunggah", "uploaded")}</em></Link>
-          <Link href="/validasi"><span className="db-k">{isAdmin ? t("Menunggu Anda", "Awaiting you") : t("Perlu diperiksa", "To check")}</span><b className={(isAdmin ? submitted : toCheck + returned) ? "warn" : ""}>{isAdmin ? submitted : toCheck + returned}</b><em>{returned && !isAdmin ? t(`${returned} dikembalikan`, `${returned} returned`) : t("dokumen", "documents")}</em></Link>
-          <Link href="/dokumen"><span className="db-k">{t("Kategori wajib", "Required")}</span><b>{reqDone}<small>/{reqRequired.length}</small></b><em>{t("terpenuhi", "covered")}</em></Link>
-          <Link href="/validasi"><span className="db-k">{t("Isu kritis", "Critical")}</span><b className={critical.length ? "bad" : ""}>{critical.length}</b><em>{critical.length ? t("perlu ditangani", "need attention") : t("tidak ada", "none")}</em></Link>
-          {calc?.has_draft_factors && <Link href="/faktor" className="draft"><span className="db-k">{t("Status hasil", "Result status")}</span><b className="warn">{t("Draf", "Draft")}</b><em>{t("ada faktor belum disetujui", "unapproved factors")}</em></Link>}
-        </div>
+        <article className="dx-card dx-kpi">
+          <p className="l">{t("Menurut batas CBAM", "Within the CBAM boundary")}</p>
+          <p className="v">{cbam ? num(cbam.embedded_total_t) : "—"}<span className="u">t CO₂e</span></p>
+          <div className="f">{cbam ? t(`${num(share(cbam.embedded_total_t), 1)}% dari total · Annex IV`, `${num(share(cbam.embedded_total_t), 1)}% of the total · Annex IV`)
+            : calc ? t("Hitung ulang untuk melihat", "Recalculate to see it") : t("Muncul setelah kalkulasi", "Shown after a calculation")}</div>
+        </article>
       </section>
 
-      {/* ---------- jalur periode ---------- */}
-      <section className="db-rail" aria-label={t("Tahapan periode", "Period stages")}>
-        <div className="db-rail-head">
-          <span className="db-k">{t(`Tahapan periode ${data.period.year}`, `Period ${data.period.year} stages`)}</span>
-          <span className="db-mono">{doneSteps}/{steps.length} {t("selesai", "done")}</span>
-        </div>
-        <ol>
-          <span className="db-rail-track" aria-hidden="true"><i style={{ width: `${(Math.max(doneSteps - 0.5, 0) / (steps.length - 1)) * 100}%` }} /></span>
-          {steps.map((s, i) => (
-            <li key={s.name} className={s.state} aria-current={i === stepIndex && s.state === "active" ? "step" : undefined}>
-              <span className="db-node" aria-hidden="true">{s.state === "done" ? <IconCheck size={12} /> : String(i + 1).padStart(2, "0")}</span>
-              <b>{s.name}</b>
-              <span>{s.sub}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <div className="db-grid">
-        {/* ---------- komposisi ---------- */}
-        <section className="panel db-panel db-main" aria-label={t("Komposisi emisi", "Emission composition")}>
-          <div className="db-phead">
-            <div><span className="db-k">{t("Komposisi emisi", "Emission composition")}</span><h2>{t("Kontribusi per sumber", "Contribution by source")}</h2></div>
-            <Link href="/kalkulasi" className="db-link">{t("Rincian rumus", "Formula details")}<IconArrow size={14} /></Link>
-          </div>
-          {calc ? (
-            <div className="db-rows">
-              <div className="db-row head"><span>{t("Sumber", "Source")}</span><span>{t("Kelompok", "Group")}</span><span /><span className="r">t CO₂e</span><span className="r">%</span></div>
-              {lines.map((l) => (
-                <div key={l.key} className="db-row">
-                  <span className="n">{l.name}{l.source === "default" && <sup title={t("Nilai bawaan literatur", "Literature default")}>†</sup>}</span>
-                  <span className="g">{GROUP[l.group] ?? l.group}</span>
-                  <span className="bar"><i className={l.group} style={{ width: `${(l.value_t / maxLine) * 100}%` }} /></span>
-                  <span className="r v">{num(l.value_t, 0)}</span>
-                  <span className="r p">{num(share(l.value_t), 1)}</span>
-                </div>
-              ))}
+      {/* ---------- baris 1: komposisi + progres ---------- */}
+      <div className="dx-row">
+        <section className="dx-card" aria-label={t("Komposisi emisi", "Emission composition")}>
+          <div className="dx-card-h">
+            <div>
+              <h2>{t("Komposisi emisi", "Emission composition")}</h2>
+              <p>{tab === "src" ? t("Kontribusi tiap sumber terhadap total, dalam t CO₂e", "Each source's contribution to the total, in t CO₂e")
+                : t("Jejak karbon produk dibandingkan batas CBAM", "Product footprint compared with the CBAM boundary")}</p>
             </div>
-          ) : <Empty title={t("Belum ada kalkulasi", "No calculation yet")}>{t("Komposisi muncul setelah kalkulasi pertama.", "The composition appears after the first calculation.")}</Empty>}
-
-          {cbam && calc && (
-            <div className="db-cbam">
-              <div className="db-cbam-head">
-                <div>
-                  <span className="db-k">{t("Pembanding regulasi", "Regulatory comparison")}</span>
-                  <h3>{t("Jejak karbon produk vs batas CBAM", "Product footprint vs CBAM boundary")}</h3>
+            {cbam && (
+              <div className="dx-tabs" role="tablist" aria-label={t("Tampilan komposisi", "Composition view")}>
+                <button role="tab" aria-selected={tab === "src"} onClick={() => setTab("src")}>{t("Per sumber", "By source")}</button>
+                <button role="tab" aria-selected={tab === "cbam"} onClick={() => setTab("cbam")}>{t("Batas CBAM", "CBAM boundary")}</button>
+              </div>
+            )}
+          </div>
+          <div className="dx-card-b">
+            {!calc ? (
+              <Empty title={t("Belum ada kalkulasi", "No calculation yet")}>{t("Komposisi muncul setelah kalkulasi pertama.", "The composition appears after the first calculation.")}</Empty>
+            ) : tab === "src" || !cbam ? (
+              <ul className="dx-bars" role="tabpanel">
+                {lines.map((l) => (
+                  <li key={l.key}>
+                    <span className="track">
+                      <span className={`fill ${l.group}`} style={{ width: `${Math.max(2, (l.value_t / maxLine) * 100)}%` }} />
+                      <span className="name"><i className={l.group} aria-hidden="true" />{l.name}{l.source === "default" && <sup title={t("Nilai bawaan literatur", "Literature default")}>†</sup>}</span>
+                    </span>
+                    <span className="v">{num(l.value_t)}</span>
+                    <span className="p">{num(share(l.value_t), 1)}%</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div role="tabpanel">
+                <div className="dx-compare">
+                  <div>
+                    <span>{t("Jejak karbon produk", "Product footprint")}</span>
+                    <b>{num(calc.total_t)} <small>t CO₂e</small></b>
+                    <span className="dx-line"><i style={{ width: "100%" }} /></span>
+                    <em>{t("Kebun sampai pabrik, semua gas rumah kaca", "Plantation to mill, all greenhouse gases")}</em>
+                  </div>
+                  <div>
+                    <span>{t("Batas CBAM", "CBAM boundary")}</span>
+                    <b>{num(cbam.embedded_total_t)} <small>t CO₂e</small></b>
+                    <span className="dx-line cbam"><i style={{ width: `${Math.max(1, share(cbam.embedded_total_t))}%` }} /></span>
+                    <em>{t("Pabrik saja: CO₂ pembakaran, listrik, prekursor", "Mill only: combustion CO₂, electricity, precursors")}</em>
+                  </div>
                 </div>
-                <span className="db-mono">Reg. (EU) 2023/956 · Annex IV</span>
+                <p className="dx-sub">{t("Di luar batas CBAM", "Outside the CBAM boundary")}</p>
+                <ul className="dx-list">
+                  {outside.map((o) => (
+                    <li key={o.key}><span><b>{o.name}</b><em>{o.reason}</em></span><span className="v">{num(o.value_t)} t</span></li>
+                  ))}
+                </ul>
               </div>
-              <div className="db-compare">
-                <div><span>{t("Jejak karbon produk", "Product footprint")}</span><span className="db-cbar"><i style={{ width: "100%" }} /></span><b>{num(calc.total_t)} t</b></div>
-                <div><span>{t("Batas CBAM", "CBAM boundary")}</span><span className="db-cbar cbam"><i style={{ width: `${Math.max(1, share(cbam.embedded_total_t))}%` }} /></span><b>{num(cbam.embedded_total_t)} t</b></div>
-              </div>
-              <p className="db-note">{t("CBAM hanya menghitung instalasi (pabrik): CO₂ pembakaran stasioner, listrik yang dikonsumsi, dan prekursor. Di luar batas:",
-                "CBAM covers the installation only: stationary combustion CO₂, electricity consumed and precursors. Outside the boundary:")}</p>
-              <div className="db-chips">
-                {cbam.outside.filter((o) => o.value_t >= 0.5).map((o) => <span key={o.key} title={o.reason}>{o.name}<em>{num(o.value_t)} t</em></span>)}
-              </div>
+            )}
+          </div>
+          {calc && (
+            <div className="dx-card-f">
+              <span className="dx-legend">
+                <span><i className="direct" />{t("Langsung", "Direct")}</span>
+                <span><i className="indirect" />{t("Listrik", "Electricity")}</span>
+                <span><i className="upstream" />{t("Hulu", "Upstream")}</span>
+              </span>
+              <Link href="/kalkulasi" className="dx-link">{t("Rincian rumus", "Formula details")}<IconArrow size={14} /></Link>
             </div>
           )}
         </section>
 
-        {/* ---------- perlu ditangani ---------- */}
-        <section className="panel db-panel db-side" aria-label={t("Perlu ditangani", "Needs attention")}>
-          <div className="db-phead">
-            <div><span className="db-k">{t("Antrean", "Queue")}</span><h2>{t("Perlu ditangani", "Needs attention")}</h2></div>
-            {critical.length ? <Badge tone="bad" pip>{t(`${critical.length} kritis`, `${critical.length} critical`)}</Badge> : <Badge tone="ok" pip>{t("Aman", "Clear")}</Badge>}
+        <section className="dx-card" aria-label={t("Progres periode", "Period progress")}>
+          <div className="dx-card-h">
+            <div>
+              <h2>{t("Progres periode", "Period progress")}</h2>
+              <p>{t(`${doneSteps} dari ${steps.length} tahap selesai`, `${doneSteps} of ${steps.length} stages done`)}</p>
+            </div>
+            <span className="dx-pct">{Math.round((doneSteps / steps.length) * 100)}%</span>
           </div>
-          <div className="db-next">
-            <span className="db-k accent">{t("Langkah berikutnya", "Next step")}</span>
-            <p>{next.text}</p>
+          <div className="dx-card-b">
+            <span className="dx-progress" aria-hidden="true"><i style={{ width: `${(doneSteps / steps.length) * 100}%` }} /></span>
+            <ol className="dx-steps">
+              {steps.map((s) => (
+                <li key={s.name} className={s.state}>
+                  <span className="ic" aria-hidden="true">{s.state === "done" ? <IconCheck size={12} /> : null}</span>
+                  <span className="n">{s.name}</span>
+                  <span className="s">{s.sub}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="dx-card-f dx-next">
+            <p><span>{t("Langkah berikutnya", "Next step")}</span>{next.text}</p>
             <Link href={next.href} className="btn primary sm">{next.cta}<IconArrow size={14} /></Link>
           </div>
-          {data.issues.length === 0 && <p className="db-empty">{t("Tidak ada isu validasi untuk periode ini.", "There are no validation issues for this period.")}</p>}
-          <ol className="db-issues">
-            {data.issues.slice(0, 6).map((i, k) => (
-              <li key={k}>
-                <Link href={issueHref(i)}>
-                  <span className={`db-sev ${i.severity}`} aria-label={i.severity} />
-                  <span className="b"><b>{i.title}</b><span>{i.message}</span></span>
-                  <IconArrow size={14} className="faint" />
-                </Link>
-              </li>
-            ))}
-          </ol>
+        </section>
+      </div>
+
+      {/* ---------- baris 2: tindakan + aktivitas ---------- */}
+      <div className="dx-row">
+        <section className="dx-card" aria-label={t("Perlu ditangani", "Needs attention")}>
+          <div className="dx-card-h">
+            <div>
+              <h2>{t("Perlu ditangani", "Needs attention")}</h2>
+              <p>{docsLine}</p>
+            </div>
+            {critical.length > 0 && <span className="dx-pill bad">{t(`${critical.length} kritis`, `${critical.length} critical`)}</span>}
+          </div>
+          <div className="dx-card-b flush">
+            {data.issues.length === 0 ? (
+              <p className="dx-empty">{t("Tidak ada isu untuk periode ini.", "There are no issues for this period.")}</p>
+            ) : (
+              <ul className="dx-issues">
+                {data.issues.slice(0, 5).map((i, k) => (
+                  <li key={k}>
+                    <Link href={issueHref(i)}>
+                      <span className={`dot ${i.severity}`} aria-hidden="true" />
+                      <span className="t"><b>{i.title}</b><em>{i.message}</em></span>
+                      <IconChevronRight size={16} className="faint" aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {data.issues.length > 5 && (
+            <div className="dx-card-f"><Link href="/validasi" className="dx-link">{t(`Lihat ${data.issues.length - 5} lainnya`, `View ${data.issues.length - 5} more`)}<IconArrow size={14} /></Link></div>
+          )}
         </section>
 
-        {/* ---------- kelengkapan ---------- */}
-        <section className="panel db-panel db-main" aria-label={t("Kelengkapan dokumen", "Document coverage")}>
-          <div className="db-phead">
-            <div><span className="db-k">{t("Kelengkapan", "Coverage")} · {reqDone}/{reqRequired.length} {t("wajib", "required")}</span><h2>{t("Dokumen per kategori", "Documents by category")}</h2></div>
-            <Link href="/dokumen" className="db-link">{t("Kelola dokumen", "Manage documents")}<IconArrow size={14} /></Link>
+        <section className="dx-card" aria-label={t("Aktivitas terbaru", "Recent activity")}>
+          <div className="dx-card-h">
+            <div>
+              <h2>{t("Aktivitas terbaru", "Recent activity")}</h2>
+              <p>{t("Tercatat di jejak audit", "Recorded in the audit trail")}</p>
+            </div>
           </div>
-          <div className="db-reqs">
-            {data.requirements.map((r, i) => (
-              <Link key={r.code} href="/dokumen" className="db-req">
-                <span className="i">{String(i + 1).padStart(2, "0")}</span>
-                <b>{r.name}</b>
-                <span className={`db-chip ${r.state}`}>{STATE[r.state]}</span>
-                <span className="o">{r.excluded ? "—" : r.required ? t("wajib", "required") : t("opsional", "optional")}</span>
-              </Link>
-            ))}
+          <div className="dx-card-b flush">
+            {data.activity.length === 0 ? <p className="dx-empty">{t("Belum ada aktivitas.", "No activity yet.")}</p> : (
+              <ul className="dx-acts">
+                {data.activity.slice(0, 6).map((a, i) => (
+                  <li key={i}>
+                    <span className="av" aria-hidden="true">{initials(a.user)}</span>
+                    <span className="t"><b>{a.summary}</b><em>{a.user} · {when(a.at)}</em></span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </section>
-
-        {/* ---------- aktivitas ---------- */}
-        <section className="panel db-panel db-side" aria-label={t("Aktivitas terbaru", "Recent activity")}>
-          <div className="db-phead"><div><span className="db-k">{t("Jejak audit", "Audit trail")}</span><h2>{t("Aktivitas terbaru", "Recent activity")}</h2></div></div>
-          {data.activity.length === 0 && <p className="db-empty">{t("Belum ada aktivitas.", "No activity yet.")}</p>}
-          <ol className="db-feed">
-            {data.activity.map((a, i) => (
-              <li key={i}>
-                <span className="dot" aria-hidden="true" />
-                <span className="b"><b>{a.summary}</b><span>{a.user}</span></span>
-                <time className="db-mono">{when(a.at)}</time>
-              </li>
-            ))}
-          </ol>
         </section>
       </div>
     </>

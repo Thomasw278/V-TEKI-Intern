@@ -127,7 +127,6 @@ export default function Landing() {
             <LogoMark size={28} />
             <span className="brand-text">
               <span className="brand-wordmark">KarbonLens</span>
-              <span className="brand-badge">AUDIT OS</span>
             </span>
           </Link>
           <LandingNav items={NAV} ariaLabel={t("Navigasi halaman", "Page navigation")} />
@@ -323,7 +322,6 @@ export default function Landing() {
                 <LogoMark size={28} />
                 <span className="brand-text">
                   <span className="brand-wordmark">KarbonLens</span>
-                  <span className="brand-badge">AUDIT OS</span>
                 </span>
               </Link>
               <p>{t("Perhitungan emisi tertanam produk (CBAM) dari dokumen operasional perusahaan.", "Embedded product emissions (CBAM) calculated from operational company documents.")}</p>
@@ -353,7 +351,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="bottom">
-            <span>© {new Date().getFullYear()} KarbonLens AUDIT OS</span>
+            <span>© {new Date().getFullYear()} KarbonLens</span>
             <Toggles />
           </div>
         </div>

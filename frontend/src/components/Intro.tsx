@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { Contours } from "./Contours";
@@ -148,4 +149,15 @@ export function replayIntro() {
   } catch {
     /* abaikan */
   }
+}
+
+/**
+ * Intro untuk kunjungan pertama ke halaman mana pun (mis. langsung membuka /dashboard atau /superadmin).
+ * Memakai komponen & kunci penyimpanan yang sama dengan halaman utama, jadi hanya diputar sekali.
+ * Halaman utama memasang intro-nya sendiri (bisa diputar ulang); halaman cetak & cek publik dilewati.
+ */
+export function FirstVisitIntro() {
+  const pathname = usePathname() ?? "/";
+  if (pathname === "/" || pathname.startsWith("/cetak") || pathname.startsWith("/verifikasi")) return null;
+  return <Intro />;
 }

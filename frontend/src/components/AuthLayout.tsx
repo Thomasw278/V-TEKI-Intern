@@ -34,7 +34,7 @@ export function AuthLayout({ children, wide }: { children: ReactNode; wide?: boo
           <Toggles />
         </div>
         <div className="auth-body"><div className={`auth-card ${wide ? "wide" : ""} anim-rise`}>{children}</div></div>
-        <p className="auth-foot">© {new Date().getFullYear()} KarbonLens AUDIT OS · {t("Data setiap perusahaan terpisah dan terenkripsi saat dikirim.", "Each company's data is isolated and encrypted in transit.")}</p>
+        <p className="auth-foot">© {new Date().getFullYear()} KarbonLens · {t("Data setiap perusahaan terpisah dan terenkripsi saat dikirim.", "Each company's data is isolated and encrypted in transit.")}</p>
       </main>
     </div>
   );

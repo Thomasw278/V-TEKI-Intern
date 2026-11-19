@@ -17,13 +17,12 @@ export function Logo({ size = 28 }: { size?: number }) {
   return <LogoMark size={size} />;
 }
 
-export function Brand({ size = 26, showBadge = true, className = "" }: { size?: number; showBadge?: boolean; className?: string }) {
+export function Brand({ size = 26, className = "" }: { size?: number; className?: string }) {
   return (
     <span className={`brand-identity ${className}`}>
       <LogoMark size={size} />
       <span className="brand-text">
         <span className="brand-wordmark">KarbonLens</span>
-        {showBadge && <span className="brand-badge">AUDIT OS</span>}
       </span>
     </span>
   );
